@@ -33,6 +33,8 @@ namespace Chess {
   };
 
   enum SpecificPieceT {
+    SpecificNoPiece,
+    SpecificPawn,
     QueenKnight,
     KingKnight,
     BlackBishop,
@@ -40,8 +42,10 @@ namespace Chess {
     QueenRook,
     KingRook,
     SpecificQueen,
-    PromoQueen,  // 2nd queen after pawn promo
+    PromoQueen,      // First queen promo piece - this captures the majority of actual promo's in real play.
     SpecificKing,
+    OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
+                     //   We have to look at the (simple) piece type to see what kind of piece it is.
     NSpecificPieceTypes,
   };
 
@@ -54,8 +58,8 @@ namespace Chess {
     QueenRookPresentShift,
     KingRookPresentShift,
     QueenPresentShift,
-    PromoQueenPresentShift,  // 2nd queen after pawn promo
-    PromoPiecesPresentShift, // Sundry other promo pieces - 3rd+ queen(s) and/or under-promotions
+    PromoQueenPresentShift,       // First queen promo piece.
+    OtherPromoPiecesPresentShift, // Promo pieces that are not the first queen promo.
     PiecePresentLimitShift,
   };
 
@@ -70,7 +74,7 @@ namespace Chess {
   static const PiecePresentFlagsT KingRookPresentFlag = ((PiecePresentFlagsT)1 << KingRookPresentShift);
   static const PiecePresentFlagsT QueenPresentFlag = ((PiecePresentFlagsT)1 << QueenPresentShift);
   static const PiecePresentFlagsT PromoQueenPresentFlag = ((PiecePresentFlagsT)1 << PromoQueenPresentShift);
-  static const PiecePresentFlagsT PromoPiecesPresentFlag = ((PiecePresentFlagsT)1 << PromoPiecesPresentShift);
+  static const PiecePresentFlagsT OtherPromoPiecesPresentFlag = ((PiecePresentFlagsT)1 << OtherPromoPiecesPresentShift);
   static const PiecePresentFlagsT AllPiecesPresentFlags = ((PiecePresentFlagsT)1 << PiecePresentLimitShift) - 1;
 
   static const int NPawns = 8;
