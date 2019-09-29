@@ -6,6 +6,8 @@
 #include "board.hpp"
 
 namespace Chess {
+
+  using namespace Board;
   
   namespace MoveGen {
   
@@ -28,12 +30,12 @@ namespace Chess {
     // Generate moves - or more generally generate attacks/defenses - the moveMask param will limit to valid moves.
     // Psuedo-moves only - in-check or moving into check are not included.
     // TODO excludes castling, en-passant and promo piece.
-    template <ColorT Color, PiecePresentBitmapT PiecesPresent = AllPiecesPresentBits, boolean UseRuntimeChecks = true>
+    template <ColorT Color, PiecePresentFlagsT PiecesPresent = AllPiecesPresentFlags, bool UseRuntimeChecks = true>
     inline PieceMovesT genPseudoMoves(const BoardForColorT& board, BitBoardT allPieces) {
       PieceMovesT moves = {0};
 
       // Pawns
-      if((PiecesPresent & PawnsPresentBit) || (UseRuntimeChecks && (board.piecesPresent & PawnsPresentBit))) {
+      if((PiecesPresent & PawnsPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & PawnsPresentFlag))) {
 	BitBoardT pawns = board.bbs[Pawn];
 	moves.pawnAttackLeftMoves = pawnAttackLeftMoves<Color>(pawns);
 	moves.pawnAttackRightMoves = pawnAttackRightMoves<Color>(pawns);
@@ -45,7 +47,7 @@ namespace Chess {
       }
 
       // Knights
-      if((PiecesPresent & QueenKnightPresentBit) || (UseRuntimeChecks && (board.piecesPresent & QueenKnightPresentBit))) {
+      if((PiecesPresent & QueenKnightPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & QueenKnightPresentFlag))) {
       
       return moves;
     }

@@ -1,7 +1,7 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include "types.h"
+#include "types.hpp"
 
 namespace Chess {
   
@@ -12,11 +12,11 @@ namespace Chess {
       BitBoardT bbs[NPieceTypes];
 
       // Bitmap of which pieces are still present on the board.
-      PiecePresentBitmapT piecesPresent;
+      PiecePresentFlagsT piecesPresent;
       
       // All pieces except pawns and strange promos
       SquareT pieceSquares[NSpecificPieceTypes];
-    }
+    };
     
   }
   

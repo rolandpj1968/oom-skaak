@@ -39,11 +39,11 @@ namespace Chess {
     WhiteBishop,
     QueenRook,
     KingRook,
-    Queen,
+    SpecificQueen,
     PromoQueen,  // 2nd queen after pawn promo
-    King,
+    SpecificKing,
     NSpecificPieceTypes,
-  }
+  };
 
   enum PiecePresentShiftsT {
     PawnsPresentShift,
@@ -62,6 +62,7 @@ namespace Chess {
   typedef u16 PiecePresentFlagsT;
 
   static const PiecePresentFlagsT PawnsPresentFlag = ((PiecePresentFlagsT)1 << PawnsPresentShift);
+  static const PiecePresentFlagsT QueenKnightPresentFlag = ((PiecePresentFlagsT)1 << KingKnightPresentShift);
   static const PiecePresentFlagsT KingKnightPresentFlag = ((PiecePresentFlagsT)1 << KingKnightPresentShift);
   static const PiecePresentFlagsT BlackBishopPresentFlag = ((PiecePresentFlagsT)1 << BlackBishopPresentShift);
   static const PiecePresentFlagsT WhiteBishopPresentFlag = ((PiecePresentFlagsT)1 << WhiteBishopPresentShift);
@@ -72,6 +73,7 @@ namespace Chess {
   static const PiecePresentFlagsT PromoPiecesPresentFlag = ((PiecePresentFlagsT)1 << PromoPiecesPresentShift);
   static const PiecePresentFlagsT AllPiecesPresentFlags = ((PiecePresentFlagsT)1 << PiecePresentLimitShift) - 1;
 
+  static const int NPawns = 8;
 }
 
 #endif //ndef TYPES_H
