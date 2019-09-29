@@ -59,18 +59,18 @@ namespace Chess {
     PiecePresentLimitShift,
   };
 
-  typedef u16 PiecePresentBitmapT;
+  typedef u16 PiecePresentFlagsT;
 
-  static const PiecePresentBitmapT PawnsPresentBit = ((PiecePresentBitmapT)1 << PawnsPresentShift);
-  static const PiecePresentBitmapT KingKnightPresentBit = ((PiecePresentBitmapT)1 << KingKnightPresentShift);
-  static const PiecePresentBitmapT BlackBishopPresentBit = ((PiecePresentBitmapT)1 << BlackBishopPresentShift);
-  static const PiecePresentBitmapT WhiteBishopPresentBit = ((PiecePresentBitmapT)1 << WhiteBishopPresentShift);
-  static const PiecePresentBitmapT QueenRookPresentBit = ((PiecePresentBitmapT)1 << QueenRookPresentShift);
-  static const PiecePresentBitmapT KingRookPresentBit = ((PiecePresentBitmapT)1 << KingRookPresentShift);
-  static const PiecePresentBitmapT QueenPresentBit = ((PiecePresentBitmapT)1 << QueenPresentShift);
-  static const PiecePresentBitmapT PromoQueenPresentBit = ((PiecePresentBitmapT)1 << PromoQueenPresentShift);
-  static const PiecePresentBitmapT PromoPiecesPresentBit = ((PiecePresentBitmapT)1 << PromoPiecesPresentShift);
-  static const PiecePresentBitmapT AllPiecesPresentBits = ((PiecePresentBitmapT)1 << PiecePresentLimitShift) - 1;
+  static const PiecePresentFlagsT PawnsPresentFlag = ((PiecePresentFlagsT)1 << PawnsPresentShift);
+  static const PiecePresentFlagsT KingKnightPresentFlag = ((PiecePresentFlagsT)1 << KingKnightPresentShift);
+  static const PiecePresentFlagsT BlackBishopPresentFlag = ((PiecePresentFlagsT)1 << BlackBishopPresentShift);
+  static const PiecePresentFlagsT WhiteBishopPresentFlag = ((PiecePresentFlagsT)1 << WhiteBishopPresentShift);
+  static const PiecePresentFlagsT QueenRookPresentFlag = ((PiecePresentFlagsT)1 << QueenRookPresentShift);
+  static const PiecePresentFlagsT KingRookPresentFlag = ((PiecePresentFlagsT)1 << KingRookPresentShift);
+  static const PiecePresentFlagsT QueenPresentFlag = ((PiecePresentFlagsT)1 << QueenPresentShift);
+  static const PiecePresentFlagsT PromoQueenPresentFlag = ((PiecePresentFlagsT)1 << PromoQueenPresentShift);
+  static const PiecePresentFlagsT PromoPiecesPresentFlag = ((PiecePresentFlagsT)1 << PromoPiecesPresentShift);
+  static const PiecePresentFlagsT AllPiecesPresentFlags = ((PiecePresentFlagsT)1 << PiecePresentLimitShift) - 1;
 
 }
 

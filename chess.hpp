@@ -1,7 +1,7 @@
 #ifndef CHESS_H
 #define CHESS_H
 
-#include "types.h"
+#include "types.hpp"
 
 namespace Chess {
   
