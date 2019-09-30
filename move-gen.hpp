@@ -245,7 +245,7 @@ namespace Chess {
       PieceAttacksT attacks = {0};
 
       // Pawns
-      if((PiecesPresent & PawnsPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & PawnsPresentFlag))) {
+      if((PiecesPresent & PawnsPresentFlag) && (!UseRuntimeChecks || (board.piecesPresent & PawnsPresentFlag))) {
 	BitBoardT pawns = board.bbs[Pawn];
 	attacks.pawnsLeftAttacks = pawnsLeftAttacks<Color>(pawns);
 	attacks.pawnsRightAttacks = pawnsRightAttacks<Color>(pawns);
@@ -258,7 +258,7 @@ namespace Chess {
 
       // Knights
       
-      if((PiecesPresent & QueenKnightPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & QueenKnightPresentFlag))) {
+      if((PiecesPresent & QueenKnightPresentFlag) && (!UseRuntimeChecks || (board.piecesPresent & QueenKnightPresentFlag))) {
 	SquareT queenKnightSquare = board.pieceSquares[QueenKnight];
 
 	attacks.pieceAttacks[QueenKnight] = KnightAttacks[queenKnightSquare];
@@ -266,7 +266,7 @@ namespace Chess {
 	attacks.allAttacks |= attacks.pieceAttacks[QueenKnight];
       }
       
-      if((PiecesPresent & KingKnightPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & KingKnightPresentFlag))) {
+      if((PiecesPresent & KingKnightPresentFlag) && (!UseRuntimeChecks || (board.piecesPresent & KingKnightPresentFlag))) {
 	SquareT kingKnightSquare = board.pieceSquares[KingKnight];
 
 	attacks.pieceAttacks[KingKnight] = KnightAttacks[kingKnightSquare];
@@ -276,7 +276,7 @@ namespace Chess {
 
       // Bishops
 
-      if((PiecesPresent & BlackBishopPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & BlackBishopPresentFlag))) {
+      if((PiecesPresent & BlackBishopPresentFlag) && (!UseRuntimeChecks || (board.piecesPresent & BlackBishopPresentFlag))) {
 	SquareT blackBishopSquare = board.pieceSquares[BlackBishop];
 
 	attacks.pieceAttacks[BlackBishop] = bishopAttacks(blackBishopSquare, allPieces);
@@ -284,7 +284,7 @@ namespace Chess {
 	attacks.allAttacks |= attacks.pieceAttacks[BlackBishop];
       }
       
-      if((PiecesPresent & WhiteBishopPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & WhiteBishopPresentFlag))) {
+      if((PiecesPresent & WhiteBishopPresentFlag) && (!UseRuntimeChecks || (board.piecesPresent & WhiteBishopPresentFlag))) {
 	SquareT whiteBishopSquare = board.pieceSquares[WhiteBishop];
 
 	attacks.pieceAttacks[WhiteBishop] = bishopAttacks(whiteBishopSquare, allPieces);
@@ -294,7 +294,7 @@ namespace Chess {
       
       // Rooks
 
-      if((PiecesPresent & QueenRookPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & QueenRookPresentFlag))) {
+      if((PiecesPresent & QueenRookPresentFlag) && (!UseRuntimeChecks || (board.piecesPresent & QueenRookPresentFlag))) {
 	SquareT queenRookSquare = board.pieceSquares[QueenRook];
 
 	attacks.pieceAttacks[QueenRook] = rookAttacks(queenRookSquare, allPieces);
@@ -302,7 +302,7 @@ namespace Chess {
 	attacks.allAttacks |= attacks.pieceAttacks[QueenRook];
       }
       
-      if((PiecesPresent & KingRookPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & KingRookPresentFlag))) {
+      if((PiecesPresent & KingRookPresentFlag) && (!UseRuntimeChecks || (board.piecesPresent & KingRookPresentFlag))) {
 	SquareT kingRookSquare = board.pieceSquares[KingRook];
 
 	attacks.pieceAttacks[KingRook] = rookAttacks(kingRookSquare, allPieces);
@@ -312,7 +312,7 @@ namespace Chess {
       
       // Queens
 
-      if((PiecesPresent & QueenPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & QueenPresentFlag))) {
+      if((PiecesPresent & QueenPresentFlag) && (!UseRuntimeChecks || (board.piecesPresent & QueenPresentFlag))) {
 	SquareT queenSquare = board.pieceSquares[SpecificQueen];
 
 	attacks.pieceAttacks[SpecificQueen] = rookAttacks(queenSquare, allPieces) | rookAttacks(queenSquare, allPieces);
@@ -320,7 +320,7 @@ namespace Chess {
 	attacks.allAttacks |= attacks.pieceAttacks[SpecificQueen];
       }
       
-      if((PiecesPresent & PromoQueenPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & PromoQueenPresentFlag))) {
+      if((PiecesPresent & PromoQueenPresentFlag) && (!UseRuntimeChecks || (board.piecesPresent & PromoQueenPresentFlag))) {
 	SquareT promoQueenSquare = board.pieceSquares[PromoQueen];
 
 	attacks.pieceAttacks[PromoQueen] = rookAttacks(promoQueenSquare, allPieces) | rookAttacks(promoQueenSquare, allPieces);
