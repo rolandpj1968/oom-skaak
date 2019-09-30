@@ -274,12 +274,68 @@ namespace Chess {
 	attacks.allAttacks |= attacks.pieceAttacks[KingKnight];
       }
 
+      // Bishops
+
+      if((PiecesPresent & BlackBishopPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & BlackBishopPresentFlag))) {
+	SquareT blackBishopSquare = board.pieceSquares[BlackBishop];
+
+	attacks.pieceAttacks[BlackBishop] = bishopAttacks(blackBishopSquare, allPieces);
+
+	attacks.allAttacks |= attacks.pieceAttacks[BlackBishop];
+      }
+      
+      if((PiecesPresent & WhiteBishopPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & WhiteBishopPresentFlag))) {
+	SquareT whiteBishopSquare = board.pieceSquares[WhiteBishop];
+
+	attacks.pieceAttacks[WhiteBishop] = bishopAttacks(whiteBishopSquare, allPieces);
+
+	attacks.allAttacks |= attacks.pieceAttacks[WhiteBishop];
+      }
+      
+      // Rooks
+
+      if((PiecesPresent & QueenRookPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & QueenRookPresentFlag))) {
+	SquareT queenRookSquare = board.pieceSquares[QueenRook];
+
+	attacks.pieceAttacks[QueenRook] = rookAttacks(queenRookSquare, allPieces);
+
+	attacks.allAttacks |= attacks.pieceAttacks[QueenRook];
+      }
+      
+      if((PiecesPresent & KingRookPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & KingRookPresentFlag))) {
+	SquareT kingRookSquare = board.pieceSquares[KingRook];
+
+	attacks.pieceAttacks[KingRook] = rookAttacks(kingRookSquare, allPieces);
+
+	attacks.allAttacks |= attacks.pieceAttacks[KingRook];
+      }
+      
+      // Queens
+
+      if((PiecesPresent & QueenPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & QueenPresentFlag))) {
+	SquareT queenSquare = board.pieceSquares[SpecificQueen];
+
+	attacks.pieceAttacks[SpecificQueen] = rookAttacks(queenSquare, allPieces) | rookAttacks(queenSquare, allPieces);
+
+	attacks.allAttacks |= attacks.pieceAttacks[SpecificQueen];
+      }
+      
+      if((PiecesPresent & PromoQueenPresentFlag) || (UseRuntimeChecks && (board.piecesPresent & PromoQueenPresentFlag))) {
+	SquareT promoQueenSquare = board.pieceSquares[PromoQueen];
+
+	attacks.pieceAttacks[PromoQueen] = rookAttacks(promoQueenSquare, allPieces) | rookAttacks(promoQueenSquare, allPieces);
+
+	attacks.allAttacks |= attacks.pieceAttacks[PromoQueen];
+      }
+      
       // King - always 1 king and always present
       SquareT kingSquare = board.pieceSquares[SpecificKing];
 
       attacks.pieceAttacks[SpecificKing] = KingAttacks[kingSquare];
 
       attacks.allAttacks |= attacks.pieceAttacks[SpecificKing];
+
+      // TODO - unusual promos
       
       return attacks;
     }
