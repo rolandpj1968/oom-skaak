@@ -24,12 +24,13 @@ int main(int argc, char* argv[]) {
 
   printf("Hallo RPJ - sizeof(Color) is %zu, f<Black> is %d, f<White> is %d\n", sizeof(ColorT), f<Black>(), f<White>());
   printf("Hallo again RPJ - sizeof(a) is %zu, sizeof(a)/sizeof(a[0]) = %zu, a[4] = %d, a[0] = %d\n", sizeof(a), sizeof(a)/sizeof(a[0]), a[4], a[0]);
-
-  PiecesForColorT b = Board::startingPosition().pieces[White];
+  printf("H8 is %u\n", H8);
+  
+  PiecesForColorT& b = Board::startingPosition().pieces[White];
   
   auto attacks = genPieceAttacks<White>(b, 0);
 
-  printf("RPJ - 0x%016lx\n", attacks.pawnsPushOne);
+  printf("RPJ - pawns 1 - 0x%016lx, queen-knight 0x%016lx \n", attacks.pawnsPushOne, attacks.pieceAttacks[QueenKnight]);
   
   return 0;
 }

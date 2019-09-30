@@ -33,54 +33,52 @@ namespace Chess {
     // Pawn move rules are specialised for White and Black respectively.
     //
     
-    template <ColorT> BitBoardT pawnsLeftAttacks(BitBoardT pawns);
-    template <ColorT> BitBoardT pawnsRightAttacks(BitBoardT pawns);
-    template <ColorT> BitBoardT pawnsPushOne(BitBoardT pawns, BitBoardT allPieces);
-    template <ColorT> BitBoardT pawnsPushTwo(BitBoardT pawnOneMoves, BitBoardT allPieces);
+    template <ColorT> BitBoardT pawnsLeftAttacks(const BitBoardT pawns);
+    template <ColorT> BitBoardT pawnsRightAttacks(const BitBoardT pawns);
+    template <ColorT> BitBoardT pawnsPushOne(const BitBoardT pawns, const BitBoardT allPieces);
+    template <ColorT> BitBoardT pawnsPushTwo(const BitBoardT pawnOneMoves, const BitBoardT allPieces);
 
-    template <> inline BitBoardT pawnsLeftAttacks<White>(BitBoardT pawns) {
+    template <> inline BitBoardT pawnsLeftAttacks<White>(const BitBoardT pawns) {
       // Pawns on rank A can't take left.
       return (pawns & ~FileA) << 7;
     }
     
-    template <> inline BitBoardT pawnsRightAttacks<White>(BitBoardT pawns) {
+    template <> inline BitBoardT pawnsRightAttacks<White>(const BitBoardT pawns) {
       // Pawns on rank H can't take right.
       return (pawns & ~FileH) << 9;
     }
     
-    template <> inline BitBoardT pawnsPushOne<White>(BitBoardT pawns, BitBoardT allPieces) {
+    template <> inline BitBoardT pawnsPushOne<White>(const BitBoardT pawns, const BitBoardT allPieces) {
       // White pieces move up the board but are blocked by pieces of either color.
       return (pawns << 8) & ~allPieces;
     }
     
-    template <> inline BitBoardT pawnsPushTwo<White>(BitBoardT pawnOneMoves, BitBoardT allPieces) {
+    template <> inline BitBoardT pawnsPushTwo<White>(const BitBoardT pawnOneMoves, const BitBoardT allPieces) {
       // Pawns that can reach the 3rd rank after a single move can move to the 4th rank too,
       //   unless blocked by pieces of either color.
       return ((pawnOneMoves & Rank3) << 8) & ~allPieces;
     }
 
-    template <> inline BitBoardT pawnsLeftAttacks<Black>(BitBoardT pawns) {
+    template <> inline BitBoardT pawnsLeftAttacks<Black>(const BitBoardT pawns) {
       // Pawns on rank A can't take left.
       return (pawns & ~FileA) >> 9;
     }
     
-    template <> inline BitBoardT pawnsRightAttacks<Black>(BitBoardT pawns) {
+    template <> inline BitBoardT pawnsRightAttacks<Black>(const BitBoardT pawns) {
       // Pawns on rank H can't take right.
       return (pawns & ~FileH) >> 7;
     }
     
-    template <> inline BitBoardT pawnsPushOne<Black>(BitBoardT pawns, BitBoardT allPieces) {
+    template <> inline BitBoardT pawnsPushOne<Black>(const BitBoardT pawns, const BitBoardT allPieces) {
       // Black pieces move downp the board but are blocked by pieces of any color.
       return (pawns >> 8) & ~allPieces;
     }
     
-    template <> inline BitBoardT pawnsPushTwo<Black>(BitBoardT pawnOneMoves, BitBoardT allPieces) {
+    template <> inline BitBoardT pawnsPushTwo<Black>(const BitBoardT pawnOneMoves, const BitBoardT allPieces) {
       // Pawns that can reach the 6rd rank after a single move can move to the 5th rank too,
       //   unless blocked by pieces of either color.
       return ((pawnOneMoves & Rank6) >> 8) & ~allPieces;
     }
-
-    const u64 aaaaa[2] = { 1, 2 };
 
     const BitBoardT KnightAttacks[64] = { 
 	0x0000000000020400ULL, 0x0000000000050800ULL, 0x00000000000a1100ULL, 0x0000000000142200ULL,
@@ -121,7 +119,7 @@ namespace Chess {
     };
   
     struct PieceAttacksT {
-      // Pawn moves
+      // Pawn attacks (and moves) - single bit board for all pawns for each move type.
       BitBoardT pawnsLeftAttacks;
       BitBoardT pawnsRightAttacks;
       BitBoardT pawnsPushOne;     // Not actually attacks - possibly remove
@@ -137,8 +135,9 @@ namespace Chess {
     };
 
     // Generate attacks/defenses for all pieces.
+    // TODO - missing support for unusual promos.
     template <ColorT Color, PiecePresentFlagsT PiecesPresent = AllPiecesPresentFlags, bool UseRuntimeChecks = true>
-    inline PieceAttacksT genPieceAttacks(const PiecesForColorT& board, BitBoardT allPieces) {
+    inline PieceAttacksT genPieceAttacks(const PiecesForColorT& board, const BitBoardT allPieces) {
       PieceAttacksT attacks = {0};
 
       // Pawns
