@@ -17,6 +17,8 @@ namespace Chess {
 
   typedef u64 BitBoardT;
 
+  const BitBoardT BbNone = (BitBoardT)0;
+  const BitBoardT BbAll = ~BbNone;
   const BitBoardT BbOne = (BitBoardT)1ULL;
 
   const BitBoardT FileA = 0x0101010101010101ULL;

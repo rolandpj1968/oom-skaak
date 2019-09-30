@@ -2,7 +2,6 @@
 
 #include <boost/preprocessor/iteration/local.hpp>
 
-#include "chess.hpp"
 #include "board.hpp"
 #include "move-gen.hpp"
 
@@ -50,7 +49,7 @@ static void dumpAttacks(const PieceAttacksT& pieceAttacks) {
 
 int main(int argc, char* argv[]) {
 
-  printf("Hallo RPJ - sizeof(Color) is %zu, f<Black> is %d, f<White> is %d\n", sizeof(ColorT), f<Black>(), f<White>());
+  printf("Hallo RPJ - sizeof(Color) is %zu\n", sizeof(ColorT));
   printf("Hallo again RPJ - sizeof(a) is %zu, sizeof(a)/sizeof(a[0]) = %zu, a[4] = %d, a[0] = %d\n", sizeof(a), sizeof(a)/sizeof(a[0]), a[4], a[0]);
   printf("H8 is %u\n", H8);
 
@@ -64,28 +63,14 @@ int main(int argc, char* argv[]) {
   printf("\nWhite:\n");
   dumpAttacks(whiteAttacks);
 
+  printf("\n%d attacks, %d valid moves, all white pieces %016lx\n", countAttacks(whiteAttacks), countAttacks(whiteAttacks, w.bbs[AllPieces], b.bbs[AllPieces]), w.bbs[AllPieces]);
+  
   auto blackAttacks = genPieceAttacks<Black>(b, w.bbs[AllPieces] | b.bbs[AllPieces]);
 
   printf("\nBlack:\n");
   dumpAttacks(blackAttacks);
 
-  printf("\nStarting long run...\n");
-
-  BitBoardT sumAllAttacks = 0;
-  
-  for(int i = 0; i < 1000; i++) {
-    BoardT start = startingBoard;
-  
-    PiecesForColorT& w = start.pieces[White];
-    PiecesForColorT& b = start.pieces[Black];
-
-    auto whiteAttacks = genPieceAttacks<White>(w, w.bbs[AllPieces] | b.bbs[AllPieces]);
-    auto blackAttacks = genPieceAttacks<Black>(b, w.bbs[AllPieces] | b.bbs[AllPieces]);
-
-    sumAllAttacks += whiteAttacks.allAttacks + blackAttacks.allAttacks;
-  }
-
-  printf("\n... done long run\n");
+  printf("\n%d attacks, %d valid moves, all black pieces %016lx\n\n", countAttacks(blackAttacks), countAttacks(blackAttacks, b.bbs[AllPieces], w.bbs[AllPieces]), b.bbs[AllPieces]);
   
   return 0;
 }

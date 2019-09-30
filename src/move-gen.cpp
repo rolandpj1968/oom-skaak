@@ -144,5 +144,31 @@ namespace Chess {
       }
     } magicBbInit;
     
-  }
-}
+    static int countFilteredOut(const BitBoardT attacks, const BitBoardT filterOut) {
+      printf("             %016lx filtered out %016lx -> %016lx count %d\n", attacks, filterOut, attacks & ~filterOut, Bits::count(attacks & ~filterOut));
+      return Bits::count(attacks & ~filterOut);
+    }
+
+    static int countFilteredIn(const BitBoardT attacks, const BitBoardT filterIn) {
+      printf("             %016lx filtered in %016lx -> %016lx count %d\n", attacks, filterIn, attacks & filterIn, Bits::count(attacks & filterIn));
+      return Bits::count(attacks & filterIn);
+    }
+
+    // Hrm, this ignores in-check
+    int countAttacks(const PieceAttacksT& pieceAttacks, const BitBoardT filterOut /*= BbNone*/, const BitBoardT filterInPawnTakes /*= BbAll*/) {
+      int nAttacks =
+	countFilteredIn(pieceAttacks.pawnsLeftAttacks, filterInPawnTakes) +
+	countFilteredIn(pieceAttacks.pawnsRightAttacks, filterInPawnTakes) +
+	countFilteredOut(pieceAttacks.pawnsPushOne, filterOut) +
+	countFilteredOut(pieceAttacks.pawnsPushTwo, filterOut);
+      
+      for(int/*SpecificPieceT*/ piece = QueenKnight; piece <= SpecificKing; piece++) {
+	nAttacks += countFilteredOut(pieceAttacks.pieceAttacks[piece], filterOut);
+      }
+
+      return nAttacks;
+    }
+  
+  } // namespace MoveGen
+
+} // namespace Chess

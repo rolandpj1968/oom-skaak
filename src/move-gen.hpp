@@ -339,6 +339,8 @@ namespace Chess {
       
       return attacks;
     }
+
+    extern int countAttacks(const PieceAttacksT& pieceAttacks, const BitBoardT filterOut = BbNone, const BitBoardT filterInPawnTakes = BbAll);
     
   } // namespace MoveGen
 
