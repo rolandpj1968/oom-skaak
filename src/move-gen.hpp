@@ -2,7 +2,6 @@
 #define MOVE_GEN_HPP
 
 #include "types.hpp"
-
 #include "board.hpp"
 
 namespace Chess {

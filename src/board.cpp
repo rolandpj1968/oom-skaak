@@ -6,46 +6,42 @@ namespace Chess {
 
     // TODO - PieceT should be inferred from SpecificPieceT
     // TODO - unusual promos
-    static void addPiece(PiecesForColorT& c, const SquareT square, const PieceT piece, const SpecificPieceT specificPiece, const PiecePresentFlagsT piecePresentFlag) {
-      BitBoardT pieceBb = bbForSquare(square);
+    static void addPiece(BoardT& board, const ColorT color, const SquareT square, const SpecificPieceT specificPiece, const PiecePresentFlagsT piecePresentFlag) {
+      PiecesForColorT& c = board.pieces[color];
+      
+      const BitBoardT pieceBb = bbForSquare(square);
 
-      c.bbs[piece] |= pieceBb;
+      c.bbs[PieceForSpecificPiece[specificPiece]] |= pieceBb;
       c.bbs[AllPieces] |= pieceBb;
 
       c.piecesPresent |= piecePresentFlag;
       c.pieceSquares[specificPiece] = square;
+
+      board.board[square] = makeSquarePiece(color, specificPiece);
     }
 
-    static void addStartingPieces(PiecesForColorT& c, const SquareT firstPieceSquare, const SquareT firstPawnSquare) {
+    static void addStartingPieces(BoardT& board, const ColorT color, const SquareT firstPieceSquare, const SquareT firstPawnSquare) {
       // Pieces
-      addPiece(c, firstPieceSquare, Rook, QueenRook, QueenRookPresentFlag);
-      addPiece(c, firstPieceSquare+B1-A1, Knight, QueenKnight, QueenKnightPresentFlag);
-      addPiece(c, firstPieceSquare+C1-A1, Bishop, BlackBishop, BlackBishopPresentFlag);
-      addPiece(c, firstPieceSquare+D1-A1, Queen, SpecificQueen, QueenPresentFlag);
-      addPiece(c, firstPieceSquare+E1-A1, King, SpecificKing, 0/*king always present*/);
-      addPiece(c, firstPieceSquare+F1-A1, Bishop, WhiteBishop, WhiteBishopPresentFlag);
-      addPiece(c, firstPieceSquare+G1-A1, Knight, KingKnight, KingKnightPresentFlag);
-      addPiece(c, firstPieceSquare+H1-A1, Rook, KingRook, KingRookPresentFlag);
+      addPiece(board, color, firstPieceSquare,       QueenRook, QueenRookPresentFlag);
+      addPiece(board, color, firstPieceSquare+B1-A1, QueenKnight, QueenKnightPresentFlag);
+      addPiece(board, color, firstPieceSquare+C1-A1, BlackBishop, BlackBishopPresentFlag);
+      addPiece(board, color, firstPieceSquare+D1-A1, SpecificQueen, QueenPresentFlag);
+      addPiece(board, color, firstPieceSquare+E1-A1, SpecificKing, 0/*king always present*/);
+      addPiece(board, color, firstPieceSquare+F1-A1, WhiteBishop, WhiteBishopPresentFlag);
+      addPiece(board, color, firstPieceSquare+G1-A1, KingKnight, KingKnightPresentFlag);
+      addPiece(board, color, firstPieceSquare+H1-A1, KingRook, KingRookPresentFlag);
       
       // Pawns
       for(SquareT square = firstPawnSquare; square <= firstPawnSquare+H2-A2; square += (B2-A2)) {
-	addPiece(c, square, Pawn, SpecificPawn/*dummy*/, PawnsPresentFlag);
+	addPiece(board, color, square, SpecificPawn, PawnsPresentFlag);
       }
     }
 
-    static void addWhiteStartingPieces(PiecesForColorT& w) {
-      addStartingPieces(w, A1, A2);
-    }
-    
-    static void addBlackStartingPieces(PiecesForColorT& b) {
-      addStartingPieces(b, A8, A7);
-    }
-    
     BoardT startingPosition() {
       BoardT board = {0};
 
-      addWhiteStartingPieces(board.pieces[White]);
-      addBlackStartingPieces(board.pieces[Black]);
+      addStartingPieces(board, White, A1, A2);
+      addStartingPieces(board, Black, A8, A7);
       
       return board;
     }

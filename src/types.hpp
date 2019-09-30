@@ -106,7 +106,23 @@ namespace Chess {
     SpecificKing,
     OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
                      //   We have to look at the (simple) piece type to see what kind of piece it is.
+                     // TODO - fix this!
     NSpecificPieceTypes,
+  };
+
+  const PieceT PieceForSpecificPiece[NSpecificPieceTypes] = {
+    NoPiece,       // SpecificNoPiece,
+    Pawn,          // SpecificPawn,
+    Knight,        // QueenKnight,
+    Knight,        // KingKnight,
+    Bishop,        // BlackBishop,
+    Bishop,        // WhiteBishop,
+    Rook,          // QueenRook,
+    Rook,          // KingRook,
+    Queen,         // SpecificQueen,
+    Queen,         // PromoQueen,
+    King,          // SpecificKing,
+    NoPiece,       // TODO - OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
   };
 
   enum PiecePresentShiftsT {
