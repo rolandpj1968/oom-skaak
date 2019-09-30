@@ -22,16 +22,16 @@ namespace Chess {
 	Rays[W][square] = bbForSquare(square) - bbForSquare(square & 56);
 
 	// North West
-	Rays[NW][square] = Bits::westNTimes(0x102040810204000ULL, 7 - rankOf(square)) << (fileOf(square) * 8);
+	Rays[NW][square] = Bits::westNTimes(0x102040810204000ULL, 7 - fileOf(square)) << (rankOf(square) * 8);
 
 	// North East
-	Rays[NE][square] = Bits::eastNTimes(0x8040201008040200ULL, rankOf(square)) << (fileOf(square) * 8);
+	Rays[NE][square] = Bits::eastNTimes(0x8040201008040200ULL, fileOf(square)) << (rankOf(square) * 8);
 
 	// South West
-	Rays[SW][square] = Bits::westNTimes(0x40201008040201ULL, 7 - rankOf(square)) >> ((7 - fileOf(square)) * 8);
+	Rays[SW][square] = Bits::westNTimes(0x40201008040201ULL, 7 - fileOf(square)) >> ((7 - rankOf(square)) * 8);
 
 	// South East
-	Rays[SE][square] = Bits::eastNTimes(0x2040810204080ULL, rankOf(square)) >> ((7 - fileOf(square)) * 8);
+	Rays[SE][square] = Bits::eastNTimes(0x2040810204080ULL, fileOf(square)) >> ((7 - rankOf(square)) * 8);
       }
     }
 
