@@ -315,7 +315,7 @@ namespace Chess {
       if((PiecesPresent & QueenPresentFlag) && (!UseRuntimeChecks || (board.piecesPresent & QueenPresentFlag))) {
 	SquareT queenSquare = board.pieceSquares[SpecificQueen];
 
-	attacks.pieceAttacks[SpecificQueen] = rookAttacks(queenSquare, allPieces) | rookAttacks(queenSquare, allPieces);
+	attacks.pieceAttacks[SpecificQueen] = rookAttacks(queenSquare, allPieces) | bishopAttacks(queenSquare, allPieces);
 
 	attacks.allAttacks |= attacks.pieceAttacks[SpecificQueen];
       }
@@ -323,7 +323,7 @@ namespace Chess {
       if((PiecesPresent & PromoQueenPresentFlag) && (!UseRuntimeChecks || (board.piecesPresent & PromoQueenPresentFlag))) {
 	SquareT promoQueenSquare = board.pieceSquares[PromoQueen];
 
-	attacks.pieceAttacks[PromoQueen] = rookAttacks(promoQueenSquare, allPieces) | rookAttacks(promoQueenSquare, allPieces);
+	attacks.pieceAttacks[PromoQueen] = rookAttacks(promoQueenSquare, allPieces) | bishopAttacks(promoQueenSquare, allPieces);
 
 	attacks.allAttacks |= attacks.pieceAttacks[PromoQueen];
       }
