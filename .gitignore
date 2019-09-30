@@ -1,3 +1,4 @@
 *~
 *.s
-chess
+obj/
+skaak
