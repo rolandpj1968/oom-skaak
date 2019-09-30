@@ -207,7 +207,21 @@ namespace Chess {
   
     extern BitBoardT RookMagicBbTable[64][4096];
     extern BitBoardT BishopMagicBbTable[64][1024];
-    
+
+    // Magic BB bishop attacks
+    inline BitBoardT bishopAttacks(const SquareT square, const BitBoardT allPieces) {
+      const BitBoardT blockers = allPieces & BishopBlockers[square];
+      const auto magicBbKey = (blockers * BishopMagicBbMultipliers[square]) >> (64 - BishopMagicBbIndexBits[square]);
+      return BishopMagicBbTable[square][magicBbKey];
+    }
+
+    // Magic BB rook attacks
+    inline BitBoardT rookAttacks(const SquareT square, const BitBoardT allPieces) {
+      const BitBoardT blockers = allPieces & RookBlockers[square];
+      const auto magicBbKey = (blockers * RookMagicBbMultipliers[square]) >> (64 - RookMagicBbIndexBits[square]);
+      return RookMagicBbTable[square][magicBbKey];
+    }
+
     struct PieceAttacksT {
       // Pawn attacks (and moves) - single bit board for all pawns for each move type.
       BitBoardT pawnsLeftAttacks;
