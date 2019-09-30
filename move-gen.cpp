@@ -1,3 +1,5 @@
+#include <cstdio>
+
 #include "move-gen.hpp"
 
 using namespace Chess;

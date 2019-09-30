@@ -10,8 +10,8 @@ typedef uint64_t u64;
 namespace Chess {
   
   enum ColorT {
-    Black,
     White,
+    Black,
     NColors,
   };
 
@@ -29,6 +29,7 @@ namespace Chess {
     Rook,
     Queen,
     King,
+    AllPieces,
     NPieceTypes,
   };
 

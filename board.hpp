@@ -7,7 +7,7 @@ namespace Chess {
   
   namespace Board {
 
-    struct BoardForColorT {
+    struct PiecesForColorT {
       // All pieces including strange promos.
       BitBoardT bbs[NPieceTypes];
 
@@ -17,7 +17,12 @@ namespace Chess {
       // All pieces except pawns and strange promos
       SquareT pieceSquares[NSpecificPieceTypes];
     };
-    
+
+    struct BoardT {
+      PiecesForColorT pieces[NColors];
+    };
+
+    extern BoardT startingPosition();
   }
   
 }
