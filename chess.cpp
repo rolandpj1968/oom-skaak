@@ -22,7 +22,7 @@ using namespace Board;
 
 static void dumpAttacks(const PieceAttacksT& pieceAttacks) {
   printf("pawn attacks left:   %016lx\n", pieceAttacks.pawnsLeftAttacks);
-  printf("pawn attacks right:  %016lx\n", pieceAttacks.pawnsLeftAttacks);
+  printf("pawn attacks right:  %016lx\n", pieceAttacks.pawnsRightAttacks);
   printf("pawn push one:       %016lx\n", pieceAttacks.pawnsPushOne);
   printf("pawn push two:       %016lx\n", pieceAttacks.pawnsPushTwo);
   printf("q rook attacks:      %016lx\n", pieceAttacks.pieceAttacks[QueenRook]);
@@ -55,14 +55,37 @@ int main(int argc, char* argv[]) {
   printf("H8 is %u\n", H8);
 
   BoardT startingBoard = Board::startingPosition();
+  
   PiecesForColorT& w = startingBoard.pieces[White];
   PiecesForColorT& b = startingBoard.pieces[Black];
   
-  auto attacks = genPieceAttacks<White>(w, w.bbs[AllPieces] | b.bbs[AllPieces]);
+  auto whiteAttacks = genPieceAttacks<White>(w, w.bbs[AllPieces] | b.bbs[AllPieces]);
 
-  //printf("RPJ - pawns 1 - 0x%016lx, queen-knight 0x%016lx \n", attacks.pawnsPushOne, attacks.pieceAttacks[QueenKnight]);
+  printf("\nWhite:\n");
+  dumpAttacks(whiteAttacks);
 
-  dumpAttacks(attacks);
+  auto blackAttacks = genPieceAttacks<Black>(b, w.bbs[AllPieces] | b.bbs[AllPieces]);
+
+  printf("\nBlack:\n");
+  dumpAttacks(blackAttacks);
+
+  printf("\nStarting long run...\n");
+
+  BitBoardT sumAllAttacks = 0;
+  
+  for(int i = 0; i < 1000; i++) {
+    BoardT start = startingBoard;
+  
+    PiecesForColorT& w = start.pieces[White];
+    PiecesForColorT& b = start.pieces[Black];
+
+    auto whiteAttacks = genPieceAttacks<White>(w, w.bbs[AllPieces] | b.bbs[AllPieces]);
+    auto blackAttacks = genPieceAttacks<Black>(b, w.bbs[AllPieces] | b.bbs[AllPieces]);
+
+    sumAllAttacks += whiteAttacks.allAttacks + blackAttacks.allAttacks;
+  }
+
+  printf("\n... done long run\n");
   
   return 0;
 }

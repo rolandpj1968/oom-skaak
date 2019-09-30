@@ -38,7 +38,7 @@ namespace Chess {
     }
     
     static void addBlackStartingPieces(PiecesForColorT& b) {
-      addStartingPieces(b, A1, A2);
+      addStartingPieces(b, A8, A7);
     }
     
     BoardT startingPosition() {
