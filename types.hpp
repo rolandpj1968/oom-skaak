@@ -17,6 +17,32 @@ namespace Chess {
 
   typedef u64 BitBoardT;
 
+  const BitBoardT BbOne = (BitBoardT)1ULL;
+
+  const BitBoardT FileA = 0x0101010101010101ULL;
+  const BitBoardT FileB = 0x0202020202020202ULL;
+  const BitBoardT FileC = 0x0404040404040404ULL;
+  const BitBoardT FileD = 0x0808080808080808ULL;
+  const BitBoardT FileE = 0x1010101010101010ULL;
+  const BitBoardT FileF = 0x2020202020202020ULL;
+  const BitBoardT FileG = 0x4040404040404040ULL;
+  const BitBoardT FileH = 0x8080808080808080ULL;
+
+  const BitBoardT FileBbs[8] = { FileA, FileB, FileC, FileD, FileE, FileF, FileG, FileH };
+  
+  const BitBoardT Rank1 = 0x00000000000000ffULL;
+  const BitBoardT Rank2 = 0X000000000000ff00ULL;
+  const BitBoardT Rank3 = 0X0000000000ff0000ULL;
+  const BitBoardT Rank4 = 0X00000000ff000000ULL;
+  const BitBoardT Rank5 = 0X000000ff00000000ULL;
+  const BitBoardT Rank6 = 0X0000ff0000000000ULL;
+  const BitBoardT Rank7 = 0X00ff000000000000ULL;
+  const BitBoardT Rank8 = 0Xff00000000000000ULL;
+
+  const BitBoardT RankBbs[8] = { Rank1, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8 };
+
+  const BitBoardT EdgeSquaresBb = FileA | FileH | Rank1 | Rank8;
+  
   typedef u8 SquareT;
 
   const SquareT A1 = 0,    B1 = A1+1, C1 = A1+2, D1 = A1+3, E1 = A1+4, F1 = A1+5, G1 = A1+6, H1 = A1+7;
@@ -28,9 +54,29 @@ namespace Chess {
   const SquareT A7 = A6+8, B7 = A7+1, C7 = A7+2, D7 = A7+3, E7 = A7+4, F7 = A7+5, G7 = A7+6, H7 = A7+7;
   const SquareT A8 = A7+8, B8 = A8+1, C8 = A8+2, D8 = A8+3, E8 = A8+4, F8 = A8+5, G8 = A8+6, H8 = A8+7;
 
-  inline BitBoardT bbForSquare(const SquareT square) {
-    return (BitBoardT)1 << square;
+  inline u8 rankOf(SquareT square) {
+    return square >> 3;
   }
+
+  inline u8 fileOf(SquareT square) {
+    return square & 0x7;
+  }
+
+  inline BitBoardT bbForSquare(const SquareT square) {
+    return BbOne << square;
+  }
+
+  enum DirT {
+    N,
+    S,
+    E,
+    W,
+    NE,
+    NW,
+    SE,
+    SW,
+    NDirs
+  };
 
   enum PieceT {
     NoPiece,
