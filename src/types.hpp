@@ -1,5 +1,5 @@
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef TYPES_HPP
+#define TYPES_HPP
 
 #include <cstdint>
 
@@ -177,4 +177,4 @@ namespace Chess {
   static const int NPawns = 8;
 }
 
-#endif //ndef TYPES_H
+#endif //ndef TYPES_HPP

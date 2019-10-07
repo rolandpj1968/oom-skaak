@@ -347,4 +347,4 @@ namespace Chess {
 } // namespace Chess
 
   
-#endif //ndef MOVE_GEN
+#endif //ndef MOVE_GEN_HPP

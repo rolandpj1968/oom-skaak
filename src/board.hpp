@@ -1,5 +1,5 @@
-#ifndef BOARD_H
-#define BOARD_H
+#ifndef BOARD_HPP
+#define BOARD_HPP
 
 #include "types.hpp"
 
@@ -55,6 +55,7 @@ namespace Chess {
 
       const PieceT piece = PieceForSpecificPiece[specificPiece];
       pieces.bbs[piece] &= ~squareBb;
+      pieces.bbs[AllPieces] &= ~squareBb;
 
       // TODO brokken for non-standard promos
       const PiecePresentFlagsT piecePresentFlag = PresentFlagForSpecificPiece[specificPiece];
@@ -76,6 +77,7 @@ namespace Chess {
 
       const PieceT piece = PieceForSpecificPiece[specificPiece];
       pieces.bbs[piece] |= squareBb;
+      pieces.bbs[AllPieces] |= squareBb;
 
       // TODO brokken for non-standard promos
       const PiecePresentFlagsT piecePresentFlag = PresentFlagForSpecificPiece[specificPiece];
@@ -104,4 +106,4 @@ namespace Chess {
   
 }
 
-#endif //ndef BOARD_H
+#endif //ndef BOARD_HPP
