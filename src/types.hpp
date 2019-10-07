@@ -15,6 +15,10 @@ namespace Chess {
     NColors,
   };
 
+  template <ColorT color> struct otherColor { static const ColorT value; };
+  template <> struct otherColor<White> { static const ColorT value = Black; };
+  template <> struct otherColor<Black> { static const ColorT value = White; };
+  
   typedef u64 BitBoardT;
 
   const BitBoardT BbNone = (BitBoardT)0;
@@ -55,6 +59,8 @@ namespace Chess {
   const SquareT A6 = A5+8, B6 = A6+1, C6 = A6+2, D6 = A6+3, E6 = A6+4, F6 = A6+5, G6 = A6+6, H6 = A6+7;
   const SquareT A7 = A6+8, B7 = A7+1, C7 = A7+2, D7 = A7+3, E7 = A7+4, F7 = A7+5, G7 = A7+6, H7 = A7+7;
   const SquareT A8 = A7+8, B8 = A8+1, C8 = A8+2, D8 = A8+3, E8 = A8+4, F8 = A8+5, G8 = A8+6, H8 = A8+7;
+
+  const SquareT InvalidSquare = H8+1;
 
   inline u8 rankOf(SquareT square) {
     return square >> 3;
@@ -105,7 +111,7 @@ namespace Chess {
     PromoQueen,      // First queen promo piece - this captures the majority of actual promo's in real play.
     SpecificKing,
     OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
-                     //   We have to look at the (simple) piece type to see what kind of piece it is.
+                     //   We have to look at the (simple) piece type bb's (for example) to see what kind of piece it is.
                      // TODO - fix this!
     NSpecificPieceTypes,
   };
@@ -142,7 +148,7 @@ namespace Chess {
   typedef u16 PiecePresentFlagsT;
 
   static const PiecePresentFlagsT PawnsPresentFlag = ((PiecePresentFlagsT)1 << PawnsPresentShift);
-  static const PiecePresentFlagsT QueenKnightPresentFlag = ((PiecePresentFlagsT)1 << KingKnightPresentShift);
+  static const PiecePresentFlagsT QueenKnightPresentFlag = ((PiecePresentFlagsT)1 << QueenKnightPresentShift);
   static const PiecePresentFlagsT KingKnightPresentFlag = ((PiecePresentFlagsT)1 << KingKnightPresentShift);
   static const PiecePresentFlagsT BlackBishopPresentFlag = ((PiecePresentFlagsT)1 << BlackBishopPresentShift);
   static const PiecePresentFlagsT WhiteBishopPresentFlag = ((PiecePresentFlagsT)1 << WhiteBishopPresentShift);
@@ -153,6 +159,21 @@ namespace Chess {
   static const PiecePresentFlagsT OtherPromoPiecesPresentFlag = ((PiecePresentFlagsT)1 << OtherPromoPiecesPresentShift);
   static const PiecePresentFlagsT AllPiecesPresentFlags = ((PiecePresentFlagsT)1 << PiecePresentLimitShift) - 1;
 
+  const PiecePresentFlagsT PresentFlagForSpecificPiece[NSpecificPieceTypes] = {
+    0,                           // SpecificNoPiece,
+    PawnsPresentFlag,            // SpecificPawn,
+    QueenKnightPresentFlag,      // QueenKnight,
+    KingKnightPresentFlag,       // KingKnight,
+    BlackBishopPresentFlag,      // BlackBishop,
+    WhiteBishopPresentFlag,      // WhiteBishop,
+    QueenRookPresentFlag,        // QueenRook,
+    KingRookPresentFlag,         // KingRook,
+    QueenPresentFlag,            // SpecificQueen,
+    PromoQueenPresentFlag,       // PromoQueen,
+    0,                           // SpecificKing,
+    OtherPromoPiecesPresentFlag, // OtherPromoPiece
+  };
+  
   static const int NPawns = 8;
 }
 
