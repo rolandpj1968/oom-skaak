@@ -58,9 +58,11 @@ namespace Chess {
       pieces.bbs[AllPieces] &= ~squareBb;
 
       // TODO brokken for non-standard promos
-      // TODO brokken for pawns - a single pawn remove will clear the flag (for all pawns).
       const PiecePresentFlagsT piecePresentFlag = PresentFlagForSpecificPiece[specificPiece];
-      pieces.piecesPresent &= ~piecePresentFlag;
+      // Only clear pawns-present flag when all pawns are gone
+      if(specificPiece != SpecificPawn || pieces.bbs[Pawn] == BbNone) {
+	pieces.piecesPresent &= ~piecePresentFlag;
+      }
       
       return specificPiece;
     }
@@ -85,11 +87,11 @@ namespace Chess {
       pieces.piecesPresent |= piecePresentFlag;
     }
 
-    template <ColorT Color, bool isCapture> inline BoardT move(const BoardT& oldBoard, const SquareT from, const SquareT to) {
+    template <ColorT Color, PushOrCaptureT PushOrCapture> inline BoardT move(const BoardT& oldBoard, const SquareT from, const SquareT to) {
       BoardT board = oldBoard;
 
       // TODO en-passant has different take square
-      if(isCapture) {
+      if(PushOrCapture == Capture) {
 	removePiece<otherColor<Color>::value>(board, to);
       }
 

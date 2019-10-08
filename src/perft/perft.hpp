@@ -23,7 +23,7 @@ namespace Chess {
       u64 invalids;
     };
 
-    template <ColorT Color> inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo);
+    template <ColorT Color, PushOrCaptureT PushOrCapture> inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo);
   
     inline void addStats(PerftStatsT& stats, const PerftStatsT& moreStats) {
       stats.nodes += moreStats.nodes;
@@ -58,9 +58,9 @@ namespace Chess {
 	SquareT to = Bits::popLsb(pawnsPush);
 	SquareT from = To2FromFn::fn(to);
 
-	BoardT newBoard = move<Color, /*isCapture =*/false>(board, from, to);
+	BoardT newBoard = move<Color, Push>(board, from, to);
 
-	perftImpl<otherColor<Color>::value>(stats, newBoard, depthToGo-1);
+	perftImpl<otherColor<Color>::value, Push>(stats, newBoard, depthToGo-1);
       }
     }
 
@@ -93,12 +93,9 @@ namespace Chess {
 	SquareT to = Bits::popLsb(pawnsCapture);
 	SquareT from = To2FromFn::fn(to);
 
-	BoardT newBoard = move<Color, /*isCapture =*/true>(board, from, to);
+	BoardT newBoard = move<Color, Capture>(board, from, to);
 
-	stats.captures++;
-	printf("               pawn capture color %d: %d->%d\n", Color, from, to);
-
-	perftImpl<otherColor<Color>::value>(stats, newBoard, depthToGo-1);
+	perftImpl<otherColor<Color>::value, Capture>(stats, newBoard, depthToGo-1);
       }
     }
 
@@ -110,26 +107,22 @@ namespace Chess {
       perftImplPawnsCapture<Color, PawnAttackRightTo2FromFn<Color>>(stats, board, depthToGo, pawnsCaptureRight);
     }
 
-    template <ColorT Color, bool IsCapture> inline void perftImplPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT toBb) {
+    template <ColorT Color, PushOrCaptureT PushOrCapture> inline void perftImplPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT toBb) {
       while(toBb) {
 	SquareT to = Bits::popLsb(toBb);
 
-	BoardT newBoard = move<Color, IsCapture>(board, from, to);
+	BoardT newBoard = move<Color, PushOrCapture>(board, from, to);
 
-	if(IsCapture) {
-	  stats.captures++;
-	}
-
-	perftImpl<otherColor<Color>::value>(stats, newBoard, depthToGo-1);
+	perftImpl<otherColor<Color>::value, PushOrCapture>(stats, newBoard, depthToGo-1);
       }
     }
     
     template <ColorT Color> inline void perftImplPiecePushes(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT pushesBb) {
-      perftImplPieceMoves<Color, /*IsCapture =*/false>(stats, board, depthToGo, from, pushesBb);
+      perftImplPieceMoves<Color, Push>(stats, board, depthToGo, from, pushesBb);
     }
     
     template <ColorT Color> inline void perftImplPieceCaptures(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT capturesBb) {
-      perftImplPieceMoves<Color, /*IsCapture =*/true>(stats, board, depthToGo, from, capturesBb);
+      perftImplPieceMoves<Color, Capture>(stats, board, depthToGo, from, capturesBb);
     }
     
     template <ColorT Color> inline void perftImplPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT attacksBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb) {
@@ -137,7 +130,7 @@ namespace Chess {
       perftImplPieceCaptures<Color>(stats, board, depthToGo, from, attacksBb & allYourPiecesBb);
     }
     
-    template <ColorT Color> inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo) {
+    template <ColorT Color, PushOrCaptureT PushOrCapture> inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo) {
 
       const PiecesForColorT& myPieces = board.pieces[Color];
       const PiecesForColorT& yourPieces = board.pieces[otherColor<Color>::value];
@@ -157,24 +150,33 @@ namespace Chess {
 
       // This is now a legal position.
 
-      PieceAttacksT yourAttacks = genPieceAttacks<otherColor<Color>::value>(yourPieces, allPiecesBb);
-      // Is my king in check?
-      bool isCheck = false;
-      if((yourAttacks.allAttacks & myPieces.bbs[King]) != 0) {
-	isCheck = true;
-	stats.checks++;
-      }
-
       // If this is a leaf node, we're done.
       if(depthToGo == 0) {
 	// TODO - if we're in check do we have to determine if we're in check-mate?
 	// TODO - do we need to check for stalemate?
 	stats.nodes++;
+
+	if(PushOrCapture == Capture) {
+	  stats.captures++;
+	}
+
+	// Is my king in check?
+	PieceAttacksT yourAttacks = genPieceAttacks<otherColor<Color>::value>(yourPieces, allPiecesBb);
+	if((yourAttacks.allAttacks & myPieces.bbs[King]) != 0) {
+	  stats.checks++;
+	}
+
+	// // If we found no valid child moves then this is checkmate or stalemate
+	// if(stats.nodes == origNodes) {
+	//   if(isCheck) {
+	//     stats.checkmates++;
+	//   } else {
+	//     stats.stalemates++;
+	//   }
+	// }
+	
 	return;
       }
-
-      // Remember the number of nodes prior to evaluating children - if the children add no new (valid) nodes then this is checkmate or stalemate
-      u64 origNodes = stats.nodes;
 
       // Evaluate moves
 
@@ -190,21 +192,12 @@ namespace Chess {
       for(SpecificPieceT specificPiece = QueenKnight; specificPiece <= SpecificKing; specificPiece = SpecificPieceT(specificPiece + 1)) {
 	perftImplPieceMoves<Color>(stats, board, depthToGo, myPieces.pieceSquares[specificPiece], myAttacks.pieceAttacks[specificPiece], allYourPiecesBb, allPiecesBb);
       }
-      
-      // If we found no valid child moves then this is checkmate or stalemate
-      if(stats.nodes == origNodes) {
-	if(isCheck) {
-	  stats.checkmates++;
-	} else {
-	  stats.stalemates++;
-	}
-      }
     }
 
     template <ColorT Color> inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
       PerftStatsT stats = {0};
 
-      perftImpl<Color>(stats, board, depthToGo);
+      perftImpl<Color, Push>(stats, board, depthToGo);
 
       return stats;
     }

@@ -175,6 +175,11 @@ namespace Chess {
   };
   
   static const int NPawns = 8;
+
+  enum PushOrCaptureT {
+    Push,
+    Capture
+  };
 }
 
 #endif //ndef TYPES_HPP
