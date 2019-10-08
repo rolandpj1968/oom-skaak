@@ -142,17 +142,17 @@ namespace Chess {
     
     template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsEpCapture = false> inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo) {
 
-      const PiecesForColorT& myPieces = board.pieces[Color];
-      const PiecesForColorT& yourPieces = board.pieces[otherColor<Color>::value];
-      const BitBoardT allMyPiecesBb = myPieces.bbs[AllPieces];
-      const BitBoardT allYourPiecesBb = yourPieces.bbs[AllPieces];
+      const ColorStateT& myState = board.pieces[Color];
+      const ColorStateT& yourState = board.pieces[otherColor<Color>::value];
+      const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
+      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
   
       // Generate moves
-      PieceAttacksT myAttacks = genPieceAttacks<Color>(myPieces, allPiecesBb);
+      PieceAttacksT myAttacks = genPieceAttacks<Color>(myState, allPiecesBb);
 
       // Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
-      if((myAttacks.allAttacks & yourPieces.bbs[King]) != 0) {
+      if((myAttacks.allAttacks & yourState.bbs[King]) != 0) {
 	// Illegal position - doesn't count
 	stats.invalids++;
 	return;
@@ -175,8 +175,8 @@ namespace Chess {
 	}
 
 	// Is my king in check?
-	PieceAttacksT yourAttacks = genPieceAttacks<otherColor<Color>::value>(yourPieces, allPiecesBb);
-	if((yourAttacks.allAttacks & myPieces.bbs[King]) != 0) {
+	PieceAttacksT yourAttacks = genPieceAttacks<otherColor<Color>::value>(yourState, allPiecesBb);
+	if((yourAttacks.allAttacks & myState.bbs[King]) != 0) {
 	  stats.checks++;
 
 	  // It's checkmate if there are no valid child nodes.
@@ -200,8 +200,8 @@ namespace Chess {
       perftImplPawnsCaptureRight<Color>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & allYourPiecesBb);
 
       // Pawn en-passant captures
-      if(yourPieces.epSquare) {
-	BitBoardT epSquareBb = bbForSquare(yourPieces.epSquare);
+      if(yourState.epSquare) {
+	BitBoardT epSquareBb = bbForSquare(yourState.epSquare);
 
 	perftImplPawnEpCaptureLeft<Color>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & epSquareBb);
 	perftImplPawnEpCaptureRight<Color>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & epSquareBb);
@@ -209,7 +209,7 @@ namespace Chess {
 
       // Piece moves
       for(SpecificPieceT specificPiece = QueenKnight; specificPiece <= SpecificKing; specificPiece = SpecificPieceT(specificPiece + 1)) {
-	perftImplPieceMoves<Color>(stats, board, depthToGo, myPieces.pieceSquares[specificPiece], myAttacks.pieceAttacks[specificPiece], allYourPiecesBb, allPiecesBb);
+	perftImplPieceMoves<Color>(stats, board, depthToGo, myState.pieceSquares[specificPiece], myAttacks.pieceAttacks[specificPiece], allYourPiecesBb, allPiecesBb);
       }
     }
 

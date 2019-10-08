@@ -23,7 +23,7 @@ namespace Chess {
       return (SpecificPieceT) (squarePiece & ~(Black << 7));
     }
 
-    struct PiecesForColorT {
+    struct ColorStateT {
       // All pieces including strange promos.
       BitBoardT bbs[NPieceTypes];
 
@@ -38,7 +38,7 @@ namespace Chess {
     };
 
     struct BoardT {
-      PiecesForColorT pieces[NColors];
+      ColorStateT pieces[NColors];
 
       SquarePieceT board[64];
     };
@@ -50,7 +50,7 @@ namespace Chess {
       board.board[square] = EmptySquare;
       
       // TODO handle non-standard promos
-      PiecesForColorT &pieces = board.pieces[Color];
+      ColorStateT &pieces = board.pieces[Color];
 
       pieces.pieceSquares[specificPiece] = InvalidSquare;
 
@@ -75,7 +75,7 @@ namespace Chess {
       board.board[square] = makeSquarePiece(Color, specificPiece);
 
       // TODO handle non-standard promos
-      PiecesForColorT &pieces = board.pieces[Color];
+      ColorStateT &pieces = board.pieces[Color];
 
       pieces.pieceSquares[specificPiece] = square;
 
