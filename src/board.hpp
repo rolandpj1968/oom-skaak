@@ -27,11 +27,14 @@ namespace Chess {
       // All pieces including strange promos.
       BitBoardT bbs[NPieceTypes];
 
-      // Bitmap of which pieces are still present on the board.
-      PiecePresentFlagsT piecesPresent;
-      
       // All pieces except pawns and strange promos
       SquareT pieceSquares[NSpecificPieceTypes];
+
+      // Bitmap of which pieces are still present on the board.
+      PiecePresentFlagsT piecesPresent;
+
+      // If non-zero, then en-passant square of the last move - i.e. the square behind a pawn two-square push.
+      SquareT epSquare;
     };
 
     struct BoardT {
@@ -87,10 +90,18 @@ namespace Chess {
       pieces.piecesPresent |= piecePresentFlag;
     }
 
-    template <ColorT Color, PushOrCaptureT PushOrCapture> inline BoardT move(const BoardT& oldBoard, const SquareT from, const SquareT to) {
+    inline BoardT copyForMove(const BoardT& oldBoard) {
       BoardT board = oldBoard;
+      // En-passant squares are always lost after a move.
+      board.pieces[White].epSquare = 0;
+      board.pieces[Black].epSquare = 0;
 
-      // TODO en-passant has different take square
+      return board;
+    }
+
+    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false> inline BoardT move(const BoardT& oldBoard, const SquareT from, const SquareT to) {
+      BoardT board = copyForMove(oldBoard);
+
       if(PushOrCapture == Capture) {
 	removePiece<otherColor<Color>::value>(board, to);
       }
@@ -98,15 +109,32 @@ namespace Chess {
       SpecificPieceT specificPiece = removePiece<Color>(board, from);
 
       placePiece<Color>(board, specificPiece, to);
+
+      // Set en-passant square
+      if(IsPawnPushTwo) {
+	board.pieces[Color].epSquare = (SquareT)((from+to)/2);
+      }
       
       // TODO - castling rights?
 
       return board;
     }
+
+    template <ColorT Color> inline BoardT captureEp(const BoardT& oldBoard, const SquareT from, const SquareT to, const SquareT captureSquare) {
+      BoardT board = copyForMove(oldBoard);
+
+      removePiece<otherColor<Color>::value>(board, captureSquare);
+
+      SpecificPieceT specificPiece = removePiece<Color>(board, from);
+
+      placePiece<Color>(board, specificPiece, to);
+      
+      return board;
+    }
     
     extern BoardT startingPosition();
   }
-  
+    
 }
 
 #endif //ndef BOARD_HPP

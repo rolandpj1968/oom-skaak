@@ -23,7 +23,7 @@ namespace Chess {
     };
 
     template <ColorT Color> inline PerftStatsT perft(const BoardT& board, const int depthToGo);
-    template <ColorT Color, PushOrCaptureT PushOrCapture> inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo);
+    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsEpCapture = false> inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo);
   
     template <ColorT Color> SquareT pawnPushOneTo2From(SquareT square);
     template <> SquareT pawnPushOneTo2From<White>(SquareT square) { return square - 8; }
@@ -41,24 +41,24 @@ namespace Chess {
       static SquareT fn(SquareT from) { return pawnPushTwoTo2From<Color>(from); }
     };
 
-    template <ColorT Color, typename To2FromFn> inline void perftImplPawnsPush(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsPush) {
+    template <ColorT Color, typename To2FromFn, bool IsPushTwo> inline void perftImplPawnsPush(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsPush) {
       // No captures here - these are just pawn pushes and already filtered from all target clashes.
       while(pawnsPush) {
 	SquareT to = Bits::popLsb(pawnsPush);
 	SquareT from = To2FromFn::fn(to);
 
-	BoardT newBoard = move<Color, Push>(board, from, to);
+	BoardT newBoard = move<Color, Push, IsPushTwo>(board, from, to);
 
 	perftImpl<otherColor<Color>::value, Push>(stats, newBoard, depthToGo-1);
       }
     }
 
     template <ColorT Color> inline void perftImplPawnsPushOne(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsPushOne) {
-      perftImplPawnsPush<Color, PawnPushOneTo2FromFn<Color>>(stats, board, depthToGo, pawnsPushOne);
+      perftImplPawnsPush<Color, PawnPushOneTo2FromFn<Color>, /*IsPushTwo =*/false>(stats, board, depthToGo, pawnsPushOne);
     }
     
     template <ColorT Color> inline void perftImplPawnsPushTwo(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsPushTwo) {
-      perftImplPawnsPush<Color, PawnPushTwoTo2FromFn<Color>>(stats, board, depthToGo, pawnsPushTwo);
+      perftImplPawnsPush<Color, PawnPushTwoTo2FromFn<Color>, /*IsPushTwo =*/true>(stats, board, depthToGo, pawnsPushTwo);
     }
 
     template <ColorT Color> SquareT pawnAttackLeftTo2From(SquareT square);
@@ -96,6 +96,27 @@ namespace Chess {
       perftImplPawnsCapture<Color, PawnAttackRightTo2FromFn<Color>>(stats, board, depthToGo, pawnsCaptureRight);
     }
 
+    template <ColorT Color, typename To2FromFn> inline void perftImplPawnEpCapture(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsEpCapture) {
+      // There can be only 1 en-passant capture, so no need to loop
+      if(pawnsEpCapture) {
+	SquareT to = Bits::popLsb(pawnsEpCapture);
+	SquareT from = To2FromFn::fn(to);
+	SquareT captureSquare = pawnPushOneTo2From<Color>(to);
+
+	BoardT newBoard = captureEp<Color>(board, from, to, captureSquare);
+
+	perftImpl<otherColor<Color>::value, Capture, /*IsEpCapture =*/true>(stats, newBoard, depthToGo-1);
+      }
+    }
+
+    template <ColorT Color> inline void perftImplPawnEpCaptureLeft(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsCaptureLeft) {
+      perftImplPawnEpCapture<Color, PawnAttackLeftTo2FromFn<Color>>(stats, board, depthToGo, pawnsCaptureLeft);
+    }
+    
+    template <ColorT Color> inline void perftImplPawnEpCaptureRight(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsCaptureRight) {
+      perftImplPawnEpCapture<Color, PawnAttackRightTo2FromFn<Color>>(stats, board, depthToGo, pawnsCaptureRight);
+    }
+
     template <ColorT Color, PushOrCaptureT PushOrCapture> inline void perftImplPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT toBb) {
       while(toBb) {
 	SquareT to = Bits::popLsb(toBb);
@@ -119,7 +140,7 @@ namespace Chess {
       perftImplPieceCaptures<Color>(stats, board, depthToGo, from, attacksBb & allYourPiecesBb);
     }
     
-    template <ColorT Color, PushOrCaptureT PushOrCapture> inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo) {
+    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsEpCapture = false> inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo) {
 
       const PiecesForColorT& myPieces = board.pieces[Color];
       const PiecesForColorT& yourPieces = board.pieces[otherColor<Color>::value];
@@ -149,6 +170,10 @@ namespace Chess {
 	  stats.captures++;
 	}
 
+	if(IsEpCapture) {
+	  stats.eps++;
+	}
+
 	// Is my king in check?
 	PieceAttacksT yourAttacks = genPieceAttacks<otherColor<Color>::value>(yourPieces, allPiecesBb);
 	if((yourAttacks.allAttacks & myPieces.bbs[King]) != 0) {
@@ -173,6 +198,14 @@ namespace Chess {
       // Pawn captures
       perftImplPawnsCaptureLeft<Color>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & allYourPiecesBb);
       perftImplPawnsCaptureRight<Color>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & allYourPiecesBb);
+
+      // Pawn en-passant captures
+      if(yourPieces.epSquare) {
+	BitBoardT epSquareBb = bbForSquare(yourPieces.epSquare);
+
+	perftImplPawnEpCaptureLeft<Color>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & epSquareBb);
+	perftImplPawnEpCaptureRight<Color>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & epSquareBb);
+      }
 
       // Piece moves
       for(SpecificPieceT specificPiece = QueenKnight; specificPiece <= SpecificKing; specificPiece = SpecificPieceT(specificPiece + 1)) {
