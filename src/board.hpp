@@ -93,17 +93,18 @@ namespace Chess {
     inline BoardT copyForMove(const BoardT& oldBoard) {
       BoardT board = oldBoard;
       // En-passant squares are always lost after a move.
+      // Only actually need to clear one side's square, so could template this on Color...
       board.pieces[White].epSquare = 0;
       board.pieces[Black].epSquare = 0;
 
       return board;
     }
 
-    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false> inline BoardT move(const BoardT& oldBoard, const SquareT from, const SquareT to) {
+    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false> inline BoardT move(const BoardT& oldBoard, const SquareT from, const SquareT to, const SquareT captureSquare) {
       BoardT board = copyForMove(oldBoard);
 
       if(PushOrCapture == Capture) {
-	removePiece<otherColor<Color>::value>(board, to);
+	removePiece<otherColor<Color>::value>(board, captureSquare);
       }
 
       SpecificPieceT specificPiece = removePiece<Color>(board, from);
@@ -119,17 +120,13 @@ namespace Chess {
 
       return board;
     }
+    
+    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false> inline BoardT move(const BoardT& oldBoard, const SquareT from, const SquareT to) {
+      return move<Color, PushOrCapture, IsPawnPushTwo>(oldBoard, from, to, /*captureSquare = */to);
+    }
 
     template <ColorT Color> inline BoardT captureEp(const BoardT& oldBoard, const SquareT from, const SquareT to, const SquareT captureSquare) {
-      BoardT board = copyForMove(oldBoard);
-
-      removePiece<otherColor<Color>::value>(board, captureSquare);
-
-      SpecificPieceT specificPiece = removePiece<Color>(board, from);
-
-      placePiece<Color>(board, specificPiece, to);
-      
-      return board;
+      return move<Color, Capture>(oldBoard, from, to, captureSquare);
     }
     
     extern BoardT startingPosition();
