@@ -19,23 +19,12 @@ namespace Chess {
       u64 promos;
       u64 checks;
       u64 checkmates;
-      u64 stalemates;
       u64 invalids;
     };
 
+    template <ColorT Color> inline PerftStatsT perft(const BoardT& board, const int depthToGo);
     template <ColorT Color, PushOrCaptureT PushOrCapture> inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo);
   
-    inline void addStats(PerftStatsT& stats, const PerftStatsT& moreStats) {
-      stats.nodes += moreStats.nodes;
-      stats.captures += moreStats.captures;
-      stats.eps += moreStats.eps;
-      stats.castles += moreStats.castles;
-      stats.promos += moreStats.promos;
-      stats.checks += moreStats.checks;
-      stats.checkmates += moreStats.checkmates;
-      stats.stalemates += moreStats.stalemates;
-    }
-
     template <ColorT Color> SquareT pawnPushOneTo2From(SquareT square);
     template <> SquareT pawnPushOneTo2From<White>(SquareT square) { return square - 8; }
     template <> SquareT pawnPushOneTo2From<Black>(SquareT square) { return square + 8; }
@@ -164,17 +153,14 @@ namespace Chess {
 	PieceAttacksT yourAttacks = genPieceAttacks<otherColor<Color>::value>(yourPieces, allPiecesBb);
 	if((yourAttacks.allAttacks & myPieces.bbs[King]) != 0) {
 	  stats.checks++;
+
+	  // It's checkmate if there are no valid child nodes.
+	  PerftStatsT childStats = perft<Color>(board, 1);
+	  if(childStats.nodes == 0) {
+	    stats.checkmates++;
+	  }
 	}
 
-	// // If we found no valid child moves then this is checkmate or stalemate
-	// if(stats.nodes == origNodes) {
-	//   if(isCheck) {
-	//     stats.checkmates++;
-	//   } else {
-	//     stats.stalemates++;
-	//   }
-	// }
-	
 	return;
       }
 
