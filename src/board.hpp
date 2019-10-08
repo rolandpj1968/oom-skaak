@@ -58,6 +58,7 @@ namespace Chess {
       pieces.bbs[AllPieces] &= ~squareBb;
 
       // TODO brokken for non-standard promos
+      // TODO brokken for pawns - a single pawn remove will clear the flag (for all pawns).
       const PiecePresentFlagsT piecePresentFlag = PresentFlagForSpecificPiece[specificPiece];
       pieces.piecesPresent &= ~piecePresentFlag;
       
