@@ -187,6 +187,20 @@ namespace Chess {
     0,                           // SpecificKing,
     OtherPromoPiecesPresentFlag, // OtherPromoPiece
   };
+
+  template <SpecificPieceT SpecificPiece> struct PresentFlagForSpecificPieceT { static const PiecePresentFlagsT value; };
+  template <> struct PresentFlagForSpecificPieceT<SpecificNoPiece> { static const PiecePresentFlagsT value = 0; };
+  template <> struct PresentFlagForSpecificPieceT<SpecificPawn> { static const PiecePresentFlagsT value = PawnsPresentFlag; };
+  template <> struct PresentFlagForSpecificPieceT<QueenKnight> { static const PiecePresentFlagsT value = QueenKnightPresentFlag; };
+  template <> struct PresentFlagForSpecificPieceT<KingKnight> { static const PiecePresentFlagsT value = KingKnightPresentFlag; };
+  template <> struct PresentFlagForSpecificPieceT<BlackBishop> { static const PiecePresentFlagsT value = BlackBishopPresentFlag; };
+  template <> struct PresentFlagForSpecificPieceT<WhiteBishop> { static const PiecePresentFlagsT value = WhiteBishopPresentFlag; };
+  template <> struct PresentFlagForSpecificPieceT<QueenRook> { static const PiecePresentFlagsT value = QueenRookPresentFlag; };
+  template <> struct PresentFlagForSpecificPieceT<KingRook> { static const PiecePresentFlagsT value = KingRookPresentFlag; };
+  template <> struct PresentFlagForSpecificPieceT<SpecificQueen> { static const PiecePresentFlagsT value = QueenPresentFlag; };
+  template <> struct PresentFlagForSpecificPieceT<PromoQueen> { static const PiecePresentFlagsT value = PromoQueenPresentFlag; };
+  template <> struct PresentFlagForSpecificPieceT<SpecificKing> { static const PiecePresentFlagsT value = 0; };
+  template <> struct PresentFlagForSpecificPieceT<OtherPromoPiece> { static const PiecePresentFlagsT value = OtherPromoPiecesPresentFlag; };
   
   static const int NPawns = 8;
 

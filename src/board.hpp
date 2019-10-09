@@ -73,6 +73,31 @@ namespace Chess {
       return specificPiece;
     }
 
+    template <ColorT Color, SpecificPieceT SpecificPiece> inline void removeSpecificPiece(BoardT& board, const SquareT square) {
+      // const SquarePieceT squarePiece = board.board[square];
+      // const SpecificPieceT specificPiece = squarePieceSpecificPiece(squarePiece);
+
+      board.board[square] = EmptySquare;
+      
+      // TODO handle non-standard promos
+      ColorStateT &pieces = board.pieces[Color];
+
+      pieces.pieceSquares[SpecificPiece] = InvalidSquare;
+
+      const BitBoardT squareBb = bbForSquare(square);
+
+      const PieceT piece = PieceForSpecificPieceT<SpecificPiece>::value;
+      pieces.bbs[piece] &= ~squareBb;
+      pieces.bbs[AllPieces] &= ~squareBb;
+
+      // Only clear pawns-present flag when all pawns are gone
+      if(SpecificPiece != SpecificPawn || pieces.bbs[Pawn] == BbNone) {
+	// TODO brokken for non-standard promos
+	const PiecePresentFlagsT piecePresentFlag = PresentFlagForSpecificPieceT<SpecificPiece>::value;
+	pieces.piecesPresent &= ~piecePresentFlag;
+      }
+    }
+
     // TODO - non-standard promos
     template <ColorT Color> inline void placePiece(BoardT& board, const SpecificPieceT specificPiece, const SquareT square) {
       board.board[square] = makeSquarePiece(Color, specificPiece);
@@ -90,6 +115,26 @@ namespace Chess {
 
       // TODO brokken for non-standard promos
       const PiecePresentFlagsT piecePresentFlag = PresentFlagForSpecificPiece[specificPiece];
+      pieces.piecesPresent |= piecePresentFlag;
+    }
+
+    // TODO - non-standard promos
+    template <ColorT Color, SpecificPieceT SpecificPiece> inline void placeSpecificPiece(BoardT& board, const SquareT square) {
+      board.board[square] = makeSquarePiece(Color, SpecificPiece);
+
+      // TODO handle non-standard promos
+      ColorStateT &pieces = board.pieces[Color];
+
+      pieces.pieceSquares[SpecificPiece] = square;
+
+      const BitBoardT squareBb = bbForSquare(square);
+
+      const PieceT piece = PieceForSpecificPieceT<SpecificPiece>::value;
+      pieces.bbs[piece] |= squareBb;
+      pieces.bbs[AllPieces] |= squareBb;
+
+      // TODO brokken for non-standard promos
+      const PiecePresentFlagsT piecePresentFlag = PresentFlagForSpecificPieceT<SpecificPiece>::value;
       pieces.piecesPresent |= piecePresentFlag;
     }
 
@@ -124,12 +169,49 @@ namespace Chess {
       return board;
     }
     
+    template <ColorT Color, SpecificPieceT SpecificPiece, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false> inline BoardT moveSpecificPiece(const BoardT& oldBoard, const SquareT from, const SquareT to, const SquareT captureSquare) {
+      BoardT board = copyForMove(oldBoard);
+
+      if(PushOrCapture == Capture) {
+	removePiece<OtherColorT<Color>::value>(board, captureSquare);
+      }
+
+      removeSpecificPiece<Color, SpecificPiece>(board, from);
+
+      placeSpecificPiece<Color, SpecificPiece>(board, to);
+
+      // Set en-passant square
+      if(IsPawnPushTwo) {
+	board.pieces[Color].epSquare = (SquareT)((from+to)/2);
+      }
+      
+      // TODO - castling rights?
+
+      return board;
+    }
+    
+    template <ColorT Color, SpecificPieceT SpecificPiece, SpecificPieceT SpecificPieceCaptured> inline BoardT captureSpecificPiece(const BoardT& oldBoard, const SquareT from, const SquareT to, const SquareT captureSquare) {
+      BoardT board = copyForMove(oldBoard);
+
+      removeSpecificPiece<OtherColorT<Color>::value, SpecificPieceCaptured>(board, captureSquare);
+
+      removeSpecificPiece<Color, SpecificPiece>(board, from);
+
+      placeSpecificPiece<Color, SpecificPiece>(board, to);
+
+      return board;
+    }
+    
     template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false> inline BoardT move(const BoardT& oldBoard, const SquareT from, const SquareT to) {
       return move<Color, PushOrCapture, IsPawnPushTwo>(oldBoard, from, to, /*captureSquare = */to);
     }
 
+    template <ColorT Color, SpecificPieceT SpecificPiece, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false> inline BoardT moveSpecificPiece(const BoardT& oldBoard, const SquareT from, const SquareT to) {
+      return moveSpecificPiece<Color, SpecificPiece, PushOrCapture, IsPawnPushTwo>(oldBoard, from, to, /*captureSquare = */to);
+    }
+
     template <ColorT Color> inline BoardT captureEp(const BoardT& oldBoard, const SquareT from, const SquareT to, const SquareT captureSquare) {
-      return move<Color, Capture>(oldBoard, from, to, captureSquare);
+      return captureSpecificPiece<Color, SpecificPawn, SpecificPawn>(oldBoard, from, to, captureSquare);
     }
     
     extern BoardT startingPosition();
