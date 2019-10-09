@@ -35,6 +35,9 @@ namespace Chess {
 
       // If non-zero, then en-passant square of the last move - i.e. the square behind a pawn two-square push.
       SquareT epSquare;
+
+      // Castling rights
+      CastlingRightsT castlingRights;
     };
 
     struct BoardT {
@@ -104,7 +107,7 @@ namespace Chess {
       BoardT board = copyForMove(oldBoard);
 
       if(PushOrCapture == Capture) {
-	removePiece<otherColor<Color>::value>(board, captureSquare);
+	removePiece<OtherColorT<Color>::value>(board, captureSquare);
       }
 
       SpecificPieceT specificPiece = removePiece<Color>(board, from);

@@ -49,7 +49,7 @@ namespace Chess {
 
 	BoardT newBoard = move<Color, Push, IsPushTwo>(board, from, to);
 
-	perftImpl<otherColor<Color>::value, Push>(stats, newBoard, depthToGo-1);
+	perftImpl<OtherColorT<Color>::value, Push>(stats, newBoard, depthToGo-1);
       }
     }
 
@@ -84,7 +84,7 @@ namespace Chess {
 
 	BoardT newBoard = move<Color, Capture>(board, from, to);
 
-	perftImpl<otherColor<Color>::value, Capture>(stats, newBoard, depthToGo-1);
+	perftImpl<OtherColorT<Color>::value, Capture>(stats, newBoard, depthToGo-1);
       }
     }
 
@@ -105,7 +105,7 @@ namespace Chess {
 
 	BoardT newBoard = captureEp<Color>(board, from, to, captureSquare);
 
-	perftImpl<otherColor<Color>::value, Capture, /*IsEpCapture =*/true>(stats, newBoard, depthToGo-1);
+	perftImpl<OtherColorT<Color>::value, Capture, /*IsEpCapture =*/true>(stats, newBoard, depthToGo-1);
       }
     }
 
@@ -123,7 +123,7 @@ namespace Chess {
 
 	BoardT newBoard = move<Color, PushOrCapture>(board, from, to);
 
-	perftImpl<otherColor<Color>::value, PushOrCapture>(stats, newBoard, depthToGo-1);
+	perftImpl<OtherColorT<Color>::value, PushOrCapture>(stats, newBoard, depthToGo-1);
       }
     }
     
@@ -140,10 +140,15 @@ namespace Chess {
       perftImplPieceCaptures<Color>(stats, board, depthToGo, from, attacksBb & allYourPiecesBb);
     }
     
+    // template <ColorT Color, SpecificPieceT SpecificPiece> inline void perftImplPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT attacksBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb) {
+    //   perftImplPiecePushes<Color>(stats, board, depthToGo, from, attacksBb & ~allPiecesBb);
+    //   perftImplPieceCaptures<Color>(stats, board, depthToGo, from, attacksBb & allYourPiecesBb);
+    // }
+    
     template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsEpCapture = false> inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo) {
 
       const ColorStateT& myState = board.pieces[Color];
-      const ColorStateT& yourState = board.pieces[otherColor<Color>::value];
+      const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
       const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
       const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
@@ -175,7 +180,7 @@ namespace Chess {
 	}
 
 	// Is my king in check?
-	PieceAttacksT yourAttacks = genPieceAttacks<otherColor<Color>::value>(yourState, allPiecesBb);
+	PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value>(yourState, allPiecesBb);
 	if((yourAttacks.allAttacks & myState.bbs[King]) != 0) {
 	  stats.checks++;
 

@@ -7,6 +7,8 @@ using namespace Chess;
 using namespace Perft;
 
 int main(int argc, char* argv[]) {
+  printf("sizeof(BoardT) = %lu\n", sizeof(BoardT));
+  
   BoardT startingBoard = Board::startingPosition();
 
   PerftStatsT stats = perft<Black>(startingBoard, 6);

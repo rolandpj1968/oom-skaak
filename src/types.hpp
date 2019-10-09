@@ -15,9 +15,9 @@ namespace Chess {
     NColors,
   };
 
-  template <ColorT color> struct otherColor { static const ColorT value; };
-  template <> struct otherColor<White> { static const ColorT value = Black; };
-  template <> struct otherColor<Black> { static const ColorT value = White; };
+  template <ColorT color> struct OtherColorT { static const ColorT value; };
+  template <> struct OtherColorT<White> { static const ColorT value = Black; };
+  template <> struct OtherColorT<Black> { static const ColorT value = White; };
   
   typedef u64 BitBoardT;
 
@@ -131,6 +131,20 @@ namespace Chess {
     NoPiece,       // TODO - OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
   };
 
+  template <SpecificPieceT SpecificPiece> struct PieceForSpecificPieceT { static const PieceT value; };
+  template <> struct PieceForSpecificPieceT<SpecificNoPiece> { static const PieceT value = NoPiece; };
+  template <> struct PieceForSpecificPieceT<SpecificPawn> { static const PieceT value = Pawn; };
+  template <> struct PieceForSpecificPieceT<QueenKnight> { static const PieceT value = Knight; };
+  template <> struct PieceForSpecificPieceT<KingKnight> { static const PieceT value = Knight; };
+  template <> struct PieceForSpecificPieceT<BlackBishop> { static const PieceT value = Bishop; };
+  template <> struct PieceForSpecificPieceT<WhiteBishop> { static const PieceT value = Bishop; };
+  template <> struct PieceForSpecificPieceT<QueenRook> { static const PieceT value = Rook; };
+  template <> struct PieceForSpecificPieceT<KingRook> { static const PieceT value = Rook; };
+  template <> struct PieceForSpecificPieceT<SpecificQueen> { static const PieceT value = Queen; };
+  template <> struct PieceForSpecificPieceT<PromoQueen> { static const PieceT value = Queen; };
+  template <> struct PieceForSpecificPieceT<SpecificKing> { static const PieceT value = King; };
+  // TODO - OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
+
   enum PiecePresentShiftsT {
     PawnsPresentShift,
     QueenKnightPresentShift,
@@ -179,6 +193,12 @@ namespace Chess {
   enum PushOrCaptureT {
     Push,
     Capture
+  };
+
+  enum CastlingRightsT {
+    NoCastlingRights = 0,
+    CanCastleQueenside = 1,
+    CanCastleKingside = 2,
   };
 }
 
