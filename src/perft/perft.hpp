@@ -215,27 +215,69 @@ namespace Chess {
       // Evaluate moves
 
       // Pawn pushes
-      perftImplPawnsPushOne<Color>(stats, board, depthToGo, myAttacks.pawnsPushOne);
-      perftImplPawnsPushTwo<Color>(stats, board, depthToGo, myAttacks.pawnsPushTwo);
+      if(myState.piecesPresent & PawnsPresentFlag) {
+	perftImplPawnsPushOne<Color>(stats, board, depthToGo, myAttacks.pawnsPushOne);
+	perftImplPawnsPushTwo<Color>(stats, board, depthToGo, myAttacks.pawnsPushTwo);
+	
+	// Pawn captures
+	perftImplPawnsCaptureLeft<Color>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & allYourPiecesBb);
+	perftImplPawnsCaptureRight<Color>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & allYourPiecesBb);
 
-      // Pawn captures
-      perftImplPawnsCaptureLeft<Color>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & allYourPiecesBb);
-      perftImplPawnsCaptureRight<Color>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & allYourPiecesBb);
-
-      // Pawn en-passant captures
-      if(yourState.epSquare) {
-	BitBoardT epSquareBb = bbForSquare(yourState.epSquare);
-
-	perftImplPawnEpCaptureLeft<Color>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & epSquareBb);
-	perftImplPawnEpCaptureRight<Color>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & epSquareBb);
+	// Pawn en-passant captures
+	if(yourState.epSquare) {
+	  BitBoardT epSquareBb = bbForSquare(yourState.epSquare);
+	  
+	  perftImplPawnEpCaptureLeft<Color>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & epSquareBb);
+	  perftImplPawnEpCaptureRight<Color>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & epSquareBb);
+	}
       }
 
       // Piece moves
-      for(SpecificPieceT specificPiece = QueenKnight; specificPiece <= SpecificKing; specificPiece = SpecificPieceT(specificPiece + 1)) {
-	if(myState.piecesPresent & PresentFlagForSpecificPiece[specificPiece]) {
-	  perftImplPieceMoves<Color>(stats, board, depthToGo, myState.pieceSquares[specificPiece], myAttacks.pieceAttacks[specificPiece], allYourPiecesBb, allPiecesBb);
-	}
+      PiecePresentFlagsT piecesPresent = myState.piecesPresent;
+
+      // Knights
+      
+      if(piecesPresent & PresentFlagForSpecificPiece[QueenKnight]) {
+	perftImplSpecificPieceMoves<Color, QueenKnight>(stats, board, depthToGo, myState.pieceSquares[QueenKnight], myAttacks.pieceAttacks[QueenKnight], allYourPiecesBb, allPiecesBb);
       }
+
+      if(piecesPresent & PresentFlagForSpecificPiece[KingKnight]) {
+	perftImplSpecificPieceMoves<Color, KingKnight>(stats, board, depthToGo, myState.pieceSquares[KingKnight], myAttacks.pieceAttacks[KingKnight], allYourPiecesBb, allPiecesBb);
+      }
+
+      // Bishops
+      
+      if(piecesPresent & PresentFlagForSpecificPiece[BlackBishop]) {
+	perftImplSpecificPieceMoves<Color, BlackBishop>(stats, board, depthToGo, myState.pieceSquares[BlackBishop], myAttacks.pieceAttacks[BlackBishop], allYourPiecesBb, allPiecesBb);
+      }
+
+      if(piecesPresent & PresentFlagForSpecificPiece[WhiteBishop]) {
+	perftImplSpecificPieceMoves<Color, WhiteBishop>(stats, board, depthToGo, myState.pieceSquares[WhiteBishop], myAttacks.pieceAttacks[WhiteBishop], allYourPiecesBb, allPiecesBb);
+      }
+
+      // Rooks
+
+      if(piecesPresent & PresentFlagForSpecificPiece[QueenRook]) {
+	perftImplSpecificPieceMoves<Color, QueenRook>(stats, board, depthToGo, myState.pieceSquares[QueenRook], myAttacks.pieceAttacks[QueenRook], allYourPiecesBb, allPiecesBb);
+      }
+
+      if(piecesPresent & PresentFlagForSpecificPiece[KingRook]) {
+	perftImplSpecificPieceMoves<Color, KingRook>(stats, board, depthToGo, myState.pieceSquares[KingRook], myAttacks.pieceAttacks[KingRook], allYourPiecesBb, allPiecesBb);
+      }
+
+      // Queens
+
+      if(piecesPresent & PresentFlagForSpecificPiece[SpecificQueen]) {
+	perftImplSpecificPieceMoves<Color, SpecificQueen>(stats, board, depthToGo, myState.pieceSquares[SpecificQueen], myAttacks.pieceAttacks[SpecificQueen], allYourPiecesBb, allPiecesBb);
+      }
+
+      if(piecesPresent & PresentFlagForSpecificPiece[PromoQueen]) {
+	perftImplSpecificPieceMoves<Color, PromoQueen>(stats, board, depthToGo, myState.pieceSquares[PromoQueen], myAttacks.pieceAttacks[PromoQueen], allYourPiecesBb, allPiecesBb);
+      }
+
+      // King always present
+      perftImplSpecificPieceMoves<Color, SpecificKing>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], myAttacks.pieceAttacks[SpecificKing], allYourPiecesBb, allPiecesBb);
+
     }
 
     template <ColorT Color> inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
