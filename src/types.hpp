@@ -159,6 +159,10 @@ namespace Chess {
     PiecePresentLimitShift,
   };
 
+  // This MUST match PiecePresentLimitShift
+#define PIECE_PRESENT_LIMIT_SHIFT 10
+#define MAX_PIECE_PRESENT_FLAGS ((1 << PIECE_PRESENT_LIMIT_SHIFT) - 1)
+
   typedef u16 PiecePresentFlagsT;
 
   static const PiecePresentFlagsT PawnsPresentFlag = ((PiecePresentFlagsT)1 << PawnsPresentShift);
@@ -171,7 +175,9 @@ namespace Chess {
   static const PiecePresentFlagsT QueenPresentFlag = ((PiecePresentFlagsT)1 << QueenPresentShift);
   static const PiecePresentFlagsT PromoQueenPresentFlag = ((PiecePresentFlagsT)1 << PromoQueenPresentShift);
   static const PiecePresentFlagsT OtherPromoPiecesPresentFlag = ((PiecePresentFlagsT)1 << OtherPromoPiecesPresentShift);
+  
   static const PiecePresentFlagsT AllPiecesPresentFlags = ((PiecePresentFlagsT)1 << PiecePresentLimitShift) - 1;
+  static const PiecePresentFlagsT StartingPiecesPresentFlags = AllPiecesPresentFlags & ~(PromoQueenPresentFlag | OtherPromoPiecesPresentShift);
 
   const PiecePresentFlagsT PresentFlagForSpecificPiece[NSpecificPieceTypes] = {
     0,                           // SpecificNoPiece,

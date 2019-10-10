@@ -22,8 +22,11 @@ namespace Chess {
       u64 invalids;
     };
 
-    template <ColorT Color> inline PerftStatsT perft(const BoardT& board, const int depthToGo);
-    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsEpCapture = false> inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo);
+    template <ColorT Color>
+    inline PerftStatsT perft(const BoardT& board, const int depthToGo);
+    
+    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsEpCapture = false>
+    inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo);
   
     template <ColorT Color> SquareT pawnPushOneTo2From(SquareT square);
     template <> SquareT pawnPushOneTo2From<White>(SquareT square) { return square - 8; }
@@ -41,7 +44,8 @@ namespace Chess {
       static SquareT fn(SquareT from) { return pawnPushTwoTo2From<Color>(from); }
     };
 
-    template <ColorT Color, typename To2FromFn, bool IsPushTwo> inline void perftImplPawnsPush(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsPush) {
+    template <ColorT Color, typename To2FromFn, bool IsPushTwo>
+    inline void perftImplPawnsPush(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsPush) {
       // No captures here - these are just pawn pushes and already filtered from all target clashes.
       while(pawnsPush) {
 	SquareT to = Bits::popLsb(pawnsPush);
@@ -96,7 +100,8 @@ namespace Chess {
       perftImplPawnsCapture<Color, PawnAttackRightTo2FromFn<Color>>(stats, board, depthToGo, pawnsCaptureRight);
     }
 
-    template <ColorT Color, typename To2FromFn> inline void perftImplPawnEpCapture(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsEpCapture) {
+    template <ColorT Color, typename To2FromFn>
+    inline void perftImplPawnEpCapture(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsEpCapture) {
       // There can be only 1 en-passant capture, so no need to loop
       if(pawnsEpCapture) {
 	SquareT to = Bits::popLsb(pawnsEpCapture);
@@ -117,7 +122,8 @@ namespace Chess {
       perftImplPawnEpCapture<Color, PawnAttackRightTo2FromFn<Color>>(stats, board, depthToGo, pawnsCaptureRight);
     }
 
-    template <ColorT Color, PushOrCaptureT PushOrCapture> inline void perftImplPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT toBb) {
+    template <ColorT Color, PushOrCaptureT PushOrCapture>
+    inline void perftImplPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT toBb) {
       while(toBb) {
 	SquareT to = Bits::popLsb(toBb);
 
@@ -127,7 +133,8 @@ namespace Chess {
       }
     }
     
-    template <ColorT Color, SpecificPieceT SpecificPiece, PushOrCaptureT PushOrCapture> inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT toBb) {
+    template <ColorT Color, SpecificPieceT SpecificPiece, PushOrCaptureT PushOrCapture>
+    inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT toBb) {
       while(toBb) {
 	SquareT to = Bits::popLsb(toBb);
 
@@ -158,12 +165,14 @@ namespace Chess {
       perftImplPieceCaptures<Color>(stats, board, depthToGo, from, attacksBb & allYourPiecesBb);
     }
     
-    template <ColorT Color, SpecificPieceT SpecificPiece> inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT attacksBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb) {
+    template <ColorT Color, SpecificPieceT SpecificPiece>
+    inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT attacksBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb) {
       perftImplSpecificPiecePushes<Color, SpecificPiece>(stats, board, depthToGo, from, attacksBb & ~allPiecesBb);
       perftImplSpecificPieceCaptures<Color, SpecificPiece>(stats, board, depthToGo, from, attacksBb & allYourPiecesBb);
     }
     
-    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsEpCapture = false> inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo) {
+    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsEpCapture = false, PiecePresentFlagsT PiecesPresent = AllPiecesPresentFlags, bool UseRuntimeChecks = true>
+    inline void perftImplTemplate(PerftStatsT& stats, const BoardT& board, const int depthToGo) {
 
       const ColorStateT& myState = board.pieces[Color];
       const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
@@ -172,7 +181,7 @@ namespace Chess {
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
   
       // Generate moves
-      PieceAttacksT myAttacks = genPieceAttacks<Color>(myState, allPiecesBb);
+      PieceAttacksT myAttacks = genPieceAttacks<Color, PiecesPresent, UseRuntimeChecks>(myState, allPiecesBb);
 
       // Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
       if((myAttacks.allAttacks & yourState.bbs[King]) != 0) {
@@ -214,8 +223,10 @@ namespace Chess {
 
       // Evaluate moves
 
+      PiecePresentFlagsT piecesPresent = myState.piecesPresent;
+
       // Pawn pushes
-      if(myState.piecesPresent & PawnsPresentFlag) {
+      if((PiecesPresent & PawnsPresentFlag) && (!UseRuntimeChecks || (piecesPresent & PawnsPresentFlag))) {
 	perftImplPawnsPushOne<Color>(stats, board, depthToGo, myAttacks.pawnsPushOne);
 	perftImplPawnsPushTwo<Color>(stats, board, depthToGo, myAttacks.pawnsPushTwo);
 	
@@ -233,53 +244,84 @@ namespace Chess {
       }
 
       // Piece moves
-      PiecePresentFlagsT piecesPresent = myState.piecesPresent;
 
       // Knights
       
-      if(piecesPresent & PresentFlagForSpecificPiece[QueenKnight]) {
+      if((PiecesPresent & QueenKnightPresentFlag) && (!UseRuntimeChecks || (piecesPresent & QueenKnightPresentFlag))) {
 	perftImplSpecificPieceMoves<Color, QueenKnight>(stats, board, depthToGo, myState.pieceSquares[QueenKnight], myAttacks.pieceAttacks[QueenKnight], allYourPiecesBb, allPiecesBb);
       }
 
-      if(piecesPresent & PresentFlagForSpecificPiece[KingKnight]) {
+      if((PiecesPresent & KingKnightPresentFlag) && (!UseRuntimeChecks || (piecesPresent & KingKnightPresentFlag))) {
 	perftImplSpecificPieceMoves<Color, KingKnight>(stats, board, depthToGo, myState.pieceSquares[KingKnight], myAttacks.pieceAttacks[KingKnight], allYourPiecesBb, allPiecesBb);
       }
 
       // Bishops
       
-      if(piecesPresent & PresentFlagForSpecificPiece[BlackBishop]) {
+      if((PiecesPresent & BlackBishopPresentFlag) && (!UseRuntimeChecks || (piecesPresent & BlackBishopPresentFlag))) {
 	perftImplSpecificPieceMoves<Color, BlackBishop>(stats, board, depthToGo, myState.pieceSquares[BlackBishop], myAttacks.pieceAttacks[BlackBishop], allYourPiecesBb, allPiecesBb);
       }
 
-      if(piecesPresent & PresentFlagForSpecificPiece[WhiteBishop]) {
+      if((PiecesPresent & WhiteBishopPresentFlag) && (!UseRuntimeChecks || (piecesPresent & WhiteBishopPresentFlag))) {
 	perftImplSpecificPieceMoves<Color, WhiteBishop>(stats, board, depthToGo, myState.pieceSquares[WhiteBishop], myAttacks.pieceAttacks[WhiteBishop], allYourPiecesBb, allPiecesBb);
       }
 
       // Rooks
 
-      if(piecesPresent & PresentFlagForSpecificPiece[QueenRook]) {
+      if((PiecesPresent & QueenRookPresentFlag) && (!UseRuntimeChecks || (piecesPresent & QueenRookPresentFlag))) {
 	perftImplSpecificPieceMoves<Color, QueenRook>(stats, board, depthToGo, myState.pieceSquares[QueenRook], myAttacks.pieceAttacks[QueenRook], allYourPiecesBb, allPiecesBb);
       }
 
-      if(piecesPresent & PresentFlagForSpecificPiece[KingRook]) {
+      if((PiecesPresent & KingRookPresentFlag) && (!UseRuntimeChecks || (piecesPresent & KingRookPresentFlag))) {
 	perftImplSpecificPieceMoves<Color, KingRook>(stats, board, depthToGo, myState.pieceSquares[KingRook], myAttacks.pieceAttacks[KingRook], allYourPiecesBb, allPiecesBb);
       }
 
       // Queens
 
-      if(piecesPresent & PresentFlagForSpecificPiece[SpecificQueen]) {
+      if((PiecesPresent & QueenPresentFlag) && (!UseRuntimeChecks || (piecesPresent & QueenPresentFlag))) {
 	perftImplSpecificPieceMoves<Color, SpecificQueen>(stats, board, depthToGo, myState.pieceSquares[SpecificQueen], myAttacks.pieceAttacks[SpecificQueen], allYourPiecesBb, allPiecesBb);
       }
 
-      if(piecesPresent & PresentFlagForSpecificPiece[PromoQueen]) {
+      if((PiecesPresent & PromoQueenPresentFlag) && (!UseRuntimeChecks || (piecesPresent & PromoQueenPresentFlag))) {
 	perftImplSpecificPieceMoves<Color, PromoQueen>(stats, board, depthToGo, myState.pieceSquares[PromoQueen], myAttacks.pieceAttacks[PromoQueen], allYourPiecesBb, allPiecesBb);
       }
 
       // King always present
       perftImplSpecificPieceMoves<Color, SpecificKing>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], myAttacks.pieceAttacks[SpecificKing], allYourPiecesBb, allPiecesBb);
 
+      // TODO other promo pieces
     }
 
+    typedef void PerftImplFn(PerftStatsT& stats, const BoardT& board, const int depthToGo);
+
+    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsEpCapture>
+    struct PerftImplDispatcherT {
+      static const PerftImplFn* DispatchTable[];
+    };
+
+#include <boost/preprocessor/iteration/local.hpp>
+
+#define BOOST_PP_LOCAL_MACRO(n) \
+    perftImplTemplate<Color, PushOrCapture, IsEpCapture, (n), false>/*perftImplTemplate<Color, PushOrCapture, IsEpCapture, AllPiecesPresentFlags, true>*/,
+
+#define BOOST_PP_LOCAL_LIMITS (0, MAX_PIECE_PRESENT_FLAGS)
+    
+    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsEpCapture>
+    const PerftImplFn* PerftImplDispatcherT<Color, PushOrCapture, IsEpCapture>::DispatchTable[] = {
+#include BOOST_PP_LOCAL_ITERATE()
+    };
+
+    // Disappointingly the clever template specialisation produces code that runs slower than without???
+#define PERFT_DIRECT_DISPATCH
+    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsEpCapture = false>
+    inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo) {
+#ifdef PERFT_DIRECT_DISPATCH
+      perftImplTemplate<Color, PushOrCapture, IsEpCapture>(stats, board, depthToGo);
+#else
+      const ColorStateT& myState = board.pieces[Color];
+      PerftImplDispatcherT<Color, PushOrCapture, IsEpCapture>::DispatchTable[myState.piecesPresent](stats, board, depthToGo);
+#endif
+    }
+    
     template <ColorT Color> inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
       PerftStatsT stats = {0};
 
