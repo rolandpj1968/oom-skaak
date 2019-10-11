@@ -36,19 +36,23 @@ namespace Chess {
     template <ColorT Color>
     inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const CaptureT captureType);
   
-    template <ColorT Color> SquareT pawnPushOneTo2From(SquareT square);
+    template <ColorT Color>
+    SquareT pawnPushOneTo2From(SquareT square);
     template <> SquareT pawnPushOneTo2From<White>(SquareT square) { return square - 8; }
     template <> SquareT pawnPushOneTo2From<Black>(SquareT square) { return square + 8; }
 
-    template <ColorT Color> struct PawnPushOneTo2FromFn {
+    template <ColorT Color>
+    struct PawnPushOneTo2FromFn {
       static SquareT fn(SquareT from) { return pawnPushOneTo2From<Color>(from); }
     };
 
-    template <ColorT Color> SquareT pawnPushTwoTo2From(SquareT square);
+    template <ColorT Color>
+    SquareT pawnPushTwoTo2From(SquareT square);
     template <> SquareT pawnPushTwoTo2From<White>(SquareT square) { return square - 16; }
     template <> SquareT pawnPushTwoTo2From<Black>(SquareT square) { return square + 16; }
 
-    template <ColorT Color> struct PawnPushTwoTo2FromFn {
+    template <ColorT Color>
+    struct PawnPushTwoTo2FromFn {
       static SquareT fn(SquareT from) { return pawnPushTwoTo2From<Color>(from); }
     };
 
@@ -65,31 +69,38 @@ namespace Chess {
       }
     }
 
-    template <ColorT Color> inline void perftImplPawnsPushOne(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsPushOne) {
+    template <ColorT Color>
+    inline void perftImplPawnsPushOne(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsPushOne) {
       perftImplPawnsPush<Color, PawnPushOneTo2FromFn<Color>, /*IsPushTwo =*/false>(stats, board, depthToGo, pawnsPushOne);
     }
     
-    template <ColorT Color> inline void perftImplPawnsPushTwo(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsPushTwo) {
+    template <ColorT Color>
+    inline void perftImplPawnsPushTwo(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsPushTwo) {
       perftImplPawnsPush<Color, PawnPushTwoTo2FromFn<Color>, /*IsPushTwo =*/true>(stats, board, depthToGo, pawnsPushTwo);
     }
 
-    template <ColorT Color> SquareT pawnAttackLeftTo2From(SquareT square);
-    template <> SquareT pawnAttackLeftTo2From<White>(SquareT square) { return square - 7; }
-    template <> SquareT pawnAttackLeftTo2From<Black>(SquareT square) { return square + 9; }
+    template <ColorT Color>
+    inline SquareT pawnAttackLeftTo2From(SquareT square);
+    template <> inline SquareT pawnAttackLeftTo2From<White>(SquareT square) { return square - 7; }
+    template <> inline SquareT pawnAttackLeftTo2From<Black>(SquareT square) { return square + 9; }
 
-    template <ColorT Color> struct PawnAttackLeftTo2FromFn {
-      static SquareT fn(SquareT from) { return pawnAttackLeftTo2From<Color>(from); }
+    template <ColorT Color>
+    struct PawnAttackLeftTo2FromFn {
+      static inline SquareT fn(SquareT from) { return pawnAttackLeftTo2From<Color>(from); }
     };
 
-    template <ColorT Color> SquareT pawnAttackRightTo2From(SquareT square);
-    template <> SquareT pawnAttackRightTo2From<White>(SquareT square) { return square - 9; }
-    template <> SquareT pawnAttackRightTo2From<Black>(SquareT square) { return square + 7; }
+    template <ColorT Color>
+    inline SquareT pawnAttackRightTo2From(SquareT square);
+    template <> inline SquareT pawnAttackRightTo2From<White>(SquareT square) { return square - 9; }
+    template <> inline SquareT pawnAttackRightTo2From<Black>(SquareT square) { return square + 7; }
 
-    template <ColorT Color> struct PawnAttackRightTo2FromFn {
-      static SquareT fn(SquareT from) { return pawnAttackRightTo2From<Color>(from); }
+    template <ColorT Color>
+    struct PawnAttackRightTo2FromFn {
+      static inline SquareT fn(SquareT from) { return pawnAttackRightTo2From<Color>(from); }
     };
 
-    template <ColorT Color, typename To2FromFn> inline void perftImplPawnsCapture(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsCapture) {
+    template <ColorT Color, typename To2FromFn>
+    inline void perftImplPawnsCapture(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsCapture) {
       while(pawnsCapture) {
 	SquareT to = Bits::popLsb(pawnsCapture);
 	SquareT from = To2FromFn::fn(to);
@@ -100,11 +111,13 @@ namespace Chess {
       }
     }
 
-    template <ColorT Color> inline void perftImplPawnsCaptureLeft(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsCaptureLeft) {
+    template <ColorT Color>
+    inline void perftImplPawnsCaptureLeft(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsCaptureLeft) {
       perftImplPawnsCapture<Color, PawnAttackLeftTo2FromFn<Color>>(stats, board, depthToGo, pawnsCaptureLeft);
     }
     
-    template <ColorT Color> inline void perftImplPawnsCaptureRight(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsCaptureRight) {
+    template <ColorT Color>
+    inline void perftImplPawnsCaptureRight(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsCaptureRight) {
       perftImplPawnsCapture<Color, PawnAttackRightTo2FromFn<Color>>(stats, board, depthToGo, pawnsCaptureRight);
     }
 
@@ -122,11 +135,13 @@ namespace Chess {
       }
     }
 
-    template <ColorT Color> inline void perftImplPawnEpCaptureLeft(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsCaptureLeft) {
+    template <ColorT Color>
+    inline void perftImplPawnEpCaptureLeft(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsCaptureLeft) {
       perftImplPawnEpCapture<Color, PawnAttackLeftTo2FromFn<Color>>(stats, board, depthToGo, pawnsCaptureLeft);
     }
     
-    template <ColorT Color> inline void perftImplPawnEpCaptureRight(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsCaptureRight) {
+    template <ColorT Color>
+    inline void perftImplPawnEpCaptureRight(PerftStatsT& stats, const BoardT& board, const int depthToGo, BitBoardT pawnsCaptureRight) {
       perftImplPawnEpCapture<Color, PawnAttackRightTo2FromFn<Color>>(stats, board, depthToGo, pawnsCaptureRight);
     }
 
@@ -152,11 +167,13 @@ namespace Chess {
       }
     }
     
-    template <ColorT Color, SpecificPieceT SpecificPiece> inline void perftImplSpecificPiecePushes(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT pushesBb) {
+    template <ColorT Color, SpecificPieceT SpecificPiece>
+    inline void perftImplSpecificPiecePushes(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT pushesBb) {
       perftImplSpecificPieceMoves<Color, SpecificPiece, Push>(stats, board, depthToGo, from, pushesBb, NoCapture);
     }
     
-    template <ColorT Color, SpecificPieceT SpecificPiece> inline void perftImplSpecificPieceCaptures(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT capturesBb) {
+    template <ColorT Color, SpecificPieceT SpecificPiece>
+    inline void perftImplSpecificPieceCaptures(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT capturesBb) {
       perftImplSpecificPieceMoves<Color, SpecificPiece, Capture>(stats, board, depthToGo, from, capturesBb, NormalCapture);
     }
     
@@ -314,7 +331,7 @@ namespace Chess {
     };
 
     // Disappointingly the clever template specialisation produces code that runs slower than without???
-#define xPERFT_DIRECT_DISPATCH
+#define PERFT_DIRECT_DISPATCH
     template <ColorT Color = false>
     inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const CaptureT captureType) {
 #ifdef PERFT_DIRECT_DISPATCH
