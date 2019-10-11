@@ -206,12 +206,12 @@ namespace Chess {
 	// TODO - do we need to check for stalemate?
 	stats.nodes++;
 
-	if(PushOrCapture == Capture) {
+	if(captureType != NoCapture) {
 	  stats.captures++;
-	}
 
-	if(IsEpCapture) {
-	  stats.eps++;
+	  if(captureType == EpCapture) {
+	    stats.eps++;
+	  }
 	}
 
 	if(myState.piecesPresent == StartingPiecesPresentFlags) {
