@@ -233,8 +233,8 @@ namespace Chess {
       // Pawn attacks (and moves) - single bit board for all pawns for each move type.
       BitBoardT pawnsLeftAttacks;
       BitBoardT pawnsRightAttacks;
-      BitBoardT pawnsPushOne;     // Not actually attacks - possibly remove
-      BitBoardT pawnsPushTwo;     // Not actually attacks - possible remove
+      BitBoardT pawnsPushOne;
+      BitBoardT pawnsPushTwo;
 
       // Piece moves
       BitBoardT pieceAttacks[NSpecificPieceTypes];
@@ -247,96 +247,72 @@ namespace Chess {
 
     // Generate attacks/defenses for all pieces.
     // TODO - missing support for unusual promos.
-    template <ColorT Color, PiecePresentFlagsT PiecesPresent = AllPiecesPresentFlags, bool UseRuntimeChecks = true>
+    template <ColorT Color, bool HasPromos = false>
     inline PieceAttacksT genPieceAttacks(const ColorStateT& colorState, const BitBoardT allPieces) {
       PieceAttacksT attacks = {0};
 
       PiecePresentFlagsT piecesPresent = colorState.piecesPresent;
       
       // Pawns
-      /*if((PiecesPresent & PawnsPresentFlag) && (!UseRuntimeChecks || (piecesPresent & PawnsPresentFlag)))*/ {
-	BitBoardT pawns = colorState.bbs[Pawn];
-	attacks.pawnsLeftAttacks = pawnsLeftAttacks<Color>(pawns);
-	attacks.pawnsRightAttacks = pawnsRightAttacks<Color>(pawns);
-
-	attacks.allAttacks |= (attacks.pawnsLeftAttacks | attacks.pawnsRightAttacks);
-
-	attacks.pawnsPushOne = pawnsPushOne<Color>(pawns, allPieces);
-	attacks.pawnsPushTwo = pawnsPushTwo<Color>(attacks.pawnsPushOne, allPieces);
-      }
+      BitBoardT pawns = colorState.bbs[Pawn];
+      attacks.pawnsLeftAttacks = pawnsLeftAttacks<Color>(pawns);
+      attacks.pawnsRightAttacks = pawnsRightAttacks<Color>(pawns);
+      
+      attacks.allAttacks |= (attacks.pawnsLeftAttacks | attacks.pawnsRightAttacks);
+      
+      attacks.pawnsPushOne = pawnsPushOne<Color>(pawns, allPieces);
+      attacks.pawnsPushTwo = pawnsPushTwo<Color>(attacks.pawnsPushOne, allPieces);
 
       // Knights
       
-      /*if((PiecesPresent & QueenKnightPresentFlag) && (!UseRuntimeChecks || (piecesPresent & QueenKnightPresentFlag)))*/ {
-	SquareT queenKnightSquare = colorState.pieceSquares[QueenKnight];
-
-	attacks.pieceAttacks[QueenKnight] = KnightAttacks[queenKnightSquare];
-
-	attacks.allAttacks |= attacks.pieceAttacks[QueenKnight];
-      }
+      SquareT queenKnightSquare = colorState.pieceSquares[QueenKnight];
       
-      /*if((PiecesPresent & KingKnightPresentFlag) && (!UseRuntimeChecks || (piecesPresent & KingKnightPresentFlag)))*/ {
-	SquareT kingKnightSquare = colorState.pieceSquares[KingKnight];
-
-	attacks.pieceAttacks[KingKnight] = KnightAttacks[kingKnightSquare];
-
-	attacks.allAttacks |= attacks.pieceAttacks[KingKnight];
-      }
+      attacks.pieceAttacks[QueenKnight] = KnightAttacks[queenKnightSquare];
+      
+      attacks.allAttacks |= attacks.pieceAttacks[QueenKnight];
+      
+      SquareT kingKnightSquare = colorState.pieceSquares[KingKnight];
+      
+      attacks.pieceAttacks[KingKnight] = KnightAttacks[kingKnightSquare];
+      
+      attacks.allAttacks |= attacks.pieceAttacks[KingKnight];
 
       // Bishops
 
-      /*if((PiecesPresent & BlackBishopPresentFlag) && (!UseRuntimeChecks || (piecesPresent & BlackBishopPresentFlag)))*/ {
-	SquareT blackBishopSquare = colorState.pieceSquares[BlackBishop];
-
-	attacks.pieceAttacks[BlackBishop] = bishopAttacks(blackBishopSquare, allPieces);
-
-	attacks.allAttacks |= attacks.pieceAttacks[BlackBishop];
-      }
+      SquareT blackBishopSquare = colorState.pieceSquares[BlackBishop];
       
-      /*if((PiecesPresent & WhiteBishopPresentFlag) && (!UseRuntimeChecks || (piecesPresent & WhiteBishopPresentFlag)))*/ {
-	SquareT whiteBishopSquare = colorState.pieceSquares[WhiteBishop];
-
-	attacks.pieceAttacks[WhiteBishop] = bishopAttacks(whiteBishopSquare, allPieces);
-
-	attacks.allAttacks |= attacks.pieceAttacks[WhiteBishop];
-      }
+      attacks.pieceAttacks[BlackBishop] = bishopAttacks(blackBishopSquare, allPieces);
+      
+      attacks.allAttacks |= attacks.pieceAttacks[BlackBishop];
+      
+      SquareT whiteBishopSquare = colorState.pieceSquares[WhiteBishop];
+      
+      attacks.pieceAttacks[WhiteBishop] = bishopAttacks(whiteBishopSquare, allPieces);
+      
+      attacks.allAttacks |= attacks.pieceAttacks[WhiteBishop];
       
       // Rooks
 
-      /*if((PiecesPresent & QueenRookPresentFlag) && (!UseRuntimeChecks || (piecesPresent & QueenRookPresentFlag)))*/ {
-	SquareT queenRookSquare = colorState.pieceSquares[QueenRook];
-
-	attacks.pieceAttacks[QueenRook] = rookAttacks(queenRookSquare, allPieces);
-
-	attacks.allAttacks |= attacks.pieceAttacks[QueenRook];
-      }
+      SquareT queenRookSquare = colorState.pieceSquares[QueenRook];
       
-      /*if((PiecesPresent & KingRookPresentFlag) && (!UseRuntimeChecks || (piecesPresent & KingRookPresentFlag)))*/ {
-	SquareT kingRookSquare = colorState.pieceSquares[KingRook];
-
-	attacks.pieceAttacks[KingRook] = rookAttacks(kingRookSquare, allPieces);
-
-	attacks.allAttacks |= attacks.pieceAttacks[KingRook];
-      }
+      attacks.pieceAttacks[QueenRook] = rookAttacks(queenRookSquare, allPieces);
+      
+      attacks.allAttacks |= attacks.pieceAttacks[QueenRook];
+      
+      SquareT kingRookSquare = colorState.pieceSquares[KingRook];
+      
+      attacks.pieceAttacks[KingRook] = rookAttacks(kingRookSquare, allPieces);
+      
+      attacks.allAttacks |= attacks.pieceAttacks[KingRook];
       
       // Queens
 
-      /*if((PiecesPresent & QueenPresentFlag) && (!UseRuntimeChecks || (piecesPresent & QueenPresentFlag)))*/ {
-	SquareT queenSquare = colorState.pieceSquares[SpecificQueen];
-
-	attacks.pieceAttacks[SpecificQueen] = rookAttacks(queenSquare, allPieces) | bishopAttacks(queenSquare, allPieces);
-
-	attacks.allAttacks |= attacks.pieceAttacks[SpecificQueen];
-      }
+      SquareT queenSquare = colorState.pieceSquares[SpecificQueen];
       
-      if((PiecesPresent & PromoQueenPresentFlag) && (!UseRuntimeChecks || (piecesPresent & PromoQueenPresentFlag))) {
-	SquareT promoQueenSquare = colorState.pieceSquares[PromoQueen];
-
-	attacks.pieceAttacks[PromoQueen] = rookAttacks(promoQueenSquare, allPieces) | bishopAttacks(promoQueenSquare, allPieces);
-
-	attacks.allAttacks |= attacks.pieceAttacks[PromoQueen];
-      }
+      attacks.pieceAttacks[SpecificQueen] = rookAttacks(queenSquare, allPieces) | bishopAttacks(queenSquare, allPieces);
       
+      attacks.allAttacks |= attacks.pieceAttacks[SpecificQueen];
+
       // King - always 1 king and always present
       SquareT kingSquare = colorState.pieceSquares[SpecificKing];
 
@@ -345,6 +321,15 @@ namespace Chess {
       attacks.allAttacks |= attacks.pieceAttacks[SpecificKing];
 
       // TODO - unusual promos
+      if(HasPromos) {
+	if(piecesPresent & PromoQueenPresentFlag) {
+	  SquareT promoQueenSquare = colorState.pieceSquares[PromoQueen];
+	  
+	  attacks.pieceAttacks[PromoQueen] = rookAttacks(promoQueenSquare, allPieces) | bishopAttacks(promoQueenSquare, allPieces);
+	  
+	  attacks.allAttacks |= attacks.pieceAttacks[PromoQueen];
+	}
+      }
       
       return attacks;
     }
