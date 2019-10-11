@@ -177,7 +177,7 @@ namespace Chess {
   static const PiecePresentFlagsT OtherPromoPiecesPresentFlag = ((PiecePresentFlagsT)1 << OtherPromoPiecesPresentShift);
   
   static const PiecePresentFlagsT AllPiecesPresentFlags = ((PiecePresentFlagsT)1 << PiecePresentLimitShift) - 1;
-  static const PiecePresentFlagsT StartingPiecesPresentFlags = AllPiecesPresentFlags & ~(PromoQueenPresentFlag | OtherPromoPiecesPresentShift);
+  static const PiecePresentFlagsT StartingPiecesPresentFlags = AllPiecesPresentFlags & ~(PromoQueenPresentFlag | OtherPromoPiecesPresentFlag);
 
   const PiecePresentFlagsT PresentFlagForSpecificPiece[NSpecificPieceTypes] = {
     0,                           // SpecificNoPiece,

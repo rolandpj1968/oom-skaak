@@ -20,6 +20,8 @@ namespace Chess {
       u64 checks;
       u64 checkmates;
       u64 invalids;
+      u64 allpieces;
+      u64 allmypieces;
     };
 
     template <ColorT Color>
@@ -206,6 +208,14 @@ namespace Chess {
 	  stats.eps++;
 	}
 
+	if(myState.piecesPresent == StartingPiecesPresentFlags) {
+	  stats.allmypieces++;
+
+	  if(yourState.piecesPresent == StartingPiecesPresentFlags) {
+	    stats.allpieces++;
+	  }
+	}
+
 	// Is my king in check?
 	PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value>(yourState, allPiecesBb);
 	if((yourAttacks.allAttacks & myState.bbs[King]) != 0) {
@@ -311,13 +321,18 @@ namespace Chess {
     };
 
     // Disappointingly the clever template specialisation produces code that runs slower than without???
-#define PERFT_DIRECT_DISPATCH
+#define xPERFT_DIRECT_DISPATCH
     template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsEpCapture = false>
     inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo) {
 #ifdef PERFT_DIRECT_DISPATCH
       perftImplTemplate<Color, PushOrCapture, IsEpCapture>(stats, board, depthToGo);
 #else
       const ColorStateT& myState = board.pieces[Color];
+      // if(myState.piecesPresent == StartingPiecesPresentFlags) {
+      // 	perftImplTemplate<Color, PushOrCapture, IsEpCapture, StartingPiecesPresentFlags, false>(stats, board, depthToGo);
+      // } else {
+      // 	perftImplTemplate<Color, PushOrCapture, IsEpCapture>(stats, board, depthToGo);
+      // }
       PerftImplDispatcherT<Color, PushOrCapture, IsEpCapture>::DispatchTable[myState.piecesPresent](stats, board, depthToGo);
 #endif
     }
