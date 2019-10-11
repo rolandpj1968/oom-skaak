@@ -31,8 +31,8 @@ namespace Chess {
       // MUST be InvalidSquare if a piece is not present
       SquareT pieceSquares[NSpecificPieceTypes];
 
-      // Bitmap of which pieces are still present on the board.
-      PiecePresentFlagsT piecesPresent;
+      // True iff there are promo pieces on the board.
+      bool hasPromos;
 
       // If non-zero, then en-passant square of the last move - i.e. the square behind a pawn two-square push.
       SquareT epSquare;
@@ -63,13 +63,6 @@ namespace Chess {
       const PieceT piece = PieceForSpecificPiece[specificPiece];
       pieces.bbs[piece] &= ~squareBb;
       pieces.bbs[AllPieces] &= ~squareBb;
-
-      // TODO brokken for non-standard promos
-      const PiecePresentFlagsT piecePresentFlag = PresentFlagForSpecificPiece[specificPiece];
-      // Only clear pawns-present flag when all pawns are gone
-      if(specificPiece != SpecificPawn || pieces.bbs[Pawn] == BbNone) {
-	pieces.piecesPresent &= ~piecePresentFlag;
-      }
       
       return specificPiece;
     }
@@ -87,16 +80,8 @@ namespace Chess {
       const PieceT piece = PieceForSpecificPieceT<SpecificPiece>::value;
       pieces.bbs[piece] &= ~squareBb;
       pieces.bbs[AllPieces] &= ~squareBb;
-
-      // Only clear pawns-present flag when all pawns are gone
-      if(SpecificPiece != SpecificPawn || pieces.bbs[Pawn] == BbNone) {
-	// TODO brokken for non-standard promos
-	const PiecePresentFlagsT piecePresentFlag = PresentFlagForSpecificPieceT<SpecificPiece>::value;
-	pieces.piecesPresent &= ~piecePresentFlag;
-      }
     }
 
-    // TODO - non-standard promos
     template <ColorT Color> inline void placePiece(BoardT& board, const SpecificPieceT specificPiece, const SquareT square) {
       board.board[square] = makeSquarePiece(Color, specificPiece);
 
@@ -110,10 +95,6 @@ namespace Chess {
       const PieceT piece = PieceForSpecificPiece[specificPiece];
       pieces.bbs[piece] |= squareBb;
       pieces.bbs[AllPieces] |= squareBb;
-
-      // TODO brokken for non-standard promos
-      const PiecePresentFlagsT piecePresentFlag = PresentFlagForSpecificPiece[specificPiece];
-      pieces.piecesPresent |= piecePresentFlag;
     }
 
     // TODO - non-standard promos
@@ -130,10 +111,6 @@ namespace Chess {
       const PieceT piece = PieceForSpecificPieceT<SpecificPiece>::value;
       pieces.bbs[piece] |= squareBb;
       pieces.bbs[AllPieces] |= squareBb;
-
-      // TODO brokken for non-standard promos
-      const PiecePresentFlagsT piecePresentFlag = PresentFlagForSpecificPieceT<SpecificPiece>::value;
-      pieces.piecesPresent |= piecePresentFlag;
     }
 
     inline BoardT copyForMove(const BoardT& oldBoard) {
@@ -150,7 +127,7 @@ namespace Chess {
       BoardT board = copyForMove(oldBoard);
 
       if(PushOrCapture == Capture) {
-	removePiece<OtherColorT<Color>::value>(board, captureSquare);
+    	removePiece<OtherColorT<Color>::value>(board, captureSquare);
       }
 
       SpecificPieceT specificPiece = removePiece<Color>(board, from);
@@ -159,7 +136,7 @@ namespace Chess {
 
       // Set en-passant square
       if(IsPawnPushTwo) {
-	board.pieces[Color].epSquare = (SquareT)((from+to)/2);
+    	board.pieces[Color].epSquare = (SquareT)((from+to)/2);
       }
       
       // TODO - castling rights?

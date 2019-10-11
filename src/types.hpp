@@ -159,55 +159,6 @@ namespace Chess {
     PiecePresentLimitShift,
   };
 
-  // This MUST match PiecePresentLimitShift
-#define PIECE_PRESENT_LIMIT_SHIFT 10
-#define MAX_PIECE_PRESENT_FLAGS ((1 << PIECE_PRESENT_LIMIT_SHIFT) - 1)
-
-  typedef u16 PiecePresentFlagsT;
-
-  static const PiecePresentFlagsT PawnsPresentFlag = ((PiecePresentFlagsT)1 << PawnsPresentShift);
-  static const PiecePresentFlagsT QueenKnightPresentFlag = ((PiecePresentFlagsT)1 << QueenKnightPresentShift);
-  static const PiecePresentFlagsT KingKnightPresentFlag = ((PiecePresentFlagsT)1 << KingKnightPresentShift);
-  static const PiecePresentFlagsT BlackBishopPresentFlag = ((PiecePresentFlagsT)1 << BlackBishopPresentShift);
-  static const PiecePresentFlagsT WhiteBishopPresentFlag = ((PiecePresentFlagsT)1 << WhiteBishopPresentShift);
-  static const PiecePresentFlagsT QueenRookPresentFlag = ((PiecePresentFlagsT)1 << QueenRookPresentShift);
-  static const PiecePresentFlagsT KingRookPresentFlag = ((PiecePresentFlagsT)1 << KingRookPresentShift);
-  static const PiecePresentFlagsT QueenPresentFlag = ((PiecePresentFlagsT)1 << QueenPresentShift);
-  static const PiecePresentFlagsT PromoQueenPresentFlag = ((PiecePresentFlagsT)1 << PromoQueenPresentShift);
-  static const PiecePresentFlagsT OtherPromoPiecesPresentFlag = ((PiecePresentFlagsT)1 << OtherPromoPiecesPresentShift);
-  
-  static const PiecePresentFlagsT AllPiecesPresentFlags = ((PiecePresentFlagsT)1 << PiecePresentLimitShift) - 1;
-  static const PiecePresentFlagsT StartingPiecesPresentFlags = AllPiecesPresentFlags & ~(PromoQueenPresentFlag | OtherPromoPiecesPresentFlag);
-
-  const PiecePresentFlagsT PresentFlagForSpecificPiece[NSpecificPieceTypes] = {
-    0,                           // SpecificNoPiece,
-    PawnsPresentFlag,            // SpecificPawn,
-    QueenKnightPresentFlag,      // QueenKnight,
-    KingKnightPresentFlag,       // KingKnight,
-    BlackBishopPresentFlag,      // BlackBishop,
-    WhiteBishopPresentFlag,      // WhiteBishop,
-    QueenRookPresentFlag,        // QueenRook,
-    KingRookPresentFlag,         // KingRook,
-    QueenPresentFlag,            // SpecificQueen,
-    PromoQueenPresentFlag,       // PromoQueen,
-    0,                           // SpecificKing,
-    OtherPromoPiecesPresentFlag, // OtherPromoPiece
-  };
-
-  template <SpecificPieceT SpecificPiece> struct PresentFlagForSpecificPieceT { static const PiecePresentFlagsT value; };
-  template <> struct PresentFlagForSpecificPieceT<SpecificNoPiece> { static const PiecePresentFlagsT value = 0; };
-  template <> struct PresentFlagForSpecificPieceT<SpecificPawn> { static const PiecePresentFlagsT value = PawnsPresentFlag; };
-  template <> struct PresentFlagForSpecificPieceT<QueenKnight> { static const PiecePresentFlagsT value = QueenKnightPresentFlag; };
-  template <> struct PresentFlagForSpecificPieceT<KingKnight> { static const PiecePresentFlagsT value = KingKnightPresentFlag; };
-  template <> struct PresentFlagForSpecificPieceT<BlackBishop> { static const PiecePresentFlagsT value = BlackBishopPresentFlag; };
-  template <> struct PresentFlagForSpecificPieceT<WhiteBishop> { static const PiecePresentFlagsT value = WhiteBishopPresentFlag; };
-  template <> struct PresentFlagForSpecificPieceT<QueenRook> { static const PiecePresentFlagsT value = QueenRookPresentFlag; };
-  template <> struct PresentFlagForSpecificPieceT<KingRook> { static const PiecePresentFlagsT value = KingRookPresentFlag; };
-  template <> struct PresentFlagForSpecificPieceT<SpecificQueen> { static const PiecePresentFlagsT value = QueenPresentFlag; };
-  template <> struct PresentFlagForSpecificPieceT<PromoQueen> { static const PiecePresentFlagsT value = PromoQueenPresentFlag; };
-  template <> struct PresentFlagForSpecificPieceT<SpecificKing> { static const PiecePresentFlagsT value = 0; };
-  template <> struct PresentFlagForSpecificPieceT<OtherPromoPiece> { static const PiecePresentFlagsT value = OtherPromoPiecesPresentFlag; };
-  
   static const int NPawns = 8;
 
   enum PushOrCaptureT {

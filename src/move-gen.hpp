@@ -20,12 +20,12 @@ namespace Chess {
     template <ColorT> BitBoardT pawnsPushTwo(const BitBoardT pawnOneMoves, const BitBoardT allPieces);
 
     template <> inline BitBoardT pawnsLeftAttacks<White>(const BitBoardT pawns) {
-      // Pawns on rank A can't take left.
+      // Pawns on file A can't take left.
       return (pawns & ~FileA) << 7;
     }
     
     template <> inline BitBoardT pawnsRightAttacks<White>(const BitBoardT pawns) {
-      // Pawns on rank H can't take right.
+      // Pawns on file H can't take right.
       return (pawns & ~FileH) << 9;
     }
     
@@ -41,12 +41,12 @@ namespace Chess {
     }
 
     template <> inline BitBoardT pawnsLeftAttacks<Black>(const BitBoardT pawns) {
-      // Pawns on rank A can't take left.
+      // Pawns on file A can't take left.
       return (pawns & ~FileA) >> 9;
     }
     
     template <> inline BitBoardT pawnsRightAttacks<Black>(const BitBoardT pawns) {
-      // Pawns on rank H can't take right.
+      // Pawns on file H can't take right.
       return (pawns & ~FileH) >> 7;
     }
     
@@ -246,13 +246,12 @@ namespace Chess {
     };
 
     // Generate attacks/defenses for all pieces.
+    // Note that move gen for a piece on InvalidSquare MUST always generate BbNone (and not SIGSEGV :P).
     // TODO - missing support for unusual promos.
     template <ColorT Color, bool HasPromos = false>
     inline PieceAttacksT genPieceAttacks(const ColorStateT& colorState, const BitBoardT allPieces) {
       PieceAttacksT attacks = {0};
 
-      PiecePresentFlagsT piecesPresent = colorState.piecesPresent;
-      
       // Pawns
       BitBoardT pawns = colorState.bbs[Pawn];
       attacks.pawnsLeftAttacks = pawnsLeftAttacks<Color>(pawns);
@@ -322,7 +321,7 @@ namespace Chess {
 
       // TODO - unusual promos
       if(HasPromos) {
-	if(piecesPresent & PromoQueenPresentFlag) {
+	if(true/*piecesPresent & PromoQueenPresentFlag*/) {
 	  SquareT promoQueenSquare = colorState.pieceSquares[PromoQueen];
 	  
 	  attacks.pieceAttacks[PromoQueen] = rookAttacks(promoQueenSquare, allPieces) | bishopAttacks(promoQueenSquare, allPieces);

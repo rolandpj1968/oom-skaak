@@ -20,8 +20,6 @@ namespace Chess {
       u64 checks;
       u64 checkmates;
       u64 invalids;
-      u64 allpieces;
-      u64 allmypieces;
     };
 
     enum CaptureT {
@@ -218,14 +216,6 @@ namespace Chess {
 	  }
 	}
 
-	if(myState.piecesPresent == StartingPiecesPresentFlags) {
-	  stats.allmypieces++;
-
-	  if(yourState.piecesPresent == StartingPiecesPresentFlags) {
-	    stats.allpieces++;
-	  }
-	}
-
 	// Is my king in check?
 	PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YouHavePromos>(yourState, allPiecesBb);
 	if((yourAttacks.allAttacks & myState.bbs[King]) != 0) {
@@ -288,7 +278,7 @@ namespace Chess {
 
       // TODO other promo pieces
       if(IHavePromos) {
-	if(myState.piecesPresent & PromoQueenPresentFlag) {
+	if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
 	  perftImplSpecificPieceMoves<Color, PromoQueen, IHavePromos, YouHavePromos>(stats, board, depthToGo, myState.pieceSquares[PromoQueen], myAttacks.pieceAttacks[PromoQueen], allYourPiecesBb, allPiecesBb);
 	}
       }

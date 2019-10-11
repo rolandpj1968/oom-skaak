@@ -14,7 +14,6 @@ namespace Chess {
       c.bbs[PieceForSpecificPiece[specificPiece]] |= pieceBb;
       c.bbs[AllPieces] |= pieceBb;
 
-      c.piecesPresent |= PresentFlagForSpecificPiece[specificPiece];
       c.pieceSquares[specificPiece] = square;
 
       board.board[square] = makeSquarePiece(color, specificPiece);
