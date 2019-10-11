@@ -48,7 +48,7 @@ namespace Chess {
     }
 
     
-    BitBoardT RookMagicBbTable[64][4096];
+    BitBoardT RookMagicBbTable[64+1][4096];
     
     static BitBoardT rookAttacksSlow(const int square, const BitBoardT blockers) {
       BitBoardT attacks = 0;
@@ -87,9 +87,10 @@ namespace Chess {
 	  RookMagicBbTable[square][(blockers * RookMagicBbMultipliers[square]) >> (64 - RookMagicBbIndexBits[square])] = rookAttacksSlow(square, blockers);
 	}
       }
+      RookMagicBbTable[InvalidSquare][0] = BbNone; // InvalidSquare (non-)moves
     }
     
-    BitBoardT BishopMagicBbTable[64][1024];
+    BitBoardT BishopMagicBbTable[64+1][1024];
     
     static BitBoardT bishopAttacksSlow(const int square, const BitBoardT blockers) {
       BitBoardT attacks = 0;
@@ -130,12 +131,11 @@ namespace Chess {
 	  BishopMagicBbTable[square][(blockers * BishopMagicBbMultipliers[square]) >> (64 - BishopMagicBbIndexBits[square])] = bishopAttacksSlow(square, blockers);
 	}
       }
+      BishopMagicBbTable[InvalidSquare][0] = BbNone; // InvalidSquare (non)moves
     }
 
     struct MagicBbInit {
       MagicBbInit() {
-	printf("Magic BB init\n");
-
 	// Order is important here!
 	initRays();
 	

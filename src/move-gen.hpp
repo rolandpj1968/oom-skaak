@@ -62,10 +62,10 @@ namespace Chess {
     }
 
     //
-    // Static attack tables for knights and rooks
+    // Static attack tables for knights and king
     //
 
-    const BitBoardT KnightAttacks[64] = { 
+    const BitBoardT KnightAttacks[64+1] = { 
 	0x0000000000020400ULL, 0x0000000000050800ULL, 0x00000000000a1100ULL, 0x0000000000142200ULL,
 	0x0000000000284400ULL, 0x0000000000508800ULL, 0x0000000000a01000ULL, 0x0000000000402000ULL,
 	0x0000000002040004ULL, 0x0000000005080008ULL, 0x000000000a110011ULL, 0x0000000014220022ULL,
@@ -82,9 +82,10 @@ namespace Chess {
 	0x4400442800000000ULL, 0x8800885000000000ULL, 0x100010a000000000ULL, 0x2000204000000000ULL,
 	0x0004020000000000ULL, 0x0008050000000000ULL, 0x00110a0000000000ULL, 0x0022140000000000ULL,
 	0x0044280000000000ULL, 0x0088500000000000ULL, 0x0010a00000000000ULL, 0x0020400000000000ULL,
+	BbNone, // InvalidSquare
     };
 
-    const BitBoardT KingAttacks[64] = {
+    const BitBoardT KingAttacks[64+1] = {
 	0x0000000000000302ULL, 0x0000000000000705ULL, 0x0000000000000e0aULL, 0x0000000000001c14ULL,
 	0x0000000000003828ULL, 0x0000000000007050ULL, 0x000000000000e0a0ULL, 0x000000000000c040ULL,
 	0x0000000000030203ULL, 0x0000000000070507ULL, 0x00000000000e0a0eULL, 0x00000000001c141cULL,
@@ -101,6 +102,7 @@ namespace Chess {
 	0x3828380000000000ULL, 0x7050700000000000ULL, 0xe0a0e00000000000ULL, 0xc040c00000000000ULL,
 	0x0203000000000000ULL, 0x0507000000000000ULL, 0x0a0e000000000000ULL, 0x141c000000000000ULL,
 	0x2838000000000000ULL, 0x5070000000000000ULL, 0xa0e0000000000000ULL, 0x40c0000000000000ULL,
+	BbNone, // InvalidSquare - there should always be a king, but...
     };
 
     //
@@ -112,7 +114,7 @@ namespace Chess {
     // Magic Bitboards for Rook and Bishop attacks
     //
 
-    const BitBoardT RookBlockers[64] = {
+    const BitBoardT RookBlockers[64+1] = {
 	0x000101010101017EULL, 0x000202020202027CULL, 0x000404040404047AULL, 0x0008080808080876ULL,
 	0x001010101010106EULL, 0x002020202020205EULL, 0x004040404040403EULL, 0x008080808080807EULL,
 	0x0001010101017E00ULL, 0x0002020202027C00ULL, 0x0004040404047A00ULL, 0x0008080808087600ULL,
@@ -129,9 +131,10 @@ namespace Chess {
 	0x006E101010101000ULL, 0x005E202020202000ULL, 0x003E404040404000ULL, 0x007E808080808000ULL,
 	0x7E01010101010100ULL, 0x7C02020202020200ULL, 0x7A04040404040400ULL, 0x7608080808080800ULL,
 	0x6E10101010101000ULL, 0x5E20202020202000ULL, 0x3E40404040404000ULL, 0x7E80808080808000ULL,
+	0x0, // InvalidSquare
     };
     
-    const BitBoardT BishopBlockers[64] = {
+    const BitBoardT BishopBlockers[64+1] = {
 	0x0040201008040200ULL, 0x0000402010080400ULL, 0x0000004020100A00ULL, 0x0000000040221400ULL,
 	0x0000000002442800ULL, 0x0000000204085000ULL, 0x0000020408102000ULL, 0x0002040810204000ULL,
 	0x0020100804020000ULL, 0x0040201008040000ULL, 0x00004020100A0000ULL, 0x0000004022140000ULL,
@@ -148,9 +151,10 @@ namespace Chess {
 	0x0000284402000000ULL, 0x0000500804020000ULL, 0x0000201008040200ULL, 0x0000402010080400ULL,
 	0x0002040810204000ULL, 0x0004081020400000ULL, 0x000A102040000000ULL, 0x0014224000000000ULL,
 	0x0028440200000000ULL, 0x0050080402000000ULL, 0x0020100804020000ULL, 0x0040201008040200ULL,
+	0x0, // InvalidSquare
     };
 
-    const BitBoardT RookMagicBbMultipliers[64] = {
+    const BitBoardT RookMagicBbMultipliers[64+1] = {
       0xa8002c000108020ULL, 0x6c00049b0002001ULL, 0x100200010090040ULL, 0x2480041000800801ULL, 0x280028004000800ULL,
       0x900410008040022ULL, 0x280020001001080ULL, 0x2880002041000080ULL, 0xa000800080400034ULL, 0x4808020004000ULL,
       0x2290802004801000ULL, 0x411000d00100020ULL, 0x402800800040080ULL, 0xb000401004208ULL, 0x2409000100040200ULL,
@@ -163,10 +167,11 @@ namespace Chess {
       0x12000810020004ULL, 0x1000100200040208ULL, 0x430000a044020001ULL, 0x280009023410300ULL, 0xe0100040002240ULL,
       0x200100401700ULL, 0x2244100408008080ULL, 0x8000400801980ULL, 0x2000810040200ULL, 0x8010100228810400ULL,
       0x2000009044210200ULL, 0x4080008040102101ULL, 0x40002080411d01ULL, 0x2005524060000901ULL, 0x502001008400422ULL,
-      0x489a000810200402ULL, 0x1004400080a13ULL, 0x4000011008020084ULL, 0x26002114058042ULL
+      0x489a000810200402ULL, 0x1004400080a13ULL, 0x4000011008020084ULL, 0x26002114058042ULL,
+      0x0, // InvalidSquare
     };
 
-    const BitBoardT BishopMagicBbMultipliers[64] = {
+    const BitBoardT BishopMagicBbMultipliers[64+1] = {
       0x89a1121896040240ULL, 0x2004844802002010ULL, 0x2068080051921000ULL, 0x62880a0220200808ULL, 0x4042004000000ULL,
       0x100822020200011ULL, 0xc00444222012000aULL, 0x28808801216001ULL, 0x400492088408100ULL, 0x201c401040c0084ULL,
       0x840800910a0010ULL, 0x82080240060ULL, 0x2000840504006000ULL, 0x30010c4108405004ULL, 0x1008005410080802ULL,
@@ -180,9 +185,10 @@ namespace Chess {
       0x2101004202410000ULL, 0x8200000041108022ULL, 0x21082088000ULL, 0x2410204010040ULL, 0x40100400809000ULL,
       0x822088220820214ULL, 0x40808090012004ULL, 0x910224040218c9ULL, 0x402814422015008ULL, 0x90014004842410ULL,
       0x1000042304105ULL, 0x10008830412a00ULL, 0x2520081090008908ULL, 0x40102000a0a60140ULL,
+      0x0, // InvalidSquare
     };
     
-    const u8 RookMagicBbIndexBits[64] = {
+    const u8 RookMagicBbIndexBits[64+1] = {
       12, 11, 11, 11, 11, 11, 11, 12,
       11, 10, 10, 10, 10, 10, 10, 11,
       11, 10, 10, 10, 10, 10, 10, 11,
@@ -190,10 +196,11 @@ namespace Chess {
       11, 10, 10, 10, 10, 10, 10, 11,
       11, 10, 10, 10, 10, 10, 10, 11,
       11, 10, 10, 10, 10, 10, 10, 11,
-      12, 11, 11, 11, 11, 11, 11, 12
+      12, 11, 11, 11, 11, 11, 11, 12,
+      0 // InvalidSquare
     };
 
-    const u8 BishopMagicBbIndexBits[64] = {
+    const u8 BishopMagicBbIndexBits[64+1] = {
       6, 5, 5, 5, 5, 5, 5, 6,
       5, 5, 5, 5, 5, 5, 5, 5,
       5, 5, 7, 7, 7, 7, 5, 5,
@@ -201,11 +208,12 @@ namespace Chess {
       5, 5, 7, 9, 9, 7, 5, 5,
       5, 5, 7, 7, 7, 7, 5, 5,
       5, 5, 5, 5, 5, 5, 5, 5,
-      6, 5, 5, 5, 5, 5, 5, 6
+      6, 5, 5, 5, 5, 5, 5, 6,
+      0 // InvalidSquare
     };
   
-    extern BitBoardT RookMagicBbTable[64][4096];
-    extern BitBoardT BishopMagicBbTable[64][1024];
+    extern BitBoardT RookMagicBbTable[64+1][4096];
+    extern BitBoardT BishopMagicBbTable[64+1][1024];
 
     // Magic BB bishop attacks
     inline BitBoardT bishopAttacks(const SquareT square, const BitBoardT allPieces) {
@@ -246,7 +254,7 @@ namespace Chess {
       PiecePresentFlagsT piecesPresent = colorState.piecesPresent;
       
       // Pawns
-      if((PiecesPresent & PawnsPresentFlag) && (!UseRuntimeChecks || (piecesPresent & PawnsPresentFlag))) {
+      /*if((PiecesPresent & PawnsPresentFlag) && (!UseRuntimeChecks || (piecesPresent & PawnsPresentFlag)))*/ {
 	BitBoardT pawns = colorState.bbs[Pawn];
 	attacks.pawnsLeftAttacks = pawnsLeftAttacks<Color>(pawns);
 	attacks.pawnsRightAttacks = pawnsRightAttacks<Color>(pawns);
@@ -259,7 +267,7 @@ namespace Chess {
 
       // Knights
       
-      if((PiecesPresent & QueenKnightPresentFlag) && (!UseRuntimeChecks || (piecesPresent & QueenKnightPresentFlag))) {
+      /*if((PiecesPresent & QueenKnightPresentFlag) && (!UseRuntimeChecks || (piecesPresent & QueenKnightPresentFlag)))*/ {
 	SquareT queenKnightSquare = colorState.pieceSquares[QueenKnight];
 
 	attacks.pieceAttacks[QueenKnight] = KnightAttacks[queenKnightSquare];
@@ -267,7 +275,7 @@ namespace Chess {
 	attacks.allAttacks |= attacks.pieceAttacks[QueenKnight];
       }
       
-      if((PiecesPresent & KingKnightPresentFlag) && (!UseRuntimeChecks || (piecesPresent & KingKnightPresentFlag))) {
+      /*if((PiecesPresent & KingKnightPresentFlag) && (!UseRuntimeChecks || (piecesPresent & KingKnightPresentFlag)))*/ {
 	SquareT kingKnightSquare = colorState.pieceSquares[KingKnight];
 
 	attacks.pieceAttacks[KingKnight] = KnightAttacks[kingKnightSquare];
@@ -277,7 +285,7 @@ namespace Chess {
 
       // Bishops
 
-      if((PiecesPresent & BlackBishopPresentFlag) && (!UseRuntimeChecks || (piecesPresent & BlackBishopPresentFlag))) {
+      /*if((PiecesPresent & BlackBishopPresentFlag) && (!UseRuntimeChecks || (piecesPresent & BlackBishopPresentFlag)))*/ {
 	SquareT blackBishopSquare = colorState.pieceSquares[BlackBishop];
 
 	attacks.pieceAttacks[BlackBishop] = bishopAttacks(blackBishopSquare, allPieces);
@@ -285,7 +293,7 @@ namespace Chess {
 	attacks.allAttacks |= attacks.pieceAttacks[BlackBishop];
       }
       
-      if((PiecesPresent & WhiteBishopPresentFlag) && (!UseRuntimeChecks || (piecesPresent & WhiteBishopPresentFlag))) {
+      /*if((PiecesPresent & WhiteBishopPresentFlag) && (!UseRuntimeChecks || (piecesPresent & WhiteBishopPresentFlag)))*/ {
 	SquareT whiteBishopSquare = colorState.pieceSquares[WhiteBishop];
 
 	attacks.pieceAttacks[WhiteBishop] = bishopAttacks(whiteBishopSquare, allPieces);
@@ -295,7 +303,7 @@ namespace Chess {
       
       // Rooks
 
-      if((PiecesPresent & QueenRookPresentFlag) && (!UseRuntimeChecks || (piecesPresent & QueenRookPresentFlag))) {
+      /*if((PiecesPresent & QueenRookPresentFlag) && (!UseRuntimeChecks || (piecesPresent & QueenRookPresentFlag)))*/ {
 	SquareT queenRookSquare = colorState.pieceSquares[QueenRook];
 
 	attacks.pieceAttacks[QueenRook] = rookAttacks(queenRookSquare, allPieces);
@@ -303,7 +311,7 @@ namespace Chess {
 	attacks.allAttacks |= attacks.pieceAttacks[QueenRook];
       }
       
-      if((PiecesPresent & KingRookPresentFlag) && (!UseRuntimeChecks || (piecesPresent & KingRookPresentFlag))) {
+      /*if((PiecesPresent & KingRookPresentFlag) && (!UseRuntimeChecks || (piecesPresent & KingRookPresentFlag)))*/ {
 	SquareT kingRookSquare = colorState.pieceSquares[KingRook];
 
 	attacks.pieceAttacks[KingRook] = rookAttacks(kingRookSquare, allPieces);
@@ -313,7 +321,7 @@ namespace Chess {
       
       // Queens
 
-      if((PiecesPresent & QueenPresentFlag) && (!UseRuntimeChecks || (piecesPresent & QueenPresentFlag))) {
+      /*if((PiecesPresent & QueenPresentFlag) && (!UseRuntimeChecks || (piecesPresent & QueenPresentFlag)))*/ {
 	SquareT queenSquare = colorState.pieceSquares[SpecificQueen];
 
 	attacks.pieceAttacks[SpecificQueen] = rookAttacks(queenSquare, allPieces) | bishopAttacks(queenSquare, allPieces);

@@ -27,7 +27,8 @@ namespace Chess {
       // All pieces including strange promos.
       BitBoardT bbs[NPieceTypes];
 
-      // All pieces except pawns and strange promos
+      // All pieces except pawns and strange promos.
+      // MUST be InvalidSquare if a piece is not present
       SquareT pieceSquares[NSpecificPieceTypes];
 
       // Bitmap of which pieces are still present on the board.
@@ -74,9 +75,6 @@ namespace Chess {
     }
 
     template <ColorT Color, SpecificPieceT SpecificPiece> inline void removeSpecificPiece(BoardT& board, const SquareT square) {
-      // const SquarePieceT squarePiece = board.board[square];
-      // const SpecificPieceT specificPiece = squarePieceSpecificPiece(squarePiece);
-
       board.board[square] = EmptySquare;
       
       // TODO handle non-standard promos
