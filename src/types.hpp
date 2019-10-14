@@ -48,7 +48,7 @@ namespace Chess {
   const BitBoardT RankBbs[8] = { Rank1, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8 };
 
   const BitBoardT EdgeSquaresBb = FileA | FileH | Rank1 | Rank8;
-  
+
   typedef u8 SquareT;
 
   const SquareT A1 = 0,    B1 = A1+1, C1 = A1+2, D1 = A1+3, E1 = A1+4, F1 = A1+5, G1 = A1+6, H1 = A1+7;

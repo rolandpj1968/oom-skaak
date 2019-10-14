@@ -28,6 +28,72 @@ namespace Chess {
       EpCapture,
     };
 
+    template <ColorT Color, CastlingRightsT CastlingRights> struct CastlingTraitsT;
+
+    template <> struct CastlingTraitsT<White, CanCastleQueenside> {
+      // B1, C1 and D1 must be open to castle queenside
+      static const BitBoardT CastlingOpenBbMask = (BbOne << B1) | (BbOne << C1) | (BbOne << D1);
+      // C1, D1, E1 must not be under attack in order to castle queenside
+      static const BitBoardT CastlingThruCheckBbMask = (BbOne << C1) | (BbOne << D1) | (BbOne << E1);
+
+      // King move
+      static const SquareT KingFrom = E1;
+      static const SquareT KingTo = C1;
+
+      // Rook move
+      static const SpecificPieceT SpecificRook = QueenRook;
+      static const SquareT RookFrom = A1;
+      static const SquareT RookTo = D1;
+    };
+
+    template <> struct CastlingTraitsT<White, CanCastleKingside> {
+      // F1 and G1 must be open to castle kingside
+      static const BitBoardT CastlingOpenBbMask = (BbOne << F1) | (BbOne << G1);
+      // E1, F1 and G1 must not be under attack in order to castle kingside
+      static const BitBoardT CastlingThruCheckBbMask = (BbOne << E1) | (BbOne << F1) | (BbOne << G1);
+
+      // King move
+      static const SquareT KingFrom = E1;
+      static const SquareT KingTo = G1;
+
+      // Rook move
+      static const SpecificPieceT SpecificRook = KingRook;
+      static const SquareT RookFrom = H1;
+      static const SquareT RookTo = F1;
+    };
+
+    template <> struct CastlingTraitsT<Black, CanCastleQueenside> {
+      // B8, C8 and D8 must be open to castle queenside
+      static const BitBoardT CastlingOpenBbMask = (BbOne << B8) | (BbOne << C8) | (BbOne << D8);
+      // C8, D8, E8 must not be under attack in order to castle queenside
+      static const BitBoardT CastlingThruCheckBbMask = (BbOne << C8) | (BbOne << D8) | (BbOne << E8);
+
+      // King move
+      static const SquareT KingFrom = E8;
+      static const SquareT KingTo = C8;
+
+      // Rook move
+      static const SpecificPieceT SpecificRook = QueenRook;
+      static const SquareT RookFrom = A8;
+      static const SquareT RookTo = D8;
+    };
+
+    template <> struct CastlingTraitsT<Black, CanCastleKingside> {
+      // F8 and G8 must be open to castle kingside
+      static const BitBoardT CastlingOpenBbMask = (BbOne << F8) | (BbOne << G8);
+      // E8, F8 and G8 must not be under attack in order to castle kingside
+      static const BitBoardT CastlingThruCheckBbMask = (BbOne << E8) | (BbOne << F8) | (BbOne << G8);
+
+      // King move
+      static const SquareT KingFrom = E8;
+      static const SquareT KingTo = G8;
+
+      // Rook move
+      static const SpecificPieceT SpecificRook = KingRook;
+      static const SquareT RookFrom = H8;
+      static const SquareT RookTo = F8;
+    };
+
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline PerftStatsT perft(const BoardT& board, const int depthToGo);
     
@@ -170,20 +236,45 @@ namespace Chess {
       perftImplSpecificPieceCaptures<Color, SpecificPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, from, attacksBb & allYourPiecesBb);
     }
     
+    template <ColorT Color, CastlingRightsT CastlingRight, typename MyBoardTraitsT, typename YourBoardTraitsT>
+    inline void perftImplCastlingMove(PerftStatsT& stats, const BoardT& board, const int depthToGo) {
+      const ColorStateT& myState = board.pieces[Color];
+      const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
+      const BitBoardT allMyPiecesBb = myState.allPiecesBb;
+      const BitBoardT allYourPiecesBb = yourState.allPiecesBb;
+      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
+      
+      if(myState.castlingRights & CastlingRight) {
+	if((allPiecesBb & CastlingTraitsT<Color, CastlingRight>::CastlingOpenBbMask) == BbNone) {
+	  // Don't move through check
+	  PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
+	  if((yourAttacks.allAttacks & CastlingTraitsT<Color, CastlingRight>::CastlingThruCheckBbMask) == BbNone) {
+	    BoardT newBoard1 = moveSpecificPiece<Color, SpecificKing, Push>(board, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo);
+	    BoardT newBoard = moveSpecificPiece<Color, CastlingTraitsT<Color, CastlingRight>::SpecificRook, Push>(newBoard1, CastlingTraitsT<Color, CastlingRight>::RookFrom, CastlingTraitsT<Color, CastlingRight>::RookTo);
+
+	    // This is a valid move because we've already checked for moving thru/into check.
+	    stats.castles++;
+	    
+	    perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, NoCapture);
+	  }
+	}
+      }
+    }
+    
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const CaptureT captureType) {
 
       const ColorStateT& myState = board.pieces[Color];
       const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
-      const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
-      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
+      const BitBoardT allMyPiecesBb = myState.allPiecesBb;
+      const BitBoardT allYourPiecesBb = yourState.allPiecesBb;
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
   
       // Generate moves
       PieceAttacksT myAttacks = genPieceAttacks<Color, MyBoardTraitsT>(myState, allPiecesBb);
 
       // Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
-      if((myAttacks.allAttacks & yourState.bbs[King]) != 0) {
+      if((myAttacks.allAttacks & bbForSquare(yourState.pieceSquares[SpecificKing])) != 0) {
 	// Illegal position - doesn't count
 	stats.invalids++;
 	return;
@@ -207,7 +298,7 @@ namespace Chess {
 
 	// Is my king in check?
 	PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
-	if((yourAttacks.allAttacks & myState.bbs[King]) != 0) {
+	if((yourAttacks.allAttacks & bbForSquare(myState.pieceSquares[SpecificKing])) != 0) {
 	  stats.checks++;
 
 	  // It's checkmate if there are no valid child nodes.
@@ -270,6 +361,12 @@ namespace Chess {
 	if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
 	  perftImplSpecificPieceMoves<Color, PromoQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[PromoQueen], myAttacks.pieceAttacks[PromoQueen], allYourPiecesBb, allPiecesBb);
 	}
+      }
+
+      // Castling
+      if(myState.castlingRights) {
+	perftImplCastlingMove<Color, CanCastleQueenside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo); 
+	perftImplCastlingMove<Color, CanCastleKingside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo); 
       }
     }
 

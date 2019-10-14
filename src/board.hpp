@@ -24,9 +24,12 @@ namespace Chess {
     }
 
     struct ColorStateT {
-      // All pieces including strange promos.
-      BitBoardT bbs[NPieceTypes];
+      // Pawns in BitBoardT format
+      BitBoardT pawnsBb;
 
+      // All pieces (including pawns) in BitBoardT format
+      BitBoardT allPiecesBb;
+      
       // All pieces except pawns and strange promos.
       // MUST be InvalidSquare if a piece is not present
       SquareT pieceSquares[NSpecificPieceTypes];
@@ -80,9 +83,20 @@ namespace Chess {
 
       const BitBoardT squareBb = bbForSquare(square);
 
-      const PieceT piece = PieceForSpecificPiece[specificPiece];
-      pieces.bbs[piece] &= ~squareBb;
-      pieces.bbs[AllPieces] &= ~squareBb;
+      pieces.pawnsBb &= ~squareBb; // If it's not a pawn this is a NOP
+      pieces.allPiecesBb &= ~squareBb;
+
+      if(pieces.castlingRights) {
+	if(specificPiece == QueenRook) {
+	  pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleQueenside);
+	}
+	if(specificPiece == KingRook) {
+	  pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleKingside);
+	}
+	if(specificPiece == SpecificKing) {
+	  pieces.castlingRights = NoCastlingRights;
+	}
+      }
       
       return specificPiece;
     }
@@ -98,8 +112,22 @@ namespace Chess {
       const BitBoardT squareBb = bbForSquare(square);
 
       const PieceT piece = PieceForSpecificPieceT<SpecificPiece>::value;
-      pieces.bbs[piece] &= ~squareBb;
-      pieces.bbs[AllPieces] &= ~squareBb;
+      if(piece == Pawn) {
+	pieces.pawnsBb &= ~squareBb;
+      }
+      pieces.allPiecesBb &= ~squareBb;
+
+      if(SpecificPiece == QueenRook) {
+	pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleQueenside);
+      }
+
+      if(SpecificPiece == KingRook) {
+	pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleKingside);
+      }
+
+      if(SpecificPiece == SpecificKing) {
+	pieces.castlingRights = NoCastlingRights;
+      }
     }
 
     template <ColorT Color> inline void placePiece(BoardT& board, const SpecificPieceT specificPiece, const SquareT square) {
@@ -113,8 +141,10 @@ namespace Chess {
       const BitBoardT squareBb = bbForSquare(square);
 
       const PieceT piece = PieceForSpecificPiece[specificPiece];
-      pieces.bbs[piece] |= squareBb;
-      pieces.bbs[AllPieces] |= squareBb;
+      if(piece == Pawn) {
+	pieces.pawnsBb |= squareBb;
+      }
+      pieces.allPiecesBb |= squareBb;
     }
 
     // TODO - non-standard promos
@@ -129,8 +159,10 @@ namespace Chess {
       const BitBoardT squareBb = bbForSquare(square);
 
       const PieceT piece = PieceForSpecificPieceT<SpecificPiece>::value;
-      pieces.bbs[piece] |= squareBb;
-      pieces.bbs[AllPieces] |= squareBb;
+      if(piece == Pawn) {
+	pieces.pawnsBb |= squareBb;
+      }
+      pieces.allPiecesBb |= squareBb;
     }
 
     inline BoardT copyForMove(const BoardT& oldBoard) {
@@ -159,8 +191,6 @@ namespace Chess {
     	board.pieces[Color].epSquare = (SquareT)((from+to)/2);
       }
       
-      // TODO - castling rights?
-
       return board;
     }
     
@@ -180,8 +210,6 @@ namespace Chess {
 	board.pieces[Color].epSquare = (SquareT)((from+to)/2);
       }
       
-      // TODO - castling rights?
-
       return board;
     }
     

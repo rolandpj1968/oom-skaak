@@ -11,8 +11,10 @@ namespace Chess {
       
       const BitBoardT pieceBb = bbForSquare(square);
 
-      c.bbs[PieceForSpecificPiece[specificPiece]] |= pieceBb;
-      c.bbs[AllPieces] |= pieceBb;
+      if(specificPiece == SpecificPawn) {
+	c.pawnsBb |= pieceBb;
+      }
+      c.allPiecesBb |= pieceBb;
 
       c.pieceSquares[specificPiece] = square;
 
@@ -34,6 +36,9 @@ namespace Chess {
       for(SquareT square = firstPawnSquare; square <= firstPawnSquare+H2-A2; square += (B2-A2)) {
 	addPiece(board, color, square, SpecificPawn);
       }
+
+      // Castling rights
+      board.pieces[color].castlingRights = (CastlingRightsT)(CanCastleQueenside | CanCastleKingside);
     }
 
     BoardT startingPosition() {
