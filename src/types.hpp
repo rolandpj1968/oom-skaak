@@ -94,8 +94,8 @@ namespace Chess {
     Rook,
     Queen,
     King,
-    AllPieces,
     NPieceTypes,
+    AllPieces = NoPiece,
   };
 
   enum SpecificPieceT {
