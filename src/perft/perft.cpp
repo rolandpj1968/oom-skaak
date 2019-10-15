@@ -11,7 +11,7 @@ int main(int argc, char* argv[]) {
   
   BoardT startingBoard = Board::startingPosition();
 
-  PerftStatsT stats = perft<White, StartingBoardTraitsT, StartingBoardTraitsT>(startingBoard, 6);
+  PerftStatsT stats = perft<White, StartingBoardTraitsT, StartingBoardTraitsT>(startingBoard, 7);
 
   printf("Perft(1) - nodes = %lu, captures = %lu, eps = %lu, castles = %lu, checks = %lu, checkmates = %lu, invalids = %lu\n", stats.nodes, stats.captures, stats.eps, stats.castles, stats.checks, stats.checkmates, stats.invalids);
 }

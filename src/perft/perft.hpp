@@ -28,6 +28,59 @@ namespace Chess {
       EpCapture,
     };
 
+#include <boost/preprocessor/iteration/local.hpp>
+
+    const u8 QueensideCastleSpaceBits = 0x07;
+    const u8 KingsideCastleSpaceBits = 0x30;
+
+    // Fast lookup for castling potential.
+    // Lookup is on castling rights bitmap and on backrank occupancy from B to G files.
+    // Result is bitmap of castling rights that have space between king and rook.
+    const CastlingRightsT CastlingRightsWithSpace[4][64] = {
+      // castlingRights == NoCastlingRights
+      {
+#define BOOST_PP_LOCAL_MACRO(n) \
+	NoCastlingRights,
+#define BOOST_PP_LOCAL_LIMITS (0, 63)
+#include BOOST_PP_LOCAL_ITERATE()
+      },
+      // castlingRights == CanCastleQueenside
+      {
+#define BOOST_PP_LOCAL_MACRO(n) \
+	((n) & QueensideCastleSpaceBits) == 0x0 ? CanCastleQueenside : NoCastlingRights,
+#define BOOST_PP_LOCAL_LIMITS (0, 63)
+#include BOOST_PP_LOCAL_ITERATE()
+      },
+      // castlingRights == CanCastleKingside
+      {
+#define BOOST_PP_LOCAL_MACRO(n) \
+	((n) & KingsideCastleSpaceBits) == 0x0 ? CanCastleKingside : NoCastlingRights,
+#define BOOST_PP_LOCAL_LIMITS (0, 63)
+#include BOOST_PP_LOCAL_ITERATE()
+      },
+      // castlingRights == CanCastleQueenside | CanCastleKingside
+      {
+#define BOOST_PP_LOCAL_MACRO(n) \
+	(CastlingRightsT)((((n) & QueensideCastleSpaceBits) == 0x0 ? CanCastleQueenside : NoCastlingRights) | (((n) & KingsideCastleSpaceBits) == 0x0 ? CanCastleKingside : NoCastlingRights)),
+#define BOOST_PP_LOCAL_LIMITS (0, 63)
+#include BOOST_PP_LOCAL_ITERATE()
+      },
+    };
+
+    template <ColorT Color> struct CastlingSpaceTraitsT;
+
+    template <> struct CastlingSpaceTraitsT<White> {
+      static const SquareT backrankShift = B1;
+    };
+    
+    template <> struct CastlingSpaceTraitsT<Black> {
+      static const SquareT backrankShift = B8;
+    };
+
+    template <ColorT Color> inline CastlingRightsT castlingRightsWithSpace(CastlingRightsT castlingRights, BitBoardT allPieces) {
+      return CastlingRightsWithSpace[castlingRights][(allPieces >> CastlingSpaceTraitsT<Color>::backrankShift) & 0x3f];
+    }
+    
     template <ColorT Color, CastlingRightsT CastlingRights> struct CastlingTraitsT;
 
     template <> struct CastlingTraitsT<White, CanCastleQueenside> {
@@ -238,27 +291,13 @@ namespace Chess {
     
     template <ColorT Color, CastlingRightsT CastlingRight, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImplCastlingMove(PerftStatsT& stats, const BoardT& board, const int depthToGo) {
-      const ColorStateT& myState = board.pieces[Color];
-      const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
-      const BitBoardT allMyPiecesBb = myState.allPiecesBb;
-      const BitBoardT allYourPiecesBb = yourState.allPiecesBb;
-      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
-      
-      if(myState.castlingRights & CastlingRight) {
-	if((allPiecesBb & CastlingTraitsT<Color, CastlingRight>::CastlingOpenBbMask) == BbNone) {
-	  // Don't move through check
-	  PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
-	  if((yourAttacks.allAttacks & CastlingTraitsT<Color, CastlingRight>::CastlingThruCheckBbMask) == BbNone) {
-	    BoardT newBoard1 = moveSpecificPiece<Color, SpecificKing, Push>(board, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo);
-	    BoardT newBoard = moveSpecificPiece<Color, CastlingTraitsT<Color, CastlingRight>::SpecificRook, Push>(newBoard1, CastlingTraitsT<Color, CastlingRight>::RookFrom, CastlingTraitsT<Color, CastlingRight>::RookTo);
+      BoardT newBoard1 = moveSpecificPiece<Color, SpecificKing, Push>(board, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo);
+      BoardT newBoard = moveSpecificPiece<Color, CastlingTraitsT<Color, CastlingRight>::SpecificRook, Push>(newBoard1, CastlingTraitsT<Color, CastlingRight>::RookFrom, CastlingTraitsT<Color, CastlingRight>::RookTo);
 
-	    // This is a valid move because we've already checked for moving thru/into check.
-	    stats.castles++;
-	    
-	    perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, NoCapture);
-	  }
-	}
-      }
+      // This is a valid move because we've already checked for moving thru/into check.
+      stats.castles++;
+      
+      perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, NoCapture);
     }
     
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
@@ -284,8 +323,6 @@ namespace Chess {
 
       // If this is a leaf node, we're done.
       if(depthToGo == 0) {
-	// TODO - if we're in check do we have to determine if we're in check-mate?
-	// TODO - do we need to check for stalemate?
 	stats.nodes++;
 
 	if(captureType != NoCapture) {
@@ -364,9 +401,17 @@ namespace Chess {
       }
 
       // Castling
-      if(myState.castlingRights) {
-	perftImplCastlingMove<Color, CanCastleQueenside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo); 
-	perftImplCastlingMove<Color, CanCastleKingside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo); 
+      CastlingRightsT castlingRights2 = castlingRightsWithSpace<Color>(myState.castlingRights, allPiecesBb);
+      if(castlingRights2) {
+	PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
+
+	if((castlingRights2 & CanCastleQueenside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleQueenside>::CastlingThruCheckBbMask) == BbNone) {
+	  perftImplCastlingMove<Color, CanCastleQueenside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo);
+	}
+
+	if((castlingRights2 & CanCastleKingside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleKingside>::CastlingThruCheckBbMask) == BbNone) {
+	  perftImplCastlingMove<Color, CanCastleKingside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo);
+	}	
       }
     }
 
