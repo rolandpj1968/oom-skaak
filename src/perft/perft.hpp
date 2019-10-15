@@ -22,10 +22,11 @@ namespace Chess {
       u64 invalids;
     };
 
-    enum CaptureT {
-      NoCapture = 0,
-      NormalCapture,
-      EpCapture,
+    enum MoveTypeT {
+      PushMove = 0,
+      CaptureMove,
+      EpCaptureMove,
+      CastlingMove
     };
 
 #include <boost/preprocessor/iteration/local.hpp>
@@ -151,7 +152,7 @@ namespace Chess {
     inline PerftStatsT perft(const BoardT& board, const int depthToGo);
     
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
-    inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const CaptureT captureType);
+    inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const MoveTypeT moveType);
   
     template <ColorT Color>
     SquareT pawnPushOneTo2From(SquareT square);
@@ -182,7 +183,7 @@ namespace Chess {
 
 	BoardT newBoard = moveSpecificPiece<Color, SpecificPawn, Push, IsPushTwo>(board, from, to);
 
-	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, NoCapture);
+	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, PushMove);
       }
     }
 
@@ -224,7 +225,7 @@ namespace Chess {
 
 	BoardT newBoard = moveSpecificPiece<Color, SpecificPawn, Capture>(board, from, to);
 
-	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, NormalCapture);
+	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, CaptureMove);
       }
     }
 
@@ -248,7 +249,7 @@ namespace Chess {
 
 	BoardT newBoard = captureEp<Color>(board, from, to, captureSquare);
 
-	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, EpCapture);
+	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, EpCaptureMove);
       }
     }
 
@@ -263,24 +264,24 @@ namespace Chess {
     }
 
     template <ColorT Color, SpecificPieceT SpecificPiece, PushOrCaptureT PushOrCapture, typename MyBoardTraitsT, typename YourBoardTraitsT>
-    inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT toBb, const CaptureT captureType) {
+    inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT toBb, const MoveTypeT moveType) {
       while(toBb) {
 	SquareT to = Bits::popLsb(toBb);
 
 	BoardT newBoard = moveSpecificPiece<Color, SpecificPiece, PushOrCapture>(board, from, to);
 
-	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, captureType);
+	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, moveType);
       }
     }
     
     template <ColorT Color, SpecificPieceT SpecificPiece, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImplSpecificPiecePushes(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT pushesBb) {
-      perftImplSpecificPieceMoves<Color, SpecificPiece, Push, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, from, pushesBb, NoCapture);
+      perftImplSpecificPieceMoves<Color, SpecificPiece, Push, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, from, pushesBb, PushMove);
     }
     
     template <ColorT Color, SpecificPieceT SpecificPiece, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImplSpecificPieceCaptures(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT capturesBb) {
-      perftImplSpecificPieceMoves<Color, SpecificPiece, Capture, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, from, capturesBb, NormalCapture);
+      perftImplSpecificPieceMoves<Color, SpecificPiece, Capture, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, from, capturesBb, CaptureMove);
     }
     
     template <ColorT Color, SpecificPieceT SpecificPiece, typename MyBoardTraitsT, typename YourBoardTraitsT>
@@ -294,14 +295,11 @@ namespace Chess {
       BoardT newBoard1 = moveSpecificPiece<Color, SpecificKing, Push>(board, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo);
       BoardT newBoard = moveSpecificPiece<Color, CastlingTraitsT<Color, CastlingRight>::SpecificRook, Push>(newBoard1, CastlingTraitsT<Color, CastlingRight>::RookFrom, CastlingTraitsT<Color, CastlingRight>::RookTo);
 
-      // This is a valid move because we've already checked for moving thru/into check.
-      stats.castles++;
-      
-      perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, NoCapture);
+      perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, CastlingMove);
     }
     
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
-    inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const CaptureT captureType) {
+    inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const MoveTypeT moveType) {
 
       const ColorStateT& myState = board.pieces[Color];
       const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
@@ -325,12 +323,17 @@ namespace Chess {
       if(depthToGo == 0) {
 	stats.nodes++;
 
-	if(captureType != NoCapture) {
+	if(moveType == CaptureMove) {
 	  stats.captures++;
+	}
 
-	  if(captureType == EpCapture) {
-	    stats.eps++;
-	  }
+	if(moveType == EpCaptureMove) {
+	  stats.captures++;
+	  stats.eps++;
+	}
+
+	if(moveType == CastlingMove) {
+	  stats.castles++;
 	}
 
 	// Is my king in check?
@@ -416,7 +419,7 @@ namespace Chess {
     }
 
 #ifdef IGNORE_UNTIL_IMPLEMENTING_PROMOS
-    typedef void PerftImplFn(PerftStatsT& stats, const BoardT& board, const int depthToGo, const CaptureT captureType);
+    typedef void PerftImplFn(PerftStatsT& stats, const BoardT& board, const int depthToGo, const MoveTypeT moveType);
 
     template <ColorT Color>
     struct PerftImplDispatcherT {
@@ -438,17 +441,17 @@ namespace Chess {
     // Disappointingly the clever template specialisation produces code that runs slower than without???
 #define PERFT_DIRECT_DISPATCH
     template <ColorT Color = false>
-    inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const CaptureT captureType) {
+    inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const CaptureT moveType) {
 #ifdef PERFT_DIRECT_DISPATCH
-      perftImplTemplate<Color>(stats, board, depthToGo, captureType);
+      perftImplTemplate<Color>(stats, board, depthToGo, moveType);
 #else
       const ColorStateT& myState = board.pieces[Color];
       // if(myState.piecesPresent == StartingPiecesPresentFlags) {
-      // 	perftImplTemplate<Color, StartingPiecesPresentFlags, false>(stats, board, depthToGo, captureType);
+      // 	perftImplTemplate<Color, StartingPiecesPresentFlags, false>(stats, board, depthToGo, moveType);
       // } else {
-      // 	perftImplTemplate<Color>(stats, board, depthToGo, captureType);
+      // 	perftImplTemplate<Color>(stats, board, depthToGo, moveType);
       // }
-      PerftImplDispatcherT<Color>::DispatchTable[myState.piecesPresent](stats, board, depthToGo, captureType);
+      PerftImplDispatcherT<Color>::DispatchTable[myState.piecesPresent](stats, board, depthToGo, moveType);
 #endif
     }
 
@@ -457,7 +460,7 @@ namespace Chess {
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT> inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
       PerftStatsT stats = {0};
 
-      perftImpl<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, NoCapture);
+      perftImpl<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, PushMove);
 
       return stats;
     }
