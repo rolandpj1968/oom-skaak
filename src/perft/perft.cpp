@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cstdlib>
 
 #include "board.hpp"
 #include "perft.hpp"

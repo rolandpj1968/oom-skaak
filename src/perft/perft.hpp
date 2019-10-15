@@ -306,21 +306,17 @@ namespace Chess {
       const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
       const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
-  
-      // Generate moves
-      PieceAttacksT myAttacks = genPieceAttacks<Color, MyBoardTraitsT>(myState, allPiecesBb);
 
-      // Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
-      if((myAttacks.allAttacks & yourState.bbs[King]) != 0) {
-	// Illegal position - doesn't count
-	stats.invalids++;
-	return;
-      }
-
-      // This is now a legal position.
-
-      // If this is a leaf node, we're done.
+      // If this is a leaf node, gather stats.
       if(depthToGo == 0) {
+	// Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
+	SquareAttackersT yourKingAttackers = genSquareAttackers<Color, MyBoardTraitsT>(yourState.pieceSquares[SpecificKing], myState, allPiecesBb);
+	if(yourKingAttackers.pieceAttackers[AllPieces] != 0) {
+	  // Illegal position - doesn't count
+	  stats.invalids++;
+	  return;
+	}
+	
 	stats.nodes++;
 
 	if(moveType == CaptureMove) {
@@ -350,6 +346,18 @@ namespace Chess {
 
 	return;
       }
+
+      // Generate moves
+      PieceAttacksT myAttacks = genPieceAttacks<Color, MyBoardTraitsT>(myState, allPiecesBb);
+
+      // Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
+      if((myAttacks.allAttacks & yourState.bbs[King]) != 0) {
+	// Illegal position - doesn't count
+	stats.invalids++;
+	return;
+      }
+
+      // This is now a legal position.
 
       // Evaluate moves
 
