@@ -18,6 +18,7 @@ namespace Chess {
       u64 castles;
       u64 promos;
       u64 checks;
+      u64 discoverychecks;
       u64 doublechecks;
       u64 checkmates;
       u64 invalids;
@@ -153,7 +154,7 @@ namespace Chess {
     inline PerftStatsT perft(const BoardT& board, const int depthToGo);
     
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
-    inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const MoveTypeT moveType);
+    inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT moveTo, const MoveTypeT moveType);
   
     template <ColorT Color>
     SquareT pawnPushOneTo2From(SquareT square);
@@ -184,7 +185,7 @@ namespace Chess {
 
 	BoardT newBoard = moveSpecificPiece<Color, SpecificPawn, Push, IsPushTwo>(board, from, to);
 
-	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, PushMove);
+	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, to, PushMove);
       }
     }
 
@@ -226,7 +227,7 @@ namespace Chess {
 
 	BoardT newBoard = moveSpecificPiece<Color, SpecificPawn, Capture>(board, from, to);
 
-	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, CaptureMove);
+	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, to, CaptureMove);
       }
     }
 
@@ -250,7 +251,7 @@ namespace Chess {
 
 	BoardT newBoard = captureEp<Color>(board, from, to, captureSquare);
 
-	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, EpCaptureMove);
+	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, to, EpCaptureMove);
       }
     }
 
@@ -271,7 +272,7 @@ namespace Chess {
 
 	BoardT newBoard = moveSpecificPiece<Color, SpecificPiece, PushOrCapture>(board, from, to);
 
-	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, moveType);
+	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, to, moveType);
       }
     }
     
@@ -296,11 +297,12 @@ namespace Chess {
       BoardT newBoard1 = moveSpecificPiece<Color, SpecificKing, Push>(board, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo);
       BoardT newBoard = moveSpecificPiece<Color, CastlingTraitsT<Color, CastlingRight>::SpecificRook, Push>(newBoard1, CastlingTraitsT<Color, CastlingRight>::RookFrom, CastlingTraitsT<Color, CastlingRight>::RookTo);
 
-      perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, CastlingMove);
+      // We pass the rook 'to' square cos we use it for discovered check and check from castling is not considered 'discovered'
+      perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, CastlingTraitsT<Color, CastlingRight>::RookTo, CastlingMove);
     }
     
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
-    inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const MoveTypeT moveType) {
+    inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT moveTo, const MoveTypeT moveType) {
 
       const ColorStateT& myState = board.pieces[Color];
       const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
@@ -335,10 +337,17 @@ namespace Chess {
 
 	// Is my king in check?
 	SquareAttackersT myKingAttackers = genSquareAttackers<OtherColorT<Color>::value, MyBoardTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
-	if(myKingAttackers.pieceAttackers[AllPieces] != 0) {
+	BitBoardT allMyKingAttackers = myKingAttackers.pieceAttackers[AllPieces];
+	if( allMyKingAttackers != 0) {
 	  stats.checks++;
 
-	  if(Bits::count(myKingAttackers.pieceAttackers[AllPieces]) != 1) {
+	  // If the moved piece is not attacking the king then this is a discovered check
+	  if((bbForSquare(moveTo) & allMyKingAttackers) == 0) {
+	    stats.discoverychecks++;
+	  }
+	  
+	  // If there are multiple king attackers then we have a double check
+	  if(Bits::count(allMyKingAttackers) != 1) {
 	    stats.doublechecks++;
 	  }
 	  
@@ -473,7 +482,7 @@ namespace Chess {
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT> inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
       PerftStatsT stats = {0};
 
-      perftImpl<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, PushMove);
+      perftImpl<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, InvalidSquare, PushMove);
 
       return stats;
     }
