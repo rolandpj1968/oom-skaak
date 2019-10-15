@@ -24,12 +24,9 @@ namespace Chess {
     }
 
     struct ColorStateT {
-      // Pawns in BitBoardT format
-      BitBoardT pawnsBb;
+      // All pieces including strange promos.
+      BitBoardT bbs[NPieceTypes];
 
-      // All pieces (including pawns) in BitBoardT format
-      BitBoardT allPiecesBb;
-      
       // All pieces except pawns and strange promos.
       // MUST be InvalidSquare if a piece is not present
       SquareT pieceSquares[NSpecificPieceTypes];
@@ -83,19 +80,18 @@ namespace Chess {
 
       const BitBoardT squareBb = bbForSquare(square);
 
-      pieces.pawnsBb &= ~squareBb; // If it's not a pawn this is a NOP
-      pieces.allPiecesBb &= ~squareBb;
+      const PieceT piece = PieceForSpecificPiece[specificPiece];
+      pieces.bbs[piece] &= ~squareBb;
+      pieces.bbs[AllPieces] &= ~squareBb;
 
-      if(pieces.castlingRights) {
-	if(specificPiece == QueenRook) {
-	  pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleQueenside);
-	}
-	if(specificPiece == KingRook) {
-	  pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleKingside);
-	}
-	if(specificPiece == SpecificKing) {
-	  pieces.castlingRights = NoCastlingRights;
-	}
+      if(specificPiece == QueenRook) {
+	pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleQueenside);
+      }
+      if(specificPiece == KingRook) {
+	pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleKingside);
+      }
+      if(specificPiece == SpecificKing) {
+	pieces.castlingRights = NoCastlingRights;
       }
       
       return specificPiece;
@@ -112,19 +108,15 @@ namespace Chess {
       const BitBoardT squareBb = bbForSquare(square);
 
       const PieceT piece = PieceForSpecificPieceT<SpecificPiece>::value;
-      if(piece == Pawn) {
-	pieces.pawnsBb &= ~squareBb;
-      }
-      pieces.allPiecesBb &= ~squareBb;
+      pieces.bbs[piece] &= ~squareBb;
+      pieces.bbs[AllPieces] &= ~squareBb;
 
       if(SpecificPiece == QueenRook) {
 	pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleQueenside);
       }
-
       if(SpecificPiece == KingRook) {
 	pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleKingside);
       }
-
       if(SpecificPiece == SpecificKing) {
 	pieces.castlingRights = NoCastlingRights;
       }
@@ -141,10 +133,8 @@ namespace Chess {
       const BitBoardT squareBb = bbForSquare(square);
 
       const PieceT piece = PieceForSpecificPiece[specificPiece];
-      if(piece == Pawn) {
-	pieces.pawnsBb |= squareBb;
-      }
-      pieces.allPiecesBb |= squareBb;
+      pieces.bbs[piece] |= squareBb;
+      pieces.bbs[AllPieces] |= squareBb;
     }
 
     // TODO - non-standard promos
@@ -159,10 +149,8 @@ namespace Chess {
       const BitBoardT squareBb = bbForSquare(square);
 
       const PieceT piece = PieceForSpecificPieceT<SpecificPiece>::value;
-      if(piece == Pawn) {
-	pieces.pawnsBb |= squareBb;
-      }
-      pieces.allPiecesBb |= squareBb;
+      pieces.bbs[piece] |= squareBb;
+      pieces.bbs[AllPieces] |= squareBb;
     }
 
     inline BoardT copyForMove(const BoardT& oldBoard) {

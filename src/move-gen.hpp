@@ -253,7 +253,7 @@ namespace Chess {
       PieceAttacksT attacks = {0};
 
       // Pawns
-      BitBoardT pawns = colorState.pawnsBb;
+      BitBoardT pawns = colorState.bbs[Pawn];
       attacks.pawnsLeftAttacks = pawnsLeftAttacks<Color>(pawns);
       attacks.pawnsRightAttacks = pawnsRightAttacks<Color>(pawns);
       

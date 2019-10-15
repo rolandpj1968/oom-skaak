@@ -11,10 +11,8 @@ namespace Chess {
       
       const BitBoardT pieceBb = bbForSquare(square);
 
-      if(specificPiece == SpecificPawn) {
-	c.pawnsBb |= pieceBb;
-      }
-      c.allPiecesBb |= pieceBb;
+      c.bbs[PieceForSpecificPiece[specificPiece]] |= pieceBb;
+      c.bbs[AllPieces] |= pieceBb;
 
       c.pieceSquares[specificPiece] = square;
 

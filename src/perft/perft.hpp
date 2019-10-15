@@ -303,15 +303,15 @@ namespace Chess {
 
       const ColorStateT& myState = board.pieces[Color];
       const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
-      const BitBoardT allMyPiecesBb = myState.allPiecesBb;
-      const BitBoardT allYourPiecesBb = yourState.allPiecesBb;
+      const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
+      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
   
       // Generate moves
       PieceAttacksT myAttacks = genPieceAttacks<Color, MyBoardTraitsT>(myState, allPiecesBb);
 
       // Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
-      if((myAttacks.allAttacks & bbForSquare(yourState.pieceSquares[SpecificKing])) != 0) {
+      if((myAttacks.allAttacks & yourState.bbs[King]) != 0) {
 	// Illegal position - doesn't count
 	stats.invalids++;
 	return;
@@ -338,7 +338,7 @@ namespace Chess {
 
 	// Is my king in check?
 	PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
-	if((yourAttacks.allAttacks & bbForSquare(myState.pieceSquares[SpecificKing])) != 0) {
+	if((yourAttacks.allAttacks & myState.bbs[King]) != 0) {
 	  stats.checks++;
 
 	  // It's checkmate if there are no valid child nodes.
