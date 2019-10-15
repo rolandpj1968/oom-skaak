@@ -18,6 +18,7 @@ namespace Chess {
       u64 castles;
       u64 promos;
       u64 checks;
+      u64 doublechecks;
       u64 checkmates;
       u64 invalids;
     };
@@ -333,10 +334,14 @@ namespace Chess {
 	}
 
 	// Is my king in check?
-	PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
-	if((yourAttacks.allAttacks & myState.bbs[King]) != 0) {
+	SquareAttackersT myKingAttackers = genSquareAttackers<OtherColorT<Color>::value, MyBoardTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
+	if(myKingAttackers.pieceAttackers[AllPieces] != 0) {
 	  stats.checks++;
 
+	  if(Bits::count(myKingAttackers.pieceAttackers[AllPieces]) != 1) {
+	    stats.doublechecks++;
+	  }
+	  
 	  // It's checkmate if there are no valid child nodes.
 	  PerftStatsT childStats = perft<Color, YourBoardTraitsT, MyBoardTraitsT>(board, 1);
 	  if(childStats.nodes == 0) {
