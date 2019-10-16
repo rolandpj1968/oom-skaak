@@ -443,10 +443,12 @@ namespace Chess {
       //BitBoardT discoverySquares = BbAll;
 
       // Pawn pushes
+      
+      BitBoardT pawnCheckSquares = yourKingAttackerSquares.pieceAttackers[Pawn];
       BitBoardT discoveryPawns = myState.bbs[Pawn] & discoverySquares;
       
       BitBoardT discoveryPawnsPushOne = pawnsPushOne<Color>(discoveryPawns, allPiecesBb); // TODO could just pass in BbNone for allPiecesBb
-      BitBoardT pawnsPushOneChecks = myAttacks.pawnsPushOne & (yourKingAttackerSquares.pieceAttackers[Pawn] | discoveryPawnsPushOne);
+      BitBoardT pawnsPushOneChecks = myAttacks.pawnsPushOne & (pawnCheckSquares | discoveryPawnsPushOne);
       
       // Do full evaluation of pawn pushes that (might) render check.
       perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, pawnsPushOneChecks);
@@ -455,7 +457,7 @@ namespace Chess {
       stats.nodes += Bits::count(myAttacks.pawnsPushOne & ~pawnsPushOneChecks);
       
       BitBoardT discoveryPawnsPushTwo = pawnsPushOne<Color>(discoveryPawnsPushOne, allPiecesBb); // TODO could just pass in BbNone for allPiecesBb
-      BitBoardT pawnsPushTwoChecks = myAttacks.pawnsPushTwo & (yourKingAttackerSquares.pieceAttackers[Pawn] | discoveryPawnsPushTwo);
+      BitBoardT pawnsPushTwoChecks = myAttacks.pawnsPushTwo & (pawnCheckSquares | discoveryPawnsPushTwo);
       
       // Do full evaluation of pawn pushes that (might) render check.
       perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, pawnsPushTwoChecks);
@@ -464,10 +466,33 @@ namespace Chess {
       stats.nodes += Bits::count(myAttacks.pawnsPushTwo & ~pawnsPushTwoChecks);
       
       // Pawn captures
-      perftImplPawnsCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myAttacks.pawnsLeftAttacks & allYourPiecesBb);
-      perftImplPawnsCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myAttacks.pawnsRightAttacks & allYourPiecesBb);
+
+      BitBoardT pawnsCaptureLeft = myAttacks.pawnsLeftAttacks & allYourPiecesBb;
+      BitBoardT discoveryPawnsCaptureLeft = pawnsLeftAttacks<Color>(discoveryPawns);
+      BitBoardT pawnsCaptureLeftChecks = pawnsCaptureLeft & (pawnCheckSquares | discoveryPawnsCaptureLeft);
+      
+      // Do full evaluation of pawn captures that (might) render check.
+      perftImplPawnsCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, pawnsCaptureLeftChecks);
+      
+      // Just count pawn captures that (definitely) won't render check.
+      u64 pawnsCaptureLeftCount = Bits::count(pawnsCaptureLeft & ~pawnsCaptureLeftChecks);
+      stats.nodes += pawnsCaptureLeftCount;
+      stats.captures += pawnsCaptureLeftCount;
+      
+      BitBoardT pawnsCaptureRight = myAttacks.pawnsRightAttacks & allYourPiecesBb;
+      BitBoardT discoveryPawnsCaptureRight = pawnsRightAttacks<Color>(discoveryPawns);
+      BitBoardT pawnsCaptureRightChecks = pawnsCaptureRight & (pawnCheckSquares | discoveryPawnsCaptureRight);
+      
+      // Do full evaluation of pawn captures that (might) render check.
+      perftImplPawnsCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, pawnsCaptureRightChecks);
+      
+      // Just count pawn captures that (definitely) won't render check.
+      u64 pawnsCaptureRightCount = Bits::count(pawnsCaptureRight & ~pawnsCaptureRightChecks);
+      stats.nodes += pawnsCaptureRightCount;
+      stats.captures += pawnsCaptureRightCount;
       
       // Pawn en-passant captures
+      // TODO - could optimise this further but it's a marginal case.
       if(yourState.epSquare) {
 	BitBoardT epSquareBb = bbForSquare(yourState.epSquare);
 	
@@ -478,9 +503,24 @@ namespace Chess {
       // Piece moves
 
       // Knights
-      
-      perftImplSpecificPieceMoves<Color, QueenKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[QueenKnight], myAttacks.pieceAttacks[QueenKnight], allYourPiecesBb, allPiecesBb);
 
+      BitBoardT knightCheckSquares = yourKingAttackerSquares.pieceAttackers[Knight];
+      
+      SquareT queenKnightSquare = myState.pieceSquares[QueenKnight];
+      BitBoardT queenKnightBb = bbForSquare(queenKnightSquare);
+
+      BitBoardT queenKnightAttacksBb = myAttacks.pieceAttacks[QueenKnight];
+      BitBoardT queenKnightMovesBb = queenKnightAttacksBb & ~allMyPiecesBb;
+
+      // Do full evaluation of moves that might render check.
+      BitBoardT queenKnightCheckMovesBb = (queenKnightBb & discoverySquares) ? queenKnightAttacksBb : (queenKnightMovesBb & knightCheckSquares);
+      perftImplSpecificPieceMoves<Color, QueenKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, queenKnightSquare, queenKnightCheckMovesBb, allYourPiecesBb, allPiecesBb);
+
+      // Just count moves that (definitely) won't render check.
+      BitBoardT queenKnightNonCheckMovesBb = queenKnightMovesBb & ~queenKnightCheckMovesBb;
+      stats.nodes += Bits::count(queenKnightNonCheckMovesBb);
+      stats.captures += Bits::count(queenKnightNonCheckMovesBb & allYourPiecesBb);
+      
       perftImplSpecificPieceMoves<Color, KingKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[KingKnight], myAttacks.pieceAttacks[KingKnight], allYourPiecesBb, allPiecesBb);
 
       // Bishops
