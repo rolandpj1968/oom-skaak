@@ -521,7 +521,21 @@ namespace Chess {
       stats.nodes += Bits::count(queenKnightNonCheckMovesBb);
       stats.captures += Bits::count(queenKnightNonCheckMovesBb & allYourPiecesBb);
       
-      perftImplSpecificPieceMoves<Color, KingKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[KingKnight], myAttacks.pieceAttacks[KingKnight], allYourPiecesBb, allPiecesBb);
+      SquareT kingKnightSquare = myState.pieceSquares[KingKnight];
+      BitBoardT kingKnightBb = bbForSquare(kingKnightSquare);
+
+      BitBoardT kingKnightAttacksBb = myAttacks.pieceAttacks[KingKnight];
+      BitBoardT kingKnightMovesBb = kingKnightAttacksBb & ~allMyPiecesBb;
+
+      // Do full evaluation of moves that might render check.
+      BitBoardT kingKnightCheckMovesBb = (kingKnightBb & discoverySquares) ? kingKnightAttacksBb : (kingKnightMovesBb & knightCheckSquares);
+      perftImplSpecificPieceMoves<Color, KingKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, kingKnightSquare, kingKnightCheckMovesBb, allYourPiecesBb, allPiecesBb);
+
+      // Just count moves that (definitely) won't render check.
+      BitBoardT kingKnightNonCheckMovesBb = kingKnightMovesBb & ~kingKnightCheckMovesBb;
+      stats.nodes += Bits::count(kingKnightNonCheckMovesBb);
+      stats.captures += Bits::count(kingKnightNonCheckMovesBb & allYourPiecesBb);
+      //perftImplSpecificPieceMoves<Color, KingKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[KingKnight], myAttacks.pieceAttacks[KingKnight], allYourPiecesBb, allPiecesBb);
 
       // Bishops
       
