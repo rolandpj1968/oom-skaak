@@ -18,6 +18,9 @@ namespace Chess {
       u64 castles;
       u64 promos;
       u64 checks;
+      // Note that 'discoverychecks' here includes checks delivered by castling, which is contraversial.
+      // According to stats from: https://www.chessprogramming.org/Perft_Results
+      // Would probably be better to separate this out into real discoveries and checks-from-castling
       u64 discoverychecks;
       u64 doublechecks;
       u64 checkmates;
@@ -298,7 +301,8 @@ namespace Chess {
       BoardT newBoard = moveSpecificPiece<Color, CastlingTraitsT<Color, CastlingRight>::SpecificRook, Push>(newBoard1, CastlingTraitsT<Color, CastlingRight>::RookFrom, CastlingTraitsT<Color, CastlingRight>::RookTo);
 
       // We pass the rook 'to' square cos we use it for discovered check and check from castling is not considered 'discovered'
-      perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, CastlingTraitsT<Color, CastlingRight>::RookTo, CastlingMove);
+      // Or maybe not - getting wrong discoveries count compared to wiki lore - let's try the king instead.
+      perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, CastlingTraitsT<Color, CastlingRight>::KingTo, CastlingMove);
     }
     
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
