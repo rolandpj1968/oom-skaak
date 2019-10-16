@@ -416,6 +416,8 @@ namespace Chess {
 	// I'm in check - do full move evaluation to cope with invalid moves.
 	// We could do special move generation for in-check but it's not worth it for now.
 	perftImplFull<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, moveTo, moveType);
+	
+	return;
       }
 
       // This is a valid node and I'm not in check - just count moves (except for tricky ones)
@@ -424,16 +426,21 @@ namespace Chess {
       // Generate moves
       PieceAttacksT myAttacks = genPieceAttacks<Color, MyBoardTraitsT>(myState, allPiecesBb);
 
-      // Generate squares that will render check
+      // Generate squares that will render check (used to treat discoveries properly)
+      SquareAttackersT myKingAttackerSquares = genSquareAttackerSquares<OtherColorT<Color>::value, YourBoardTraitsT>(myState.pieceSquares[SpecificKing], allPiecesBb);
       SquareAttackersT yourKingAttackerSquares = genSquareAttackerSquares<Color, MyBoardTraitsT>(yourState.pieceSquares[SpecificKing], allPiecesBb);
       
       // Count or evaluate moves.
       // We do full evaluation of moves that (might) generate check, including:
       //   - moves that directly generate check
-      //   - moves from squares that could generate discovered check
+      //   - moves from squares that might generate discovered check of either king
 
-      // TODO - we could filter this further to squares that are attacked by our sliders (of the right type).
-      BitBoardT discoverySquares = yourKingAttackerSquares.pieceAttackers[Queen];
+      // Moves from squares that might lead to discovered check of either side.
+      //   - discovered check of our king is an invalid move which we'll check at level 0.
+      //   - discovered check of your king is a check which we need to get further stats on.
+      // TODO - we could filter this further to squares that are attacked by sliders (of the right type).
+      BitBoardT discoverySquares = myKingAttackerSquares.pieceAttackers[Queen] | yourKingAttackerSquares.pieceAttackers[Queen];
+      //BitBoardT discoverySquares = BbAll;
 
       // Pawn pushes
       BitBoardT discoveryPawns = myState.bbs[Pawn] & discoverySquares;
@@ -447,7 +454,7 @@ namespace Chess {
       // Just count pawn moves that (definitely) won't render check.
       stats.nodes += Bits::count(myAttacks.pawnsPushOne & ~pawnsPushOneChecks);
       
-      BitBoardT discoveryPawnsPushTwo = pawnsPushOne<Color>(discoveryPawns, allPiecesBb); // TODO could just pass in BbNone for allPiecesBb
+      BitBoardT discoveryPawnsPushTwo = pawnsPushOne<Color>(discoveryPawnsPushOne, allPiecesBb); // TODO could just pass in BbNone for allPiecesBb
       BitBoardT pawnsPushTwoChecks = myAttacks.pawnsPushTwo & (yourKingAttackerSquares.pieceAttackers[Pawn] | discoveryPawnsPushTwo);
       
       // Do full evaluation of pawn pushes that (might) render check.
