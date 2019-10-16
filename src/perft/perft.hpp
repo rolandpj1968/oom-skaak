@@ -306,61 +306,6 @@ namespace Chess {
     }
 
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
-    inline void perftImpl0(PerftStatsT& stats, const BoardT& board, const SquareT moveTo, const MoveTypeT moveType) {
-      const ColorStateT& myState = board.pieces[Color];
-      const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
-      const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
-      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
-      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
-
-      // Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
-      SquareAttackersT yourKingAttackers = genSquareAttackers<Color, MyBoardTraitsT>(yourState.pieceSquares[SpecificKing], myState, allPiecesBb);
-      if(yourKingAttackers.pieceAttackers[AllPieces] != 0) {
-	// Illegal position - doesn't count
-	stats.invalids++;
-	return;
-      }
-	
-      stats.nodes++;
-
-      if(moveType == CaptureMove) {
-	stats.captures++;
-      }
-
-      if(moveType == EpCaptureMove) {
-	stats.captures++;
-	stats.eps++;
-      }
-
-      if(moveType == CastlingMove) {
-	stats.castles++;
-      }
-
-      // Is my king in check?
-      SquareAttackersT myKingAttackers = genSquareAttackers<OtherColorT<Color>::value, MyBoardTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
-      BitBoardT allMyKingAttackers = myKingAttackers.pieceAttackers[AllPieces];
-      if( allMyKingAttackers != 0) {
-	stats.checks++;
-
-	// If the moved piece is not attacking the king then this is a discovered check
-	if((bbForSquare(moveTo) & allMyKingAttackers) == 0) {
-	  stats.discoverychecks++;
-	}
-	  
-	// If there are multiple king attackers then we have a double check
-	if(Bits::count(allMyKingAttackers) != 1) {
-	  stats.doublechecks++;
-	}
-	  
-	// It's checkmate if there are no valid child nodes.
-	PerftStatsT childStats = perft<Color, YourBoardTraitsT, MyBoardTraitsT>(board, 1);
-	if(childStats.nodes == 0) {
-	  stats.checkmates++;
-	}
-      }
-    }
-    
-    template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImplFull(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT moveTo, const MoveTypeT moveType) {
       
       const ColorStateT& myState = board.pieces[Color];
@@ -449,12 +394,169 @@ namespace Chess {
     }
 
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
+    inline void perftImpl1(PerftStatsT& stats, const BoardT& board, const SquareT moveTo, const MoveTypeT moveType) {
+      const ColorStateT& myState = board.pieces[Color];
+      const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
+      const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
+      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
+      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
+
+      // Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
+      SquareAttackersT yourKingAttackers = genSquareAttackers<Color, MyBoardTraitsT>(yourState.pieceSquares[SpecificKing], myState, allPiecesBb);
+      if(yourKingAttackers.pieceAttackers[AllPieces] != 0) {
+	// Illegal position - doesn't count
+	stats.invalids++;
+	return;
+      }
+	
+      // Is my king in check?
+      SquareAttackersT myKingAttackers = genSquareAttackers<OtherColorT<Color>::value, MyBoardTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
+      BitBoardT allMyKingAttackers = myKingAttackers.pieceAttackers[AllPieces];
+      if( allMyKingAttackers != 0) {
+	// I'm in check - do full move evaluation to cope with invalid moves.
+	// We could do special move generation for in-check but it's not worth it for now.
+	perftImplFull<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, moveTo, moveType);
+      }
+
+      // This is a valid node and I'm not in check - just count moves (except for tricky ones)
+      //perftImplFull<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, moveTo, moveType);
+
+      // Generate moves
+      PieceAttacksT myAttacks = genPieceAttacks<Color, MyBoardTraitsT>(myState, allPiecesBb);
+
+      // Evaluate moves
+
+      // Pawn pushes
+      perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myAttacks.pawnsPushOne);
+      perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myAttacks.pawnsPushTwo);
+      
+      // Pawn captures
+      perftImplPawnsCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myAttacks.pawnsLeftAttacks & allYourPiecesBb);
+      perftImplPawnsCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myAttacks.pawnsRightAttacks & allYourPiecesBb);
+      
+      // Pawn en-passant captures
+      if(yourState.epSquare) {
+	BitBoardT epSquareBb = bbForSquare(yourState.epSquare);
+	
+	perftImplPawnEpCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myAttacks.pawnsLeftAttacks & epSquareBb);
+	perftImplPawnEpCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myAttacks.pawnsRightAttacks & epSquareBb);
+      }
+
+      // Piece moves
+
+      // Knights
+      
+      perftImplSpecificPieceMoves<Color, QueenKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[QueenKnight], myAttacks.pieceAttacks[QueenKnight], allYourPiecesBb, allPiecesBb);
+
+      perftImplSpecificPieceMoves<Color, KingKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[KingKnight], myAttacks.pieceAttacks[KingKnight], allYourPiecesBb, allPiecesBb);
+
+      // Bishops
+      
+      perftImplSpecificPieceMoves<Color, BlackBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[BlackBishop], myAttacks.pieceAttacks[BlackBishop], allYourPiecesBb, allPiecesBb);
+
+      perftImplSpecificPieceMoves<Color, WhiteBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[WhiteBishop], myAttacks.pieceAttacks[WhiteBishop], allYourPiecesBb, allPiecesBb);
+
+      // Rooks
+
+      perftImplSpecificPieceMoves<Color, QueenRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[QueenRook], myAttacks.pieceAttacks[QueenRook], allYourPiecesBb, allPiecesBb);
+
+      perftImplSpecificPieceMoves<Color, KingRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[KingRook], myAttacks.pieceAttacks[KingRook], allYourPiecesBb, allPiecesBb);
+
+      // Queens
+
+      perftImplSpecificPieceMoves<Color, SpecificQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[SpecificQueen], myAttacks.pieceAttacks[SpecificQueen], allYourPiecesBb, allPiecesBb);
+
+      // King always present
+      perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[SpecificKing], myAttacks.pieceAttacks[SpecificKing], allYourPiecesBb, allPiecesBb);
+
+      // TODO other promo pieces
+      if(MyBoardTraitsT::hasPromos) {
+	if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
+	  perftImplSpecificPieceMoves<Color, PromoQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[PromoQueen], myAttacks.pieceAttacks[PromoQueen], allYourPiecesBb, allPiecesBb);
+	}
+      }
+
+      // Castling
+      CastlingRightsT castlingRights2 = castlingRightsWithSpace<Color>(myState.castlingRights, allPiecesBb);
+      if(castlingRights2) {
+	PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
+
+	if((castlingRights2 & CanCastleQueenside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleQueenside>::CastlingThruCheckBbMask) == BbNone) {
+	  perftImplCastlingMove<Color, CanCastleQueenside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1);
+	}
+
+	if((castlingRights2 & CanCastleKingside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleKingside>::CastlingThruCheckBbMask) == BbNone) {
+	  perftImplCastlingMove<Color, CanCastleKingside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1);
+	}	
+      }
+    }
+      
+    template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
+    inline void perftImpl0(PerftStatsT& stats, const BoardT& board, const SquareT moveTo, const MoveTypeT moveType) {
+      const ColorStateT& myState = board.pieces[Color];
+      const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
+      const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
+      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
+      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
+
+      // Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
+      SquareAttackersT yourKingAttackers = genSquareAttackers<Color, MyBoardTraitsT>(yourState.pieceSquares[SpecificKing], myState, allPiecesBb);
+      if(yourKingAttackers.pieceAttackers[AllPieces] != 0) {
+	// Illegal position - doesn't count
+	stats.invalids++;
+	return;
+      }
+	
+      stats.nodes++;
+
+      if(moveType == CaptureMove) {
+	stats.captures++;
+      }
+
+      if(moveType == EpCaptureMove) {
+	stats.captures++;
+	stats.eps++;
+      }
+
+      if(moveType == CastlingMove) {
+	stats.castles++;
+      }
+
+      // Is my king in check?
+      SquareAttackersT myKingAttackers = genSquareAttackers<OtherColorT<Color>::value, MyBoardTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
+      BitBoardT allMyKingAttackers = myKingAttackers.pieceAttackers[AllPieces];
+      if( allMyKingAttackers != 0) {
+	stats.checks++;
+
+	// If the moved piece is not attacking the king then this is a discovered check
+	if((bbForSquare(moveTo) & allMyKingAttackers) == 0) {
+	  stats.discoverychecks++;
+	}
+	  
+	// If there are multiple king attackers then we have a double check
+	if(Bits::count(allMyKingAttackers) != 1) {
+	  stats.doublechecks++;
+	}
+	  
+	// It's checkmate if there are no valid child nodes.
+	PerftStatsT childStats = perft<Color, YourBoardTraitsT, MyBoardTraitsT>(board, 1);
+	if(childStats.nodes == 0) {
+	  stats.checkmates++;
+	}
+      }
+    }
+    
+    template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT moveTo, const MoveTypeT moveType) {
 
-      // If this is a leaf node, gather stats.
       if(depthToGo == 0) {
+	// This is a leaf node; gather stats.
 	perftImpl0<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, moveTo, moveType);
+      } else if(depthToGo == 1) {
+	// Try to count moves rather than doing full move execution for each move.
+	perftImpl1<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, moveTo, moveType);
       } else {
+	// Do the long haul for each move.
 	perftImplFull<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, moveTo, moveType);
       }
     }
