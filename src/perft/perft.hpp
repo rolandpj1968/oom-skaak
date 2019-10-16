@@ -424,11 +424,37 @@ namespace Chess {
       // Generate moves
       PieceAttacksT myAttacks = genPieceAttacks<Color, MyBoardTraitsT>(myState, allPiecesBb);
 
-      // Evaluate moves
+      // Generate squares that will render check
+      SquareAttackersT yourKingAttackerSquares = genSquareAttackerSquares<Color, MyBoardTraitsT>(yourState.pieceSquares[SpecificKing], allPiecesBb);
+      
+      // Count or evaluate moves.
+      // We do full evaluation of moves that (might) generate check, including:
+      //   - moves that directly generate check
+      //   - moves from squares that could generate discovered check
+
+      // TODO - we could filter this further to squares that are attacked by our sliders (of the right type).
+      BitBoardT discoverySquares = yourKingAttackerSquares.pieceAttackers[Queen];
 
       // Pawn pushes
-      perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myAttacks.pawnsPushOne);
-      perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myAttacks.pawnsPushTwo);
+      BitBoardT discoveryPawns = myState.bbs[Pawn] & discoverySquares;
+      
+      BitBoardT discoveryPawnsPushOne = pawnsPushOne<Color>(discoveryPawns, allPiecesBb); // TODO could just pass in BbNone for allPiecesBb
+      BitBoardT pawnsPushOneChecks = myAttacks.pawnsPushOne & (yourKingAttackerSquares.pieceAttackers[Pawn] | discoveryPawnsPushOne);
+      
+      // Do full evaluation of pawn pushes that (might) render check.
+      perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, pawnsPushOneChecks);
+      
+      // Just count pawn moves that (definitely) won't render check.
+      stats.nodes += Bits::count(myAttacks.pawnsPushOne & ~pawnsPushOneChecks);
+      
+      BitBoardT discoveryPawnsPushTwo = pawnsPushOne<Color>(discoveryPawns, allPiecesBb); // TODO could just pass in BbNone for allPiecesBb
+      BitBoardT pawnsPushTwoChecks = myAttacks.pawnsPushTwo & (yourKingAttackerSquares.pieceAttackers[Pawn] | discoveryPawnsPushTwo);
+      
+      // Do full evaluation of pawn pushes that (might) render check.
+      perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, pawnsPushTwoChecks);
+
+      // Just count pawn moves that (definitely) won't render check.
+      stats.nodes += Bits::count(myAttacks.pawnsPushTwo & ~pawnsPushTwoChecks);
       
       // Pawn captures
       perftImplPawnsCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myAttacks.pawnsLeftAttacks & allYourPiecesBb);

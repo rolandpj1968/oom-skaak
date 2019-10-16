@@ -433,6 +433,52 @@ namespace Chess {
       return attackers;
     }
 
+    // Generate squares from which a piece would attack/defend a particular square.
+    // Useful for testing whether a move would render check.
+    template <ColorT Color, typename BoardTraitsT>
+    inline SquareAttackersT genSquareAttackerSquares(const SquareT square, const BitBoardT allPieces) {
+      SquareAttackersT attackerSquares = {0};
+
+      // Pawns
+      
+      BitBoardT pawnAttackerSquaresBb = PawnAttackers[Color][square];
+      attackerSquares.pieceAttackers[Pawn] = pawnAttackerSquaresBb;
+      attackerSquares.pieceAttackers[AllPieces] |= pawnAttackerSquaresBb;
+
+      // Knights
+      
+      BitBoardT knightAttackerSquaresBb = KnightAttacks[square];
+      attackerSquares.pieceAttackers[Knight] = knightAttackerSquaresBb;
+      attackerSquares.pieceAttackers[AllPieces] |= knightAttackerSquaresBb;
+
+      // Diagonal sliders
+      
+      BitBoardT diagonalAttackerSquaresBb = bishopAttacks(square, allPieces);
+
+      attackerSquares.pieceAttackers[Bishop] = diagonalAttackerSquaresBb;
+      attackerSquares.pieceAttackers[Queen] |= diagonalAttackerSquaresBb;
+
+      attackerSquares.pieceAttackers[AllPieces] |= diagonalAttackerSquaresBb;
+
+      // Orthogonal sliders
+
+      BitBoardT orthogonalAttackerSquaresBb = rookAttacks(square, allPieces);
+
+      attackerSquares.pieceAttackers[Rook] = orthogonalAttackerSquaresBb;
+      attackerSquares.pieceAttackers[Queen] |= orthogonalAttackerSquaresBb;
+
+      attackerSquares.pieceAttackers[AllPieces] |= orthogonalAttackerSquaresBb;
+	
+      // King attacker
+
+      BitBoardT kingAttackerSquares = KingAttacks[square];
+      attackerSquares.pieceAttackers[King] = kingAttackerSquares;
+
+      attackerSquares.pieceAttackers[AllPieces] |= kingAttackerSquares;
+
+      return attackerSquares;
+    }
+
     extern int countAttacks(const PieceAttacksT& pieceAttacks, const BitBoardT filterOut = BbNone, const BitBoardT filterInPawnTakes = BbAll);
     
   } // namespace MoveGen
