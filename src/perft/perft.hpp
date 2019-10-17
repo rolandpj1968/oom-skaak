@@ -461,43 +461,61 @@ namespace Chess {
       BitBoardT bishopChecksBb = yourKingAttackerSquares.pieceAttackers[Bishop] & (myAttacks.pieceAttacks[BlackBishop] | myAttacks.pieceAttacks[WhiteBishop]) & ~myState.bbs[AllPieces];
       BitBoardT rookChecksBb = yourKingAttackerSquares.pieceAttackers[Rook] & (myAttacks.pieceAttacks[QueenRook] | myAttacks.pieceAttacks[KingRook]) & ~myState.bbs[AllPieces];
       BitBoardT queenChecksBb = yourKingAttackerSquares.pieceAttackers[Queen] & (myAttacks.pieceAttacks[SpecificQueen]) & ~myState.bbs[AllPieces];
-      bool canDeliverCheck = true;
       // Cannot deliver check with the king
-      if((pawnChecksBb | knightChecksBb | bishopChecksBb | rookChecksBb | queenChecksBb) == BbNone) {
-	stats.d1nochecks++;
-	canDeliverCheck = false;
-      }
+
+      BitBoardT allPiecesChecksBb = pawnChecksBb | knightChecksBb | bishopChecksBb | rookChecksBb | queenChecksBb;
+      
+      // bool canDeliverCheck = true;
+      // if((pawnChecksBb | knightChecksBb | bishopChecksBb | rookChecksBb | queenChecksBb) == BbNone) {
+      // 	stats.d1nochecks++;
+      // 	canDeliverCheck = false;
+      // }
 
       // Can we deliver discovered check?
       // In order to deliver discovered check, we require (at least):
       //   1. One of our pieces on a slider attack path to your king
       //   2. One of our sliders on the same slider attack path.
       // More is required in practice but hopefully this will suffice to limit the incidence.
-      // BitBoardT diagonalDiscoveryPiecesBb = yourKingAttackerSquares.pieceAttackers[Bishop] & myState.bbs[AllPieces]; // my pieces on diagonal slider attack to your king
-      // Could be way more precise here doing piece by piece (type).
-      bool hasPossibleDiscoveries = true;
+      // bool hasPossibleDiscoveries = true;
       BitBoardT myDiagPinnersBb = BishopRays[yourState.pieceSquares[SpecificKing]] & (myState.bbs[Bishop] | myState.bbs[Queen]);
       BitBoardT myDiagBlockingPiecessBb = myDiagPinnersBb ? (yourKingAttackerSquares.pieceAttackers[Bishop] & myState.bbs[AllPieces]) : BbNone;
       BitBoardT myOrthoPinnersBb = RookRays[yourState.pieceSquares[SpecificKing]] & (myState.bbs[Rook] | myState.bbs[Queen]);
       BitBoardT myOrthoBlockingPiecessBb = myOrthoPinnersBb ? (yourKingAttackerSquares.pieceAttackers[Rook] & myState.bbs[AllPieces]) : BbNone;
-      if((myDiagBlockingPiecessBb | myOrthoBlockingPiecessBb) == BbNone) {
-	hasPossibleDiscoveries = false;
-	stats.d1nodiscoveredchecks++;
-      }
+
+      BitBoardT myBlockingPiecesBb = myDiagBlockingPiecessBb | myOrthoBlockingPiecessBb;
+      // if((myDiagBlockingPiecessBb | myOrthoBlockingPiecessBb) == BbNone) {
+      // 	hasPossibleDiscoveries = false;
+      // 	stats.d1nodiscoveredchecks++;
+      // }
 
       // Can we move into check through discovery?
-      bool hasPossibleInvalids = true;
+      // bool hasPossibleInvalids = true;
       BitBoardT yourDiagPinnersBb = BishopRays[myState.pieceSquares[SpecificKing]] & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
       BitBoardT myDiagPinnedPiecessBb = yourDiagPinnersBb ? (myKingAttackerSquares.pieceAttackers[Bishop] & myState.bbs[AllPieces]) : BbNone;
       BitBoardT yourOrthoPinnersBb = RookRays[myState.pieceSquares[SpecificKing]] & (yourState.bbs[Rook] | yourState.bbs[Queen]);
       BitBoardT myOrthoPinnedPiecessBb = yourOrthoPinnersBb ? (myKingAttackerSquares.pieceAttackers[Rook] & myState.bbs[AllPieces]) : BbNone;
-      if((myDiagPinnedPiecessBb | myOrthoPinnedPiecessBb) == BbNone) {
-	hasPossibleInvalids = false;
-	stats.d1noillegalmoves++;
-      }
+
+      BitBoardT myPinnedPiecesBb = myDiagPinnedPiecessBb | myOrthoPinnedPiecessBb;
+      // if((myDiagPinnedPiecessBb | myOrthoPinnedPiecessBb) == BbNone) {
+      // 	hasPossibleInvalids = false;
+      // 	stats.d1noillegalmoves++;
+      // }
       
-      if(!canDeliverCheck && !hasPossibleDiscoveries && !hasPossibleInvalids) {
-	stats.d1nonastymoves++;
+      // if(!canDeliverCheck && !hasPossibleDiscoveries && !hasPossibleInvalids) {
+      // 	stats.d1nonastymoves++;
+      // }
+
+      // King always present; king cannot deliver check and king can always move to non-attacked squares so it's an easy count
+      PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
+      BitBoardT kingMoves = myAttacks.pieceAttacks[SpecificKing] & ~allMyPiecesBb & ~yourAttacks.allAttacks;
+      stats.nodes += Bits::count(kingMoves);
+      stats.captures += Bits::count(kingMoves & allYourPiecesBb);
+      //perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[SpecificKing], myAttacks.pieceAttacks[SpecificKing], allYourPiecesBb, allPiecesBb);
+
+      // Fast path - if there are no checks and no discoveries on either king then we can simply count all moves
+      if((allPiecesChecksBb | myBlockingPiecesBb | myPinnedPiecesBb) == BbNone) {
+
+	//return;
       }
       
       // Count or evaluate moves.
@@ -622,13 +640,6 @@ namespace Chess {
       // Queens
 
       perftImplSpecificPieceMoves<Color, SpecificQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[SpecificQueen], myAttacks.pieceAttacks[SpecificQueen], allYourPiecesBb, allPiecesBb);
-
-      // King always present; king cannot deliver check and king can always move to non-attacked squares so it's an easy count
-      PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
-      BitBoardT kingMoves = myAttacks.pieceAttacks[SpecificKing] & ~allMyPiecesBb & ~yourAttacks.allAttacks;
-      stats.nodes += Bits::count(kingMoves);
-      stats.captures += Bits::count(kingMoves & allYourPiecesBb);
-      //perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[SpecificKing], myAttacks.pieceAttacks[SpecificKing], allYourPiecesBb, allPiecesBb);
 
       // TODO other promo pieces
       if(MyBoardTraitsT::hasPromos) {
