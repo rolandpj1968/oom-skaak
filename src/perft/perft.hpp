@@ -26,9 +26,9 @@ namespace Chess {
       u64 doublechecks;
       u64 checkmates;
       u64 invalids;
+      u64 d1checks;
       u64 d1nodes;
       u64 d1nochecks;
-      u64 d1nochecksbypiece;
       u64 d1nodiscoveredchecks;
       u64 d1noillegalmoves;
       u64 d1nonastymoves;
@@ -424,7 +424,8 @@ namespace Chess {
 	// I'm in check - do full move evaluation to cope with invalid moves.
 	// We could do special move generation for in-check but it's not worth it for now.
 	perftImplFull<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, moveTo, moveType);
-	
+
+	stats.d1checks++;
 	return;
       }
 
@@ -463,14 +464,8 @@ namespace Chess {
       bool canDeliverCheck = true;
       // Cannot deliver check with the king
       if((pawnChecksBb | knightChecksBb | bishopChecksBb | rookChecksBb | queenChecksBb) == BbNone) {
-	stats.d1nochecksbypiece++;
-	canDeliverCheck = false;
-      }
-
-      // Also should remove my pieces from myAttacks.
-      if((yourKingAttackerSquares.pieceAttackers[AllPieces] & myAttacks.allAttacks & ~myState.bbs[AllPieces]) == BbNone) {
-	// Hrm curious, this is always BbNone for perft(6)? But we do get checks in perft(6)??? And same for perft(7).
 	stats.d1nochecks++;
+	canDeliverCheck = false;
       }
 
       // Can we deliver discovered check?
@@ -481,25 +476,28 @@ namespace Chess {
       // BitBoardT diagonalDiscoveryPiecesBb = yourKingAttackerSquares.pieceAttackers[Bishop] & myState.bbs[AllPieces]; // my pieces on diagonal slider attack to your king
       // Could be way more precise here doing piece by piece (type).
       bool hasPossibleDiscoveries = true;
-      BitBoardT possibleDiagPinnersBb = BishopRays[yourState.pieceSquares[SpecificKing]] & (myState.bbs[Bishop] | myState.bbs[Queen]);
-      BitBoardT possibleDiagPinnedPiecessBb = possibleDiagPinnersBb ? (yourKingAttackerSquares.pieceAttackers[Bishop] & myState.bbs[AllPieces]) : BbNone;
-      BitBoardT possibleOrthoPinnersBb = RookRays[yourState.pieceSquares[SpecificKing]] & (myState.bbs[Rook] | myState.bbs[Queen]);
-      BitBoardT possibleOrthoPinnedPiecessBb = possibleOrthoPinnersBb ? (yourKingAttackerSquares.pieceAttackers[Rook] & myState.bbs[AllPieces]) : BbNone;
-      if((possibleDiagPinnedPiecessBb | possibleOrthoPinnedPiecessBb) == BbNone) {
+      BitBoardT myDiagPinnersBb = BishopRays[yourState.pieceSquares[SpecificKing]] & (myState.bbs[Bishop] | myState.bbs[Queen]);
+      BitBoardT myDiagBlockingPiecessBb = myDiagPinnersBb ? (yourKingAttackerSquares.pieceAttackers[Bishop] & myState.bbs[AllPieces]) : BbNone;
+      BitBoardT myOrthoPinnersBb = RookRays[yourState.pieceSquares[SpecificKing]] & (myState.bbs[Rook] | myState.bbs[Queen]);
+      BitBoardT myOrthoBlockingPiecessBb = myOrthoPinnersBb ? (yourKingAttackerSquares.pieceAttackers[Rook] & myState.bbs[AllPieces]) : BbNone;
+      if((myDiagBlockingPiecessBb | myOrthoBlockingPiecessBb) == BbNone) {
 	hasPossibleDiscoveries = false;
 	stats.d1nodiscoveredchecks++;
       }
 
-      if(!canDeliverCheck && !hasPossibleDiscoveries) {
-	stats.d1nonastymoves++;
+      // Can we move into check through discovery?
+      bool hasPossibleInvalids = true;
+      BitBoardT yourDiagPinnersBb = BishopRays[myState.pieceSquares[SpecificKing]] & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
+      BitBoardT myDiagPinnedPiecessBb = yourDiagPinnersBb ? (myKingAttackerSquares.pieceAttackers[Bishop] & myState.bbs[AllPieces]) : BbNone;
+      BitBoardT yourOrthoPinnersBb = RookRays[myState.pieceSquares[SpecificKing]] & (yourState.bbs[Rook] | yourState.bbs[Queen]);
+      BitBoardT myOrthoPinnedPiecessBb = yourOrthoPinnersBb ? (myKingAttackerSquares.pieceAttackers[Rook] & myState.bbs[AllPieces]) : BbNone;
+      if((myDiagPinnedPiecessBb | myOrthoPinnedPiecessBb) == BbNone) {
+	hasPossibleInvalids = false;
+	stats.d1noillegalmoves++;
       }
       
-      // Can we move into through discovery?
-      // Could be way more precise here doing piece by piece (type).
-      // Hrm, this is always non-0 which makes sense - our king is pretty much always surrounded by our own pieces.
-      //   we should at least remove king attack squares? Hrm, not sure; this is too tricky.
-      if((myKingAttackerSquares.pieceAttackers[Queen] & myState.bbs[AllPieces]) == BbNone) {
-	stats.d1noillegalmoves++;
+      if(!canDeliverCheck && !hasPossibleDiscoveries && !hasPossibleInvalids) {
+	stats.d1nonastymoves++;
       }
       
       // Count or evaluate moves.
