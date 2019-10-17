@@ -511,26 +511,34 @@ namespace Chess {
       // 	stats.d1nonastymoves++;
       // }
 
-      // King always present; king cannot deliver check and king can always move to non-attacked squares so it's an easy count
-      PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
-      BitBoardT kingMoves = myAttacks.pieceAttacks[SpecificKing] & ~allMyPiecesBb & ~yourAttacks.allAttacks;
-      stats.nodes += Bits::count(kingMoves);
-      stats.captures += Bits::count(kingMoves & allYourPiecesBb);
-      //perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[SpecificKing], myAttacks.pieceAttacks[SpecificKing], allYourPiecesBb, allPiecesBb);
-
       // Fast path - if there are no checks and no discoveries on either king then we can simply count all moves
-      if(false && (allPiecesChecksBb | myBlockingPiecesBb | myPinnedPiecesBb) == BbNone) {
+      if((allPiecesChecksBb | myBlockingPiecesBb | myPinnedPiecesBb) == BbNone) {
 
 	// Pawns
 	stats.nodes += Bits::count(myAttacks.pawnsPushOne | myAttacks.pawnsPushTwo); // these are disjoint so can be counted together
-	stats.captures += Bits::count(myAttacks.pawnsLeftAttacks & allYourPiecesBb);
-	stats.captures += Bits::count(myAttacks.pawnsRightAttacks & allYourPiecesBb);
+	int pawnAttacksCount = Bits::count(myAttacks.pawnsLeftAttacks & allYourPiecesBb) + Bits::count(myAttacks.pawnsRightAttacks & allYourPiecesBb);
+	stats.nodes += pawnAttacksCount;
+	stats.captures += pawnAttacksCount;
 
 	// Knights
 
-	// countMoves(stats, myAttacks.pieceAttacks[QueenKnight], allMyPiecesBb, allYourPiecesBb);
-	// countMoves(stats, myAttacks.pieceAttacks[KingKnight], allMyPiecesBb, allYourPiecesBb);
+	countMoves(stats, myAttacks.pieceAttacks[QueenKnight], allMyPiecesBb, allYourPiecesBb);
+	countMoves(stats, myAttacks.pieceAttacks[KingKnight], allMyPiecesBb, allYourPiecesBb);
 
+	// Bishops
+	
+	countMoves(stats, myAttacks.pieceAttacks[BlackBishop], allMyPiecesBb, allYourPiecesBb);
+	countMoves(stats, myAttacks.pieceAttacks[WhiteBishop], allMyPiecesBb, allYourPiecesBb);
+
+	// Rooks
+
+	countMoves(stats, myAttacks.pieceAttacks[QueenRook], allMyPiecesBb, allYourPiecesBb);
+	countMoves(stats, myAttacks.pieceAttacks[KingRook], allMyPiecesBb, allYourPiecesBb);
+
+	// Queens
+	
+	countMoves(stats, myAttacks.pieceAttacks[SpecificQueen], allMyPiecesBb, allYourPiecesBb);
+	
       } else {
       
       // Count or evaluate moves.
@@ -594,10 +602,6 @@ namespace Chess {
       stats.nodes += pawnsCaptureRightCount;
       stats.captures += pawnsCaptureRightCount;
       
-      }
-      // Repeated!
-      BitBoardT discoverySquares = myKingAttackerSquares.pieceAttackers[Queen] | yourKingAttackerSquares.pieceAttackers[Queen];
-
       // Piece moves
 
       // Knights
@@ -651,12 +655,23 @@ namespace Chess {
 
       perftImplSpecificPieceMoves<Color, SpecificQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[SpecificQueen], myAttacks.pieceAttacks[SpecificQueen], allYourPiecesBb, allPiecesBb);
 
+      }
+      // Repeated!
+      //BitBoardT discoverySquares = myKingAttackerSquares.pieceAttackers[Queen] | yourKingAttackerSquares.pieceAttackers[Queen];
+
       // TODO other promo pieces
       if(MyBoardTraitsT::hasPromos) {
 	if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
 	  perftImplSpecificPieceMoves<Color, PromoQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[PromoQueen], myAttacks.pieceAttacks[PromoQueen], allYourPiecesBb, allPiecesBb);
 	}
       }
+
+      // King always present; king cannot deliver check and king can always move to non-attacked squares so it's an easy count
+      PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
+      BitBoardT kingMoves = myAttacks.pieceAttacks[SpecificKing] & ~allMyPiecesBb & ~yourAttacks.allAttacks;
+      stats.nodes += Bits::count(kingMoves);
+      stats.captures += Bits::count(kingMoves & allYourPiecesBb);
+      //perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[SpecificKing], myAttacks.pieceAttacks[SpecificKing], allYourPiecesBb, allPiecesBb);
 
       // Pawn en-passant captures
       // TODO - could optimise this further but it's a marginal case.
