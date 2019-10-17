@@ -226,6 +226,8 @@ namespace Chess {
     }
     
     extern BoardT startingPosition();
+
+    extern void printBoard(const BoardT& board);
   }
     
 }

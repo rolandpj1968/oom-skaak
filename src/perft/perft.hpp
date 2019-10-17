@@ -21,10 +21,17 @@ namespace Chess {
       // Note that 'discoverychecks' here includes checks delivered by castling, which is contraversial.
       // According to stats from: https://www.chessprogramming.org/Perft_Results
       // Would probably be better to separate this out into real discoveries and checks-from-castling
+      // TODO perft(8) for this is out-by-4 - I suspect en-passant discoveries.
       u64 discoverychecks;
       u64 doublechecks;
       u64 checkmates;
       u64 invalids;
+      u64 d1nodes;
+      u64 d1nochecks;
+      u64 d1nodiscoveredchecks;
+      u64 d1noillegalmoves;
+      u64 d1nonastymoves;
+      
     };
 
     enum MoveTypeT {
@@ -421,14 +428,37 @@ namespace Chess {
       }
 
       // This is a valid node and I'm not in check - just count moves (except for tricky ones)
-      //perftImplFull<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, moveTo, moveType);
 
+      stats.d1nodes++;
+      
       // Generate moves
       PieceAttacksT myAttacks = genPieceAttacks<Color, MyBoardTraitsT>(myState, allPiecesBb);
 
       // Generate squares that will render check (used to treat discoveries properly)
       SquareAttackersT myKingAttackerSquares = genSquareAttackerSquares<OtherColorT<Color>::value, YourBoardTraitsT>(myState.pieceSquares[SpecificKing], allPiecesBb);
       SquareAttackersT yourKingAttackerSquares = genSquareAttackerSquares<Color, MyBoardTraitsT>(yourState.pieceSquares[SpecificKing], allPiecesBb);
+
+      // Can we deliver check at all?
+      // Could be way more precise here doing piece by piece (type).
+      // Also should remove my pieces from myAttacks.
+      if((yourKingAttackerSquares.pieceAttackers[AllPieces] & myAttacks.pieceAttacks[AllPieces]) == BbNone) {
+	// Hrm curious, this is always BbNone for perft(6)? But we do get checks in perft(6)??? And same for perft(7).
+	stats.d1nochecks++;
+      }
+
+      // Can we deliver discovered check?
+      // Could be way more precise here doing piece by piece (type).
+      if((yourKingAttackerSquares.pieceAttackers[Queen] & myState.bbs[AllPieces]) == BbNone) {
+	stats.d1nodiscoveredchecks++;
+      }
+      
+      // Can we move into check?
+      // Could be way more precise here doing piece by piece (type).
+      // Hrm, this is always non-0 which makes sense - our king is pretty much always surrounded by our own pieces.
+      //   we should at least remove king attack squares? Hrm, not sure; this is too tricky.
+      if((myKingAttackerSquares.pieceAttackers[Queen] & myState.bbs[AllPieces]) == BbNone) {
+	stats.d1noillegalmoves++;
+      }
       
       // Count or evaluate moves.
       // We do full evaluation of moves that (might) generate check, including:
