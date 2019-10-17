@@ -14,6 +14,9 @@ int main(int argc, char* argv[]) {
   Board::printBoard(startingBoard);
   printf("\n");
 
+  Board::printBb(EdgeSquaresBb);
+  printf("\n");
+
   PerftStatsT stats = perft<Black, StartingBoardTraitsT, StartingBoardTraitsT>(startingBoard, 3);
 
   printf("Perft(1) - nodes = %lu, captures = %lu, eps = %lu, castles = %lu, checks = %lu, discoveries = %lu, doublechecks = %lu, checkmates = %lu, invalids = %lu\n", stats.nodes, stats.captures, stats.eps, stats.castles, stats.checks, stats.discoverychecks, stats.doublechecks, stats.checkmates, stats.invalids);

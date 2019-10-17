@@ -70,14 +70,32 @@ namespace Chess {
     }
 
     void printBoard(const BoardT& board) {
-      printf("   ABCDEFGH\n");
-      printf("   --------\n");
+      printf("    A B C D E F G H\n");
+      printf("    ---------------\n");
       for(int rank = 7; rank >= 0; rank--) { 
 	printRank(board, rank);
       }
-      printf("   --------\n");
-      printf("   ABCDEFGH\n");
+      printf("    ---------------\n");
+      printf("    A B C D E F G H\n");
     }
 
+    static void printBbRank(BitBoardT bb, int rank) {
+      printf("%d | ", rank+1);
+      for(int file = 0; file < 8; file++) {
+	SquareT square = (SquareT)((rank << 3) + file);
+	printf("%c ", "-*"[(bb >> square) & 1]);
+      }
+      printf(" | %d\n", rank+1);
+    }
+
+    void printBb(BitBoardT bb) {
+      printf("    A B C D E F G H\n");
+      printf("    ---------------\n");
+      for(int rank = 7; rank >= 0; rank--) { 
+	printBbRank(bb, rank);
+      }
+      printf("    ---------------\n");
+      printf("    A B C D E F G H\n");
+    }
   }
 }
