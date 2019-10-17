@@ -28,6 +28,7 @@ namespace Chess {
       u64 invalids;
       u64 d1nodes;
       u64 d1nochecks;
+      u64 d1nochecksbypiece;
       u64 d1nodiscoveredchecks;
       u64 d1noillegalmoves;
       u64 d1nonastymoves;
@@ -419,7 +420,7 @@ namespace Chess {
       // Is my king in check?
       SquareAttackersT myKingAttackers = genSquareAttackers<OtherColorT<Color>::value, MyBoardTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
       BitBoardT allMyKingAttackers = myKingAttackers.pieceAttackers[AllPieces];
-      if( allMyKingAttackers != 0) {
+      if(allMyKingAttackers != 0) {
 	// I'm in check - do full move evaluation to cope with invalid moves.
 	// We could do special move generation for in-check but it's not worth it for now.
 	perftImplFull<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, moveTo, moveType);
@@ -439,36 +440,61 @@ namespace Chess {
       SquareAttackersT yourKingAttackerSquares = genSquareAttackerSquares<Color, MyBoardTraitsT>(yourState.pieceSquares[SpecificKing], allPiecesBb);
 
 
-      printf("Board - %s to move:\n", (Color == White ? "white" : "black"));
-      printBoard(board);
+      // printf("Board - %s to move:\n", (Color == White ? "white" : "black"));
+      // printBoard(board);
       
-      printf("\n\nAll your king attacker squares:\n");
-      printBb(yourKingAttackerSquares.pieceAttackers[AllPieces]);
+      // printf("\n\nAll your king attacker squares:\n");
+      // printBb(yourKingAttackerSquares.pieceAttackers[AllPieces]);
 
-      printf("\n\nAll my piece attack squares:\n");
-      printBb(myAttacks.allAttacks);
+      // printf("\n\nAll my piece attack squares:\n");
+      // printBb(myAttacks.allAttacks);
 
-      printf("\n\nOverlap:\n");
-      printBb((yourKingAttackerSquares.pieceAttackers[AllPieces] & myAttacks.allAttacks));
+      // printf("\n\nOverlap:\n");
+      // printBb((yourKingAttackerSquares.pieceAttackers[AllPieces] & myAttacks.allAttacks));
       
-
-      printf("\n-----------------------------------------------\n");
+      // printf("\n-----------------------------------------------\n");
 	
       // Can we deliver check at all?
-      // Could be way more precise here doing piece by piece (type).
+      BitBoardT pawnChecksBb = yourKingAttackerSquares.pieceAttackers[Pawn] & (myAttacks.pawnsPushOne | myAttacks.pawnsPushTwo | myAttacks.pawnsLeftAttacks | myAttacks.pawnsRightAttacks) & ~myState.bbs[AllPieces];
+      BitBoardT knightChecksBb = yourKingAttackerSquares.pieceAttackers[Knight] & (myAttacks.pieceAttacks[QueenKnight] | myAttacks.pieceAttacks[KingKnight]) & ~myState.bbs[AllPieces];
+      BitBoardT bishopChecksBb = yourKingAttackerSquares.pieceAttackers[Bishop] & (myAttacks.pieceAttacks[BlackBishop] | myAttacks.pieceAttacks[WhiteBishop]) & ~myState.bbs[AllPieces];
+      BitBoardT rookChecksBb = yourKingAttackerSquares.pieceAttackers[Rook] & (myAttacks.pieceAttacks[QueenRook] | myAttacks.pieceAttacks[KingRook]) & ~myState.bbs[AllPieces];
+      BitBoardT queenChecksBb = yourKingAttackerSquares.pieceAttackers[Queen] & (myAttacks.pieceAttacks[SpecificQueen]) & ~myState.bbs[AllPieces];
+      bool canDeliverCheck = true;
+      // Cannot deliver check with the king
+      if((pawnChecksBb | knightChecksBb | bishopChecksBb | rookChecksBb | queenChecksBb) == BbNone) {
+	stats.d1nochecksbypiece++;
+	canDeliverCheck = false;
+      }
+
       // Also should remove my pieces from myAttacks.
-      if((yourKingAttackerSquares.pieceAttackers[AllPieces] & myAttacks.allAttacks) == BbNone) {
+      if((yourKingAttackerSquares.pieceAttackers[AllPieces] & myAttacks.allAttacks & ~myState.bbs[AllPieces]) == BbNone) {
 	// Hrm curious, this is always BbNone for perft(6)? But we do get checks in perft(6)??? And same for perft(7).
 	stats.d1nochecks++;
       }
 
       // Can we deliver discovered check?
+      // In order to deliver discovered check, we require (at least):
+      //   1. One of our pieces on a slider attack path to your king
+      //   2. One of our sliders on the same slider attack path.
+      // More is required in practice but hopefully this will suffice to limit the incidence.
+      // BitBoardT diagonalDiscoveryPiecesBb = yourKingAttackerSquares.pieceAttackers[Bishop] & myState.bbs[AllPieces]; // my pieces on diagonal slider attack to your king
       // Could be way more precise here doing piece by piece (type).
-      if((yourKingAttackerSquares.pieceAttackers[Queen] & myState.bbs[AllPieces]) == BbNone) {
+      bool hasPossibleDiscoveries = true;
+      BitBoardT possibleDiagPinnersBb = BishopRays[yourState.pieceSquares[SpecificKing]] & (myState.bbs[Bishop] | myState.bbs[Queen]);
+      BitBoardT possibleDiagPinnedPiecessBb = possibleDiagPinnersBb ? (yourKingAttackerSquares.pieceAttackers[Bishop] & myState.bbs[AllPieces]) : BbNone;
+      BitBoardT possibleOrthoPinnersBb = RookRays[yourState.pieceSquares[SpecificKing]] & (myState.bbs[Rook] | myState.bbs[Queen]);
+      BitBoardT possibleOrthoPinnedPiecessBb = possibleOrthoPinnersBb ? (yourKingAttackerSquares.pieceAttackers[Rook] & myState.bbs[AllPieces]) : BbNone;
+      if((possibleDiagPinnedPiecessBb | possibleOrthoPinnedPiecessBb) == BbNone) {
+	hasPossibleDiscoveries = false;
 	stats.d1nodiscoveredchecks++;
       }
+
+      if(!canDeliverCheck && !hasPossibleDiscoveries) {
+	stats.d1nonastymoves++;
+      }
       
-      // Can we move into check?
+      // Can we move into through discovery?
       // Could be way more precise here doing piece by piece (type).
       // Hrm, this is always non-0 which makes sense - our king is pretty much always surrounded by our own pieces.
       //   we should at least remove king attack squares? Hrm, not sure; this is too tricky.
@@ -599,8 +625,12 @@ namespace Chess {
 
       perftImplSpecificPieceMoves<Color, SpecificQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[SpecificQueen], myAttacks.pieceAttacks[SpecificQueen], allYourPiecesBb, allPiecesBb);
 
-      // King always present
-      perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[SpecificKing], myAttacks.pieceAttacks[SpecificKing], allYourPiecesBb, allPiecesBb);
+      // King always present; king cannot deliver check and king can always move to non-attacked squares so it's an easy count
+      PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
+      BitBoardT kingMoves = myAttacks.pieceAttacks[SpecificKing] & ~allMyPiecesBb & ~yourAttacks.allAttacks;
+      stats.nodes += Bits::count(kingMoves);
+      stats.captures += Bits::count(kingMoves & allYourPiecesBb);
+      //perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[SpecificKing], myAttacks.pieceAttacks[SpecificKing], allYourPiecesBb, allPiecesBb);
 
       // TODO other promo pieces
       if(MyBoardTraitsT::hasPromos) {
