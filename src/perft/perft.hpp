@@ -401,6 +401,12 @@ namespace Chess {
       }
     }
 
+    inline void countMoves(PerftStatsT& stats, const BitBoardT attacksBb, const BitBoardT allMyPiecesBb, const BitBoardT allYourPiecesBb) {
+	BitBoardT movesBb = attacksBb & ~allMyPiecesBb;
+	stats.nodes += Bits::count(movesBb);
+	stats.captures += Bits::count(movesBb & allYourPiecesBb);
+    }
+    
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImpl1(PerftStatsT& stats, const BoardT& board, const SquareT moveTo, const MoveTypeT moveType) {
       const ColorStateT& myState = board.pieces[Color];
@@ -513,10 +519,19 @@ namespace Chess {
       //perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[SpecificKing], myAttacks.pieceAttacks[SpecificKing], allYourPiecesBb, allPiecesBb);
 
       // Fast path - if there are no checks and no discoveries on either king then we can simply count all moves
-      if((allPiecesChecksBb | myBlockingPiecesBb | myPinnedPiecesBb) == BbNone) {
+      if(false && (allPiecesChecksBb | myBlockingPiecesBb | myPinnedPiecesBb) == BbNone) {
 
-	//return;
-      }
+	// Pawns
+	stats.nodes += Bits::count(myAttacks.pawnsPushOne | myAttacks.pawnsPushTwo); // these are disjoint so can be counted together
+	stats.captures += Bits::count(myAttacks.pawnsLeftAttacks & allYourPiecesBb);
+	stats.captures += Bits::count(myAttacks.pawnsRightAttacks & allYourPiecesBb);
+
+	// Knights
+
+	// countMoves(stats, myAttacks.pieceAttacks[QueenKnight], allMyPiecesBb, allYourPiecesBb);
+	// countMoves(stats, myAttacks.pieceAttacks[KingKnight], allMyPiecesBb, allYourPiecesBb);
+
+      } else {
       
       // Count or evaluate moves.
       // We do full evaluation of moves that (might) generate check, including:
@@ -579,14 +594,9 @@ namespace Chess {
       stats.nodes += pawnsCaptureRightCount;
       stats.captures += pawnsCaptureRightCount;
       
-      // Pawn en-passant captures
-      // TODO - could optimise this further but it's a marginal case.
-      if(yourState.epSquare) {
-	BitBoardT epSquareBb = bbForSquare(yourState.epSquare);
-	
-	perftImplPawnEpCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myAttacks.pawnsLeftAttacks & epSquareBb);
-	perftImplPawnEpCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myAttacks.pawnsRightAttacks & epSquareBb);
       }
+      // Repeated!
+      BitBoardT discoverySquares = myKingAttackerSquares.pieceAttackers[Queen] | yourKingAttackerSquares.pieceAttackers[Queen];
 
       // Piece moves
 
@@ -646,6 +656,15 @@ namespace Chess {
 	if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
 	  perftImplSpecificPieceMoves<Color, PromoQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[PromoQueen], myAttacks.pieceAttacks[PromoQueen], allYourPiecesBb, allPiecesBb);
 	}
+      }
+
+      // Pawn en-passant captures
+      // TODO - could optimise this further but it's a marginal case.
+      if(yourState.epSquare) {
+	BitBoardT epSquareBb = bbForSquare(yourState.epSquare);
+	
+	perftImplPawnEpCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myAttacks.pawnsLeftAttacks & epSquareBb);
+	perftImplPawnEpCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myAttacks.pawnsRightAttacks & epSquareBb);
       }
 
       // Castling
