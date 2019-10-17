@@ -438,10 +438,26 @@ namespace Chess {
       SquareAttackersT myKingAttackerSquares = genSquareAttackerSquares<OtherColorT<Color>::value, YourBoardTraitsT>(myState.pieceSquares[SpecificKing], allPiecesBb);
       SquareAttackersT yourKingAttackerSquares = genSquareAttackerSquares<Color, MyBoardTraitsT>(yourState.pieceSquares[SpecificKing], allPiecesBb);
 
+
+      printf("Board - %s to move:\n", (Color == White ? "white" : "black"));
+      printBoard(board);
+      
+      printf("\n\nAll your king attacker squares:\n");
+      printBb(yourKingAttackerSquares.pieceAttackers[AllPieces]);
+
+      printf("\n\nAll my piece attack squares:\n");
+      printBb(myAttacks.allAttacks);
+
+      printf("\n\nOverlap:\n");
+      printBb((yourKingAttackerSquares.pieceAttackers[AllPieces] & myAttacks.allAttacks));
+      
+
+      printf("\n-----------------------------------------------\n");
+	
       // Can we deliver check at all?
       // Could be way more precise here doing piece by piece (type).
       // Also should remove my pieces from myAttacks.
-      if((yourKingAttackerSquares.pieceAttackers[AllPieces] & myAttacks.pieceAttacks[AllPieces]) == BbNone) {
+      if((yourKingAttackerSquares.pieceAttackers[AllPieces] & myAttacks.allAttacks) == BbNone) {
 	// Hrm curious, this is always BbNone for perft(6)? But we do get checks in perft(6)??? And same for perft(7).
 	stats.d1nochecks++;
       }
