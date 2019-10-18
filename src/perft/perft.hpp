@@ -28,6 +28,11 @@ namespace Chess {
       u64 invalids;
       u64 d1checks;
       u64 d1nodes;
+      u64 d1kinghasmoves;
+      u64 d1kinghasmoves2;
+      u64 d1kinghas1move;
+      u64 d1kingfast;
+      u64 d1kingslow;
       u64 d1nochecks;
       u64 d1nodiscoveredchecks;
       u64 d1noillegalmoves;
@@ -471,47 +476,27 @@ namespace Chess {
 
       BitBoardT allPiecesChecksBb = pawnChecksBb | knightChecksBb | bishopChecksBb | rookChecksBb | queenChecksBb;
       
-      // bool canDeliverCheck = true;
-      // if((pawnChecksBb | knightChecksBb | bishopChecksBb | rookChecksBb | queenChecksBb) == BbNone) {
-      // 	stats.d1nochecks++;
-      // 	canDeliverCheck = false;
-      // }
-
       // Can we deliver discovered check?
       // In order to deliver discovered check, we require (at least):
       //   1. One of our pieces on a slider attack path to your king
       //   2. One of our sliders on the same slider attack path.
       // More is required in practice but hopefully this will suffice to limit the incidence.
-      // bool hasPossibleDiscoveries = true;
       BitBoardT myDiagPinnersBb = BishopRays[yourState.pieceSquares[SpecificKing]] & (myState.bbs[Bishop] | myState.bbs[Queen]);
       BitBoardT myDiagBlockingPiecessBb = myDiagPinnersBb ? (yourKingAttackerSquares.pieceAttackers[Bishop] & myState.bbs[AllPieces]) : BbNone;
       BitBoardT myOrthoPinnersBb = RookRays[yourState.pieceSquares[SpecificKing]] & (myState.bbs[Rook] | myState.bbs[Queen]);
       BitBoardT myOrthoBlockingPiecessBb = myOrthoPinnersBb ? (yourKingAttackerSquares.pieceAttackers[Rook] & myState.bbs[AllPieces]) : BbNone;
 
       BitBoardT myBlockingPiecesBb = myDiagBlockingPiecessBb | myOrthoBlockingPiecessBb;
-      // if((myDiagBlockingPiecessBb | myOrthoBlockingPiecessBb) == BbNone) {
-      // 	hasPossibleDiscoveries = false;
-      // 	stats.d1nodiscoveredchecks++;
-      // }
 
       // Can we move into check through discovery?
-      // bool hasPossibleInvalids = true;
       BitBoardT yourDiagPinnersBb = BishopRays[myState.pieceSquares[SpecificKing]] & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
       BitBoardT myDiagPinnedPiecessBb = yourDiagPinnersBb ? (myKingAttackerSquares.pieceAttackers[Bishop] & myState.bbs[AllPieces]) : BbNone;
       BitBoardT yourOrthoPinnersBb = RookRays[myState.pieceSquares[SpecificKing]] & (yourState.bbs[Rook] | yourState.bbs[Queen]);
       BitBoardT myOrthoPinnedPiecessBb = yourOrthoPinnersBb ? (myKingAttackerSquares.pieceAttackers[Rook] & myState.bbs[AllPieces]) : BbNone;
 
       BitBoardT myPinnedPiecesBb = myDiagPinnedPiecessBb | myOrthoPinnedPiecessBb;
-      // if((myDiagPinnedPiecessBb | myOrthoPinnedPiecessBb) == BbNone) {
-      // 	hasPossibleInvalids = false;
-      // 	stats.d1noillegalmoves++;
-      // }
-      
-      // if(!canDeliverCheck && !hasPossibleDiscoveries && !hasPossibleInvalids) {
-      // 	stats.d1nonastymoves++;
-      // }
 
-      // Fast path - if there are no checks and no discoveries on either king then we can simply count all moves
+      // Fast path - if there are no possible checks and no possible discoveries on either king then we can simply count all moves
       if((allPiecesChecksBb | myBlockingPiecesBb | myPinnedPiecesBb) == BbNone) {
 
 	// Pawns
@@ -550,7 +535,7 @@ namespace Chess {
       //   - discovered check of our king is an invalid move which we'll check at level 0.
       //   - discovered check of your king is a check which we need to get further stats on.
       // TODO - we could filter this further to squares that are attacked by sliders (of the right type).
-      BitBoardT discoverySquares = myKingAttackerSquares.pieceAttackers[Queen] | yourKingAttackerSquares.pieceAttackers[Queen];
+	BitBoardT discoverySquares = myBlockingPiecesBb | myPinnedPiecesBb; //myKingAttackerSquares.pieceAttackers[Queen] | yourKingAttackerSquares.pieceAttackers[Queen];
       //BitBoardT discoverySquares = BbAll;
 
       // Pawn pushes
@@ -667,11 +652,67 @@ namespace Chess {
       }
 
       // King always present; king cannot deliver check and king can always move to non-attacked squares so it's an easy count
-      PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
-      BitBoardT kingMoves = myAttacks.pieceAttacks[SpecificKing] & ~allMyPiecesBb & ~yourAttacks.allAttacks;
-      stats.nodes += Bits::count(kingMoves);
-      stats.captures += Bits::count(kingMoves & allYourPiecesBb);
-      //perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myState.pieceSquares[SpecificKing], myAttacks.pieceAttacks[SpecificKing], allYourPiecesBb, allPiecesBb);
+      // Need your attacks for king moves and for castling so handle them together (and try to avoid the expensive move generation).
+      BitBoardT kingMovesBb = myAttacks.pieceAttacks[SpecificKing] & ~allMyPiecesBb;
+
+      // Special handling for a single king move -
+      //   if the king has only one move and is not in check now then there cannot be any slider attacks so we just need to check pawns, knights and king.
+      // Actually that's not true - there can be slider checks in a direction other than the moving direction, doh!
+      // Mmm, this is miscounting; not sure why :( Think more.
+      if(false) {
+      if(kingMovesBb != BbNone) {
+	stats.d1kinghasmoves++;
+	BitBoardT yourPawnAndKnightAttacksBb = genPawnKnightKingAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState);
+	kingMovesBb &= ~yourPawnAndKnightAttacksBb;
+
+	if(kingMovesBb != BbNone) {
+	  stats.d1kinghasmoves2++;
+	
+	  int nKingMoves = Bits::count(kingMovesBb);
+	  if(nKingMoves == 1) {
+	    stats.d1kinghas1move++;
+	  
+	    // Check whether there are any slider attacks.
+	    SquareT kingTo = Bits::lsb(kingMovesBb);
+
+	    BitBoardT possibleDiagAttacksFromBb = BishopRays[kingTo];
+	    BitBoardT yourDiagSlidersBb = yourState.bbs[Bishop] | yourState.bbs[Queen];
+	    BitBoardT possibleOrthoAttacksFromBb = RookRays[kingTo];
+	    BitBoardT yourOrthoSlidersBb = yourState.bbs[Rook] | yourState.bbs[Queen];
+
+	    BitBoardT possibleSliderAttackersBb = (possibleDiagAttacksFromBb & yourDiagSlidersBb) | (possibleOrthoAttacksFromBb & yourOrthoSlidersBb);
+
+	    if(possibleSliderAttackersBb == BbNone) {
+	      stats.d1kingfast++;
+	      stats.nodes += Bits::count(kingMovesBb);
+	      stats.captures += Bits::count(kingMovesBb & allYourPiecesBb);
+	      kingMovesBb = BbNone;
+	    }
+	    
+	  }
+	}
+      }}
+      
+      // Castling and slow king path
+      CastlingRightsT castlingRights = castlingRightsWithSpace<Color>(myState.castlingRights, allPiecesBb);
+      if(kingMovesBb != BbNone || castlingRights != NoCastlingRights) {
+	stats.d1kingslow++;
+	PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
+	
+	BitBoardT legalKingMovesBb = kingMovesBb & ~yourAttacks.allAttacks;
+	stats.nodes += Bits::count(legalKingMovesBb);
+	stats.captures += Bits::count(legalKingMovesBb & allYourPiecesBb);
+
+	if(castlingRights) {
+	  if((castlingRights & CanCastleQueenside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleQueenside>::CastlingThruCheckBbMask) == BbNone) {
+	    perftImplCastlingMove<Color, CanCastleQueenside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1);
+	  }
+	  
+	  if((castlingRights & CanCastleKingside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleKingside>::CastlingThruCheckBbMask) == BbNone) {
+	    perftImplCastlingMove<Color, CanCastleKingside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1);
+	  }	
+	}
+      }
 
       // Pawn en-passant captures
       // TODO - could optimise this further but it's a marginal case.
@@ -682,19 +723,6 @@ namespace Chess {
 	perftImplPawnEpCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1, myAttacks.pawnsRightAttacks & epSquareBb);
       }
 
-      // Castling
-      CastlingRightsT castlingRights2 = castlingRightsWithSpace<Color>(myState.castlingRights, allPiecesBb);
-      if(castlingRights2) {
-	PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
-
-	if((castlingRights2 & CanCastleQueenside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleQueenside>::CastlingThruCheckBbMask) == BbNone) {
-	  perftImplCastlingMove<Color, CanCastleQueenside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1);
-	}
-
-	if((castlingRights2 & CanCastleKingside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleKingside>::CastlingThruCheckBbMask) == BbNone) {
-	  perftImplCastlingMove<Color, CanCastleKingside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, 1);
-	}	
-      }
     }
       
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>

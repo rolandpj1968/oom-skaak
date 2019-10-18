@@ -329,6 +329,25 @@ namespace Chess {
       BitBoardT allAttacks;
     };
 
+    // Generate squares attacked by pawns and knights
+    // Used for special case in king move handling
+    template <ColorT Color, typename BoardTraitsT>
+    inline BitBoardT genPawnKnightKingAttacks(const ColorStateT& colorState) {
+      BitBoardT pawns = colorState.bbs[Pawn];
+      BitBoardT pawnAttacksBb = pawnsLeftAttacks<Color>(pawns) | pawnsRightAttacks<Color>(pawns);
+
+      SquareT queenKnightSquare = colorState.pieceSquares[QueenKnight];
+      BitBoardT queenKnightAttacksBb = KnightAttacks[queenKnightSquare];
+
+      SquareT kingKnightSquare = colorState.pieceSquares[KingKnight];
+      BitBoardT kingKnightAttacksBb = KnightAttacks[kingKnightSquare];
+
+      SquareT kingSquare = colorState.pieceSquares[SpecificKing];
+      BitBoardT kingAttacksBb = KingAttacks[kingSquare];
+      
+      return pawnAttacksBb | queenKnightAttacksBb | kingKnightAttacksBb | kingAttacksBb;
+    }
+
     // Generate attacks/defenses for all pieces.
     // Note that move gen for a piece on InvalidSquare MUST always generate BbNone (and not SIGSEGV :P).
     // TODO - missing support for unusual promos.
