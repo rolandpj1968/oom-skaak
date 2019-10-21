@@ -400,7 +400,7 @@ namespace Chess {
       BitBoardT myOrthogPinnedPiecesBb = myCandidateOrthogPinnedPiecesBb & pinnerOrthogonalsBb;
 
       if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) != BbNone) {
-	if(myDiagPinnedPiecesBb) {
+	if(false && myDiagPinnedPiecesBb) {
 	  static bool done = false;
 	  if(!done) {
 	    printf("\n==================== Color %s ========================= Diag Pins! ===================================\n\n", (Color == White ? "White" : "Black"));
@@ -420,7 +420,7 @@ namespace Chess {
 	  }
 	  stats.withyourpins++;
 	}
-	if(myOrthogPinnedPiecesBb) {
+	if(false && myOrthogPinnedPiecesBb) {
 	  static bool done = false;
 	  if(!done) {
 	    printf("\n============================================== Orthog Pins! ===================================\n\n");
@@ -460,10 +460,13 @@ namespace Chess {
       // Evaluate moves
 
       // Pawn pushes - remove pawns with diagonal pins, and pawns with orthogonal pins along the rank of the king
-      BitBoardT myDiagPinsPushOneBb = pawnsPushOne<Color>(myDiagPinnedPiecesBb, BbNone);
-      BitBoardT nonPinnedPawnsPushOneBb = myAttacks.pawnsPushOne & ~myDiagPinsPushOneBb;
+      BitBoardT myDiagAndKingRankPinsBb = myDiagPinnedPiecesBb | (myOrthogPinnedPiecesBb & RankBbs[rankOf(myKingSq)]);
+      BitBoardT myDiagAndKingRankPinsPushOneBb = pawnsPushOne<Color>(myDiagAndKingRankPinsBb, BbNone);
+      BitBoardT nonPinnedPawnsPushOneBb = myAttacks.pawnsPushOne & ~myDiagAndKingRankPinsPushOneBb;
       perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, nonPinnedPawnsPushOneBb);
-      perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsPushTwo);
+      BitBoardT myDiagAndKingRankPinsPushTwoBb = pawnsPushOne<Color>(myDiagAndKingRankPinsPushOneBb, BbNone);
+      BitBoardT nonPinnedPawnsPushTwoBb = myAttacks.pawnsPushTwo & ~myDiagAndKingRankPinsPushTwoBb;
+      perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, nonPinnedPawnsPushTwoBb);
       
       // Pawn captures
       perftImplPawnsCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & allYourPiecesBb);
