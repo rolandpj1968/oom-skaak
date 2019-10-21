@@ -26,8 +26,11 @@ namespace Chess {
       u64 doublechecks;
       u64 checkmates;
       u64 invalids;
-      u64 d1checks;
+      u64 d0nodes;
       u64 d1nodes;
+      u64 d1checks;
+      u64 d1fast;
+      u64 d1slow;
       u64 d1kinghasmoves;
       u64 d1kinghasmoves2;
       u64 d1kinghas1move;
@@ -428,6 +431,8 @@ namespace Chess {
 	return;
       }
 	
+      stats.d1nodes++;
+      
       // Is my king in check?
       SquareAttackersT myKingAttackers = genSquareAttackers<OtherColorT<Color>::value, MyBoardTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
       BitBoardT allMyKingAttackers = myKingAttackers.pieceAttackers[AllPieces];
@@ -442,8 +447,6 @@ namespace Chess {
 
       // This is a valid node and I'm not in check - just count moves (except for tricky ones)
 
-      stats.d1nodes++;
-      
       // Generate moves
       PieceAttacksT myAttacks = genPieceAttacks<Color, MyBoardTraitsT>(myState, allPiecesBb);
 
@@ -498,7 +501,8 @@ namespace Chess {
 
       // Fast path - if there are no possible checks and no possible discoveries on either king then we can simply count all moves
       if((allPiecesChecksBb | myBlockingPiecesBb | myPinnedPiecesBb) == BbNone) {
-
+	stats.d1fast++;
+	
 	// Pawns
 	stats.nodes += Bits::count(myAttacks.pawnsPushOne | myAttacks.pawnsPushTwo); // these are disjoint so can be counted together
 	int pawnAttacksCount = Bits::count(myAttacks.pawnsLeftAttacks & allYourPiecesBb) + Bits::count(myAttacks.pawnsRightAttacks & allYourPiecesBb);
@@ -525,6 +529,7 @@ namespace Chess {
 	countMoves(stats, myAttacks.pieceAttacks[SpecificQueen], allMyPiecesBb, allYourPiecesBb);
 	
       } else {
+	stats.d1slow++;
       
       // Count or evaluate moves.
       // We do full evaluation of moves that (might) generate check, including:
@@ -659,7 +664,7 @@ namespace Chess {
       //   if the king has only one move and is not in check now then there cannot be any slider attacks so we just need to check pawns, knights and king.
       // Actually that's not true - there can be slider checks in a direction other than the moving direction, doh!
       // Mmm, this is miscounting; not sure why :( Think more.
-      if(false) {
+      if(true) {
       if(kingMovesBb != BbNone) {
 	stats.d1kinghasmoves++;
 	BitBoardT yourPawnAndKnightAttacksBb = genPawnKnightKingAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState);
@@ -727,6 +732,8 @@ namespace Chess {
       
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImpl0(PerftStatsT& stats, const BoardT& board, const SquareT moveTo, const MoveTypeT moveType) {
+      stats.d0nodes++;
+      
       const ColorStateT& myState = board.pieces[Color];
       const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
       const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
