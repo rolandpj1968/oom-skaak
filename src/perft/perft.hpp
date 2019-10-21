@@ -418,9 +418,9 @@ namespace Chess {
 
       // Evaluate moves
 
-      // Pawn pushes - remove pawns with diagonal pins
-      perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, (myAttacks.pawnsPushOne & ~myDiagPinnedPiecesBb));
-      perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, (myAttacks.pawnsPushTwo & ~myDiagPinnedPiecesBb));
+      // Pawn pushes - remove pawns with diagonal pins, and pawns with orthogonal pins along the rank of the king
+      perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsPushOne);
+      perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsPushTwo);
       
       // Pawn captures
       perftImplPawnsCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & allYourPiecesBb);

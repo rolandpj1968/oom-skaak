@@ -332,7 +332,7 @@ namespace Chess {
     // Note that move gen for a piece on InvalidSquare MUST always generate BbNone (and not SIGSEGV :P).
     // TODO - missing support for unusual promos.
     template <ColorT Color, typename BoardTraitsT>
-    inline PieceAttacksT genPieceAttacks(const ColorStateT& colorState, const BitBoardT allPieces) {
+    inline PieceAttacksT genPieceAttacks(const ColorStateT& colorState, const BitBoardT allPiecesBb) {
       PieceAttacksT attacks = {0};
 
       // Pawns
@@ -342,8 +342,8 @@ namespace Chess {
       
       attacks.allAttacks |= (attacks.pawnsLeftAttacks | attacks.pawnsRightAttacks);
       
-      attacks.pawnsPushOne = pawnsPushOne<Color>(pawns, allPieces);
-      attacks.pawnsPushTwo = pawnsPushTwo<Color>(attacks.pawnsPushOne, allPieces);
+      attacks.pawnsPushOne = pawnsPushOne<Color>(pawns, allPiecesBb);
+      attacks.pawnsPushTwo = pawnsPushTwo<Color>(attacks.pawnsPushOne, allPiecesBb);
 
       // Knights
       
@@ -363,13 +363,13 @@ namespace Chess {
 
       SquareT blackBishopSquare = colorState.pieceSquares[BlackBishop];
       
-      attacks.pieceAttacks[BlackBishop] = bishopAttacks(blackBishopSquare, allPieces);
+      attacks.pieceAttacks[BlackBishop] = bishopAttacks(blackBishopSquare, allPiecesBb);
       
       attacks.allAttacks |= attacks.pieceAttacks[BlackBishop];
       
       SquareT whiteBishopSquare = colorState.pieceSquares[WhiteBishop];
       
-      attacks.pieceAttacks[WhiteBishop] = bishopAttacks(whiteBishopSquare, allPieces);
+      attacks.pieceAttacks[WhiteBishop] = bishopAttacks(whiteBishopSquare, allPiecesBb);
       
       attacks.allAttacks |= attacks.pieceAttacks[WhiteBishop];
       
@@ -377,13 +377,13 @@ namespace Chess {
 
       SquareT queenRookSquare = colorState.pieceSquares[QueenRook];
       
-      attacks.pieceAttacks[QueenRook] = rookAttacks(queenRookSquare, allPieces);
+      attacks.pieceAttacks[QueenRook] = rookAttacks(queenRookSquare, allPiecesBb);
       
       attacks.allAttacks |= attacks.pieceAttacks[QueenRook];
       
       SquareT kingRookSquare = colorState.pieceSquares[KingRook];
       
-      attacks.pieceAttacks[KingRook] = rookAttacks(kingRookSquare, allPieces);
+      attacks.pieceAttacks[KingRook] = rookAttacks(kingRookSquare, allPiecesBb);
       
       attacks.allAttacks |= attacks.pieceAttacks[KingRook];
       
@@ -391,7 +391,7 @@ namespace Chess {
 
       SquareT queenSquare = colorState.pieceSquares[SpecificQueen];
       
-      attacks.pieceAttacks[SpecificQueen] = rookAttacks(queenSquare, allPieces) | bishopAttacks(queenSquare, allPieces);
+      attacks.pieceAttacks[SpecificQueen] = rookAttacks(queenSquare, allPiecesBb) | bishopAttacks(queenSquare, allPiecesBb);
       
       attacks.allAttacks |= attacks.pieceAttacks[SpecificQueen];
 
@@ -407,7 +407,7 @@ namespace Chess {
 	if(true/*piecesPresent & PromoQueenPresentFlag*/) {
 	  SquareT promoQueenSquare = colorState.pieceSquares[PromoQueen];
 	  
-	  attacks.pieceAttacks[PromoQueen] = rookAttacks(promoQueenSquare, allPieces) | bishopAttacks(promoQueenSquare, allPieces);
+	  attacks.pieceAttacks[PromoQueen] = rookAttacks(promoQueenSquare, allPiecesBb) | bishopAttacks(promoQueenSquare, allPiecesBb);
 	  
 	  attacks.allAttacks |= attacks.pieceAttacks[PromoQueen];
 	}
@@ -424,7 +424,7 @@ namespace Chess {
     // Generate attackers/defenders of a particular square.
     // Useful for check detection.
     template <ColorT Color, typename BoardTraitsT>
-    inline SquareAttackersT genSquareAttackers(const SquareT square, const ColorStateT& colorState, const BitBoardT allPieces) {
+    inline SquareAttackersT genSquareAttackers(const SquareT square, const ColorStateT& colorState, const BitBoardT allPiecesBb) {
       SquareAttackersT attackers = {0};
 
       // Pawns
@@ -441,7 +441,7 @@ namespace Chess {
 
       // Diagonal sliders
       
-      BitBoardT diagonalAttackerSquaresBb = bishopAttacks(square, allPieces);
+      BitBoardT diagonalAttackerSquaresBb = bishopAttacks(square, allPiecesBb);
 
       BitBoardT bishopAttackers = diagonalAttackerSquaresBb & colorState.bbs[Bishop];
       attackers.pieceAttackers[Bishop] = bishopAttackers;
@@ -453,7 +453,7 @@ namespace Chess {
 
       // Orthogonal sliders
 
-      BitBoardT orthogonalAttackerSquaresBb = rookAttacks(square, allPieces);
+      BitBoardT orthogonalAttackerSquaresBb = rookAttacks(square, allPiecesBb);
 
       BitBoardT rookAttackers = orthogonalAttackerSquaresBb & colorState.bbs[Rook];
       attackers.pieceAttackers[Rook] = rookAttackers;
