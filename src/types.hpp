@@ -171,6 +171,47 @@ namespace Chess {
     CanCastleQueenside = 1,
     CanCastleKingside = 2,
   };
+
+  enum MoveTypeT {
+    PushMove = 0,
+    CaptureMove,
+    EpCaptureMove,
+    CastlingMove
+  };
+
+  struct MoveInfoT {
+    MoveTypeT moveType;
+    // For castling this is the king 'from' square.
+    SquareT from;
+    // For castling this is the king 'to' square;
+    SquareT to;
+    // SpecificNoPiece if not a capture.
+    SpecificPieceT capturedSpecificPiece;
+    // Generally same as 'to' for a capture except for en-passent.
+    // InvalidSquare is this is not a capture.
+    SquareT captureSq;
+    // True iff the moved piece delivers check from the 'to' square.
+    bool isDirectCheck;
+    // The square containing the piece delivering discovered check.
+    // InvalidSquare if not in check.
+    // For castling giving check this is the rook 'to' square.
+    SquareT discoveredCheckerSq;
+
+    // Generic ctor
+    MoveInfoT(MoveTypeT moveType, SquareT from, SquareT to, SpecificPieceT capturedSpecificPiece, SquareT captureSq, bool isDirectCheck, SquareT discoveredCheckerSq):
+      moveType(moveType), from(from), to(to), capturedSpecificPiece(capturedSpecificPiece), captureSq(captureSq), isDirectCheck(isDirectCheck), discoveredCheckerSq(discoveredCheckerSq)
+    {}
+
+    // Push move ctor
+    MoveInfoT(SquareT from, SquareT to, bool isDirectCheck = false, SquareT discoveredCheckSq = InvalidSquare) :
+      MoveInfoT(PushMove, from, to, SpecificNoPiece, InvalidSquare, isDirectCheck, discoveredCheckSq)
+    {}
+
+    // Capture move ctor
+    MoveInfoT(SquareT from, SquareT to, SpecificPieceT capturedSpecificPiece, bool isDirectCheck = false, SquareT discoveredCheckSq = InvalidSquare) :
+      MoveInfoT(CaptureMove, from, to, capturedSpecificPiece, to, isDirectCheck, discoveredCheckSq)
+    {}
+  };
 }
 
 #endif //ndef TYPES_HPP

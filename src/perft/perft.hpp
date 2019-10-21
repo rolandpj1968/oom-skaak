@@ -27,15 +27,7 @@ namespace Chess {
       u64 invalids;
     };
 
-    enum MoveTypeT {
-      PushMove = 0,
-      CaptureMove,
-      EpCaptureMove,
-      CastlingMove
-    };
-
 #include <boost/preprocessor/iteration/local.hpp>
-
     const u8 QueensideCastleSpaceBits = 0x07;
     const u8 KingsideCastleSpaceBits = 0x30;
 
@@ -339,7 +331,7 @@ namespace Chess {
       // Is my king in check?
       SquareAttackersT myKingAttackers = genSquareAttackers<OtherColorT<Color>::value, MyBoardTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
       BitBoardT allMyKingAttackers = myKingAttackers.pieceAttackers[AllPieces];
-      if( allMyKingAttackers != 0) {
+      if(allMyKingAttackers != 0) {
 	stats.checks++;
 
 	// If the moved piece is not attacking the king then this is a discovered check
