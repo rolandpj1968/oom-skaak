@@ -25,6 +25,8 @@ namespace Chess {
       u64 doublechecks;
       u64 checkmates;
       u64 invalids;
+      u64 invalidsnon0;
+      u64 withyourpins;
     };
 
 #include <boost/preprocessor/iteration/local.hpp>
@@ -361,13 +363,50 @@ namespace Chess {
       const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 
+      // Find my pinned pieces - used to filter out invalid moves
+      SquareT myKingSq = myState.pieceSquares[King];
+
+      // Diagonally pinned pieces
+      BitBoardT myKingDiagAttackersBb = bishopAttacks(myKingSq, allPiecesBb);
+      // Potentially pinned pieces are my pieces that are on an open diagonal from my king
+      BitBoardT myCandidateDiagPinnedPiecesBb = myKingDiagAttackersBb & allMyPiecesBb;
+      // Your pinning pieces are those that attack my king once my candidate pinned pieces are removed from the board
+      BitBoardT myKingDiagXrayAttackersBb = bishopAttacks(myKingSq, (allPiecesBb & ~myCandidateDiagPinnedPiecesBb));
+      BitBoardT yourDiagPinnersBb = myKingDiagXrayAttackersBb & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
+      // Then my pinned pieces are those candidate pinned pieces that lie on one of your pinners' diagonals
+      BitBoardT pinnerDiagonalsBb = BbNone;
+      for(BitBoardT bb = yourDiagPinnersBb; bb;) {
+	SquareT pinnerSq = Bits::popLsb(bb);
+	pinnerDiagonalsBb |= BishopRays[pinnerSq];
+      }
+      BitBoardT myDiagPinnedPiecesBb = myCandidateDiagPinnedPiecesBb & pinnerDiagonalsBb;
+
+      // Orthogonally pinned pieces
+      BitBoardT myKingOrthogAttackersBb = rookAttacks(myKingSq, allPiecesBb);
+      // Potentially pinned pieces are my pieces that are on an open orthogonal from my king
+      BitBoardT myCandidateOrthogPinnedPiecesBb = myKingOrthogAttackersBb & allMyPiecesBb;
+      // Your pinning pieces are those that attack my king once my candidate pinned pieces are removed from the board
+      BitBoardT myKingOrthogXrayAttackersBb = rookAttacks(myKingSq, (allPiecesBb & ~myCandidateOrthogPinnedPiecesBb));
+      BitBoardT yourOrthogPinnersBb = myKingOrthogXrayAttackersBb & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
+      // Then my pinned pieces are those candidate pinned pieces that lie on one of your pinners' orthogonals
+      BitBoardT pinnerOrthogonalsBb = BbNone;
+      for(BitBoardT bb = yourOrthogPinnersBb; bb;) {
+	SquareT pinnerSq = Bits::popLsb(bb);
+	pinnerOrthogonalsBb |= RookRays[pinnerSq];
+      }
+      BitBoardT myOrthogPinnedPiecesBb = myCandidateOrthogPinnedPiecesBb & pinnerOrthogonalsBb;
+
+      if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) != BbNone) {
+	stats.withyourpins++;
+      }
+
       // Generate moves
       PieceAttacksT myAttacks = genPieceAttacks<Color, MyBoardTraitsT>(myState, allPiecesBb);
 
       // Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
       if((myAttacks.allAttacks & yourState.bbs[King]) != 0) {
 	// Illegal position - doesn't count
-	stats.invalids++;
+	stats.invalidsnon0++;
 	return;
       }
 
