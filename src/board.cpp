@@ -1,3 +1,4 @@
+#include <cstdio>
 #include "board.hpp"
 
 namespace Chess {
@@ -46,6 +47,55 @@ namespace Chess {
       addStartingPieces(board, Black, A8, A7);
       
       return board;
+    }
+
+    static char PieceChar[NColors][NPieceTypes+1] = {
+      // White
+      { ".PNBRQK" },
+      // Black
+      { ".pnbrqk" }
+    };
+
+    static void printRank(const BoardT& board, int rank) {
+      printf("%d | ", rank+1);
+      for(int file = 0; file < 8; file++) {
+	SquareT square = (SquareT)((rank << 3) + file);
+	SquarePieceT squarePiece = board.board[square];
+	ColorT color = squarePieceColor(squarePiece);
+	SpecificPieceT specificPiece = squarePieceSpecificPiece(squarePiece);
+	PieceT piece = PieceForSpecificPiece[specificPiece];
+	printf("%c ", PieceChar[color][piece]);
+      }
+      printf(" | %d\n", rank+1);
+    }
+
+    void printBoard(const BoardT& board) {
+      printf("    A B C D E F G H\n");
+      printf("    ---------------\n");
+      for(int rank = 7; rank >= 0; rank--) { 
+	printRank(board, rank);
+      }
+      printf("    ---------------\n");
+      printf("    A B C D E F G H\n");
+    }
+
+    static void printBbRank(BitBoardT bb, int rank) {
+      printf("%d | ", rank+1);
+      for(int file = 0; file < 8; file++) {
+	SquareT square = (SquareT)((rank << 3) + file);
+	printf("%c ", "-*"[(bb >> square) & 1]);
+      }
+      printf(" | %d\n", rank+1);
+    }
+
+    void printBb(BitBoardT bb) {
+      printf("    A B C D E F G H\n");
+      printf("    ---------------\n");
+      for(int rank = 7; rank >= 0; rank--) { 
+	printBbRank(bb, rank);
+      }
+      printf("    ---------------\n");
+      printf("    A B C D E F G H\n");
     }
   }
 }

@@ -365,7 +365,7 @@ namespace Chess {
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 
       // Find my pinned pieces - used to filter out invalid moves
-      SquareT myKingSq = myState.pieceSquares[King];
+      SquareT myKingSq = myState.pieceSquares[SpecificKing];
 
       // Diagonally pinned pieces
       BitBoardT myKingDiagAttackersBb = bishopAttacks(myKingSq, allPiecesBb);
@@ -373,12 +373,13 @@ namespace Chess {
       BitBoardT myCandidateDiagPinnedPiecesBb = myKingDiagAttackersBb & allMyPiecesBb;
       // Your pinning pieces are those that attack my king once my candidate pinned pieces are removed from the board
       BitBoardT myKingDiagXrayAttackersBb = bishopAttacks(myKingSq, (allPiecesBb & ~myCandidateDiagPinnedPiecesBb));
+      // We don't want direct attackers of the king, but only attackers that were exposed by removing our candidate pins.
       BitBoardT yourDiagPinnersBb = myKingDiagXrayAttackersBb & ~myKingDiagAttackersBb & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
       // Then my pinned pieces are those candidate pinned pieces that lie on one of your pinners' diagonals
       BitBoardT pinnerDiagonalsBb = BbNone;
       for(BitBoardT bb = yourDiagPinnersBb; bb;) {
 	SquareT pinnerSq = Bits::popLsb(bb);
-	pinnerDiagonalsBb |= BishopRays[pinnerSq];
+	pinnerDiagonalsBb |= bishopAttacks(pinnerSq, allPiecesBb);
       }
       BitBoardT myDiagPinnedPiecesBb = myCandidateDiagPinnedPiecesBb & pinnerDiagonalsBb;
 
@@ -393,12 +394,52 @@ namespace Chess {
       BitBoardT pinnerOrthogonalsBb = BbNone;
       for(BitBoardT bb = yourOrthogPinnersBb; bb;) {
 	SquareT pinnerSq = Bits::popLsb(bb);
-	pinnerOrthogonalsBb |= RookRays[pinnerSq];
+	pinnerOrthogonalsBb |= rookAttacks(pinnerSq, allPiecesBb);
       }
+      // Gack - picks up pieces on the other side of the king
       BitBoardT myOrthogPinnedPiecesBb = myCandidateOrthogPinnedPiecesBb & pinnerOrthogonalsBb;
 
       if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) != BbNone) {
-	stats.withyourpins++;
+	if(myDiagPinnedPiecesBb) {
+	  static bool done = false;
+	  if(!done) {
+	    printf("\n==================== Color %s ========================= Diag Pins! ===================================\n\n", (Color == White ? "White" : "Black"));
+	    printBoard(board);
+	    printf("\n\n myKingDiagAttackersBb:\n");
+	    printBb(myKingDiagAttackersBb);
+	    printf("\n\n myCandidateDiagPinnedPiecesBb:\n");
+	    printBb(myCandidateDiagPinnedPiecesBb);
+	    printf("\n\n myKingDiagXrayAttackersBb:\n");
+	    printBb(myKingDiagXrayAttackersBb);
+	    printf("\n\n yourDiagPinnersBb:\n");
+	    printBb(yourDiagPinnersBb);
+	    printf("\n\n myDiagPinnedPiecesBb:\n");
+	    printBb(myDiagPinnedPiecesBb);
+	    printf("\n");
+	    done = true;
+	  }
+	  stats.withyourpins++;
+	}
+	if(myOrthogPinnedPiecesBb) {
+	  static bool done = false;
+	  if(!done) {
+	    printf("\n============================================== Orthog Pins! ===================================\n\n");
+	    printBoard(board);
+	    printf("\n\n myKingOrthogAttackersBb:\n");
+	    printBb(myKingOrthogAttackersBb);
+	    printf("\n\n myCandidateOrthogPinnedPiecesBb:\n");
+	    printBb(myCandidateOrthogPinnedPiecesBb);
+	    printf("\n\n myKingOrthogXrayAttackersBb:\n");
+	    printBb(myKingOrthogXrayAttackersBb);
+	    printf("\n\n yourOrthogPinnersBb:\n");
+	    printBb(yourOrthogPinnersBb);
+	    printf("\n\n myOrthogPinnedPiecesBb:\n");
+	    printBb(myOrthogPinnedPiecesBb);
+	    printf("\n");
+	    done = true;
+	  }
+	  stats.withyourpins++;
+	}
       }
       if((yourDiagPinnersBb | yourOrthogPinnersBb) != BbNone) {
 	stats.withyourpins2++;
@@ -419,7 +460,9 @@ namespace Chess {
       // Evaluate moves
 
       // Pawn pushes - remove pawns with diagonal pins, and pawns with orthogonal pins along the rank of the king
-      perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsPushOne);
+      BitBoardT myDiagPinsPushOneBb = pawnsPushOne<Color>(myDiagPinnedPiecesBb, BbNone);
+      BitBoardT nonPinnedPawnsPushOneBb = myAttacks.pawnsPushOne & ~myDiagPinsPushOneBb;
+      perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, nonPinnedPawnsPushOneBb);
       perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsPushTwo);
       
       // Pawn captures
