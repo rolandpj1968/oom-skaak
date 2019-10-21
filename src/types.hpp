@@ -211,6 +211,9 @@ namespace Chess {
     MoveInfoT(SquareT from, SquareT to, SpecificPieceT capturedSpecificPiece, bool isDirectCheck = false, SquareT discoveredCheckSq = InvalidSquare) :
       MoveInfoT(CaptureMove, from, to, capturedSpecificPiece, to, isDirectCheck, discoveredCheckSq)
     {}
+
+    // Temporary working ctor
+    MoveInfoT(MoveTypeT moveType, SquareT to): moveType(moveType), to(to) {}
   };
 }
 
