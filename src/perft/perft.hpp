@@ -27,6 +27,7 @@ namespace Chess {
       u64 invalids;
       u64 invalidsnon0;
       u64 withyourpins;
+      u64 withyourpins2;
     };
 
 #include <boost/preprocessor/iteration/local.hpp>
@@ -372,7 +373,7 @@ namespace Chess {
       BitBoardT myCandidateDiagPinnedPiecesBb = myKingDiagAttackersBb & allMyPiecesBb;
       // Your pinning pieces are those that attack my king once my candidate pinned pieces are removed from the board
       BitBoardT myKingDiagXrayAttackersBb = bishopAttacks(myKingSq, (allPiecesBb & ~myCandidateDiagPinnedPiecesBb));
-      BitBoardT yourDiagPinnersBb = myKingDiagXrayAttackersBb & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
+      BitBoardT yourDiagPinnersBb = myKingDiagXrayAttackersBb & ~myKingDiagAttackersBb & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
       // Then my pinned pieces are those candidate pinned pieces that lie on one of your pinners' diagonals
       BitBoardT pinnerDiagonalsBb = BbNone;
       for(BitBoardT bb = yourDiagPinnersBb; bb;) {
@@ -387,7 +388,7 @@ namespace Chess {
       BitBoardT myCandidateOrthogPinnedPiecesBb = myKingOrthogAttackersBb & allMyPiecesBb;
       // Your pinning pieces are those that attack my king once my candidate pinned pieces are removed from the board
       BitBoardT myKingOrthogXrayAttackersBb = rookAttacks(myKingSq, (allPiecesBb & ~myCandidateOrthogPinnedPiecesBb));
-      BitBoardT yourOrthogPinnersBb = myKingOrthogXrayAttackersBb & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
+      BitBoardT yourOrthogPinnersBb = myKingOrthogXrayAttackersBb & ~myKingOrthogAttackersBb & (yourState.bbs[Rook] | yourState.bbs[Queen]);
       // Then my pinned pieces are those candidate pinned pieces that lie on one of your pinners' orthogonals
       BitBoardT pinnerOrthogonalsBb = BbNone;
       for(BitBoardT bb = yourOrthogPinnersBb; bb;) {
@@ -398,6 +399,9 @@ namespace Chess {
 
       if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) != BbNone) {
 	stats.withyourpins++;
+      }
+      if((yourDiagPinnersBb | yourOrthogPinnersBb) != BbNone) {
+	stats.withyourpins2++;
       }
 
       // Generate moves
@@ -414,9 +418,9 @@ namespace Chess {
 
       // Evaluate moves
 
-      // Pawn pushes
-      perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsPushOne);
-      perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsPushTwo);
+      // Pawn pushes - remove pawns with diagonal pins
+      perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, (myAttacks.pawnsPushOne & ~myDiagPinnedPiecesBb));
+      perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, (myAttacks.pawnsPushTwo & ~myDiagPinnedPiecesBb));
       
       // Pawn captures
       perftImplPawnsCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & allYourPiecesBb);
