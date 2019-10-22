@@ -497,7 +497,6 @@ namespace Chess {
       // Pawn captures - remove pawns with orthogonal pins, and pawns with diagonal pins in the other direction from the capture.
       // Pawn captures on the king's bishop rays are always safe, so we want to remove diagonal pins that are NOT on the king's bishop rays
       BitBoardT myKingBishopRays = BishopRays[myKingSq];
-      BitBoardT myKingRookRays = RookRays[myKingSq];
       
       BitBoardT myOrthogPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myOrthogPinnedPiecesBb);
       BitBoardT myDiagPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myDiagPinnedPiecesBb);
@@ -574,42 +573,9 @@ namespace Chess {
 
 	// Evaluate moves
 
-	// Pawn pushes - remove pawns with diagonal pins, and pawns with orthogonal pins along the rank of the king
+	// Pawns
 	
-	BitBoardT myDiagAndKingRankPinsBb = myDiagPinnedPiecesBb | (myOrthogPinnedPiecesBb & RankBbs[rankOf(myKingSq)]);
-	BitBoardT myDiagAndKingRankPinsPushOneBb = pawnsPushOne<Color>(myDiagAndKingRankPinsBb, BbNone);
-	BitBoardT nonPinnedPawnsPushOneBb = myAttacks.pawnsPushOne & ~myDiagAndKingRankPinsPushOneBb;
-	perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, nonPinnedPawnsPushOneBb & legalMoveFilterBb);
-	BitBoardT myDiagAndKingRankPinsPushTwoBb = pawnsPushOne<Color>(myDiagAndKingRankPinsPushOneBb, BbNone);
-	BitBoardT nonPinnedPawnsPushTwoBb = myAttacks.pawnsPushTwo & ~myDiagAndKingRankPinsPushTwoBb;
-	perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, nonPinnedPawnsPushTwoBb & legalMoveFilterBb);
-	
-	// Pawn captures - remove pawns with orthogonal pins, and pawns with diagonal pins in the other direction from the capture.
-	// Pawn captures on the king's bishop rays are always safe, so we want to remove diagonal pins that are NOT on the king's bishop rays
-	BitBoardT myKingBishopRays = BishopRays[myKingSq];
-	BitBoardT myKingRookRays = RookRays[myKingSq];
-      
-	BitBoardT myOrthogPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myOrthogPinnedPiecesBb);
-	BitBoardT myDiagPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myDiagPinnedPiecesBb);
-	BitBoardT myUnsafeDiagPinsLeftAttacksBb = myDiagPinsLeftAttacksBb & ~myKingBishopRays;
-	perftImplPawnsCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & allYourPiecesBb & ~(myOrthogPinsLeftAttacksBb | myUnsafeDiagPinsLeftAttacksBb) & legalMoveFilterBb);
-      
-	BitBoardT myOrthogPinsRightAttacksBb = pawnsRightAttacks<Color>(myOrthogPinnedPiecesBb);
-	BitBoardT myDiagPinsRightAttacksBb = pawnsRightAttacks<Color>(myDiagPinnedPiecesBb);
-	BitBoardT myUnsafeDiagPinsRightAttacksBb = myDiagPinsRightAttacksBb & ~myKingBishopRays;
-	perftImplPawnsCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & allYourPiecesBb & ~(myOrthogPinsRightAttacksBb | myUnsafeDiagPinsRightAttacksBb) & legalMoveFilterBb);
-      
-	// Pawn en-passant captures
-	// TODO pinned piece eval
-	if(yourState.epSquare != InvalidSquare) {
-	  BitBoardT epSquareBb = bbForSquare(yourState.epSquare);
-	
-	  perftImplPawnEpCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & epSquareBb);
-	  perftImplPawnEpCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & epSquareBb);
-	}
-
-	// Piece moves
-
+	perftImplPawnMoves<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingSq, allMyPiecesBb, allYourPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, yourState.epSquare, legalMoveFilterBb);
 	// Knights - pinned knights can never move
 
 	BitBoardT myPinnedPiecesBb = myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb;
@@ -621,6 +587,7 @@ namespace Chess {
 	// Bishops
 	//   - diagonally pinned bishops can only move along the king's bishop rays
 	//   - orthogonally pinned bishops cannot move
+	BitBoardT myKingBishopRays = BishopRays[myKingSq];
       
 	perftImplBishopMoves<Color, BlackBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, legalMoveFilterBb);
 
@@ -629,6 +596,7 @@ namespace Chess {
 	// Rooks
 	//   - diagonally pinned rooks cannot move
 	//   - orthogonally pinned bishops can only move along the king's rook rays
+	BitBoardT myKingRookRays = RookRays[myKingSq];
 
 	perftImplRookMoves<Color, QueenRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, legalMoveFilterBb);
 
