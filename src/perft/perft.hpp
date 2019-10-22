@@ -183,7 +183,7 @@ namespace Chess {
 
 	BoardT newBoard = moveSpecificPiece<Color, SpecificPawn, Push, IsPushTwo>(board, from, to);
 
-	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, MoveInfoT(to, PushMove));
+	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, MoveInfoT(PushMove, to));
       }
     }
 
@@ -225,7 +225,7 @@ namespace Chess {
 
 	BoardT newBoard = moveSpecificPiece<Color, SpecificPawn, Capture>(board, from, to);
 
-	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, MoveInfoT(to, CaptureMove));
+	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, MoveInfoT(CaptureMove, to));
       }
     }
 
@@ -249,7 +249,7 @@ namespace Chess {
 
 	BoardT newBoard = captureEp<Color>(board, from, to, captureSquare);
 
-	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, MoveInfoT(to, EpCaptureMove));
+	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, MoveInfoT(EpCaptureMove, to));
       }
     }
 
@@ -270,7 +270,7 @@ namespace Chess {
 
 	BoardT newBoard = moveSpecificPiece<Color, SpecificPiece, PushOrCapture>(board, from, to);
 
-	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, MoveInfoT(to, moveType));
+	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, MoveInfoT(moveType, to));
       }
     }
     
@@ -290,6 +290,19 @@ namespace Chess {
       perftImplSpecificPieceCaptures<Color, SpecificPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, from, attacksBb & allYourPiecesBb);
     }
     
+    // Knights - pinned knights can never move
+    template <ColorT Color, SpecificPieceT SpecificKnight, typename MyBoardTraitsT, typename YourBoardTraitsT>
+    inline void perftImplKnightMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT myPinnedPiecesBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb) {
+      const ColorStateT& myState = board.pieces[Color];
+      SquareT specificKnightSq = myState.pieceSquares[SpecificKnight];
+      if(specificKnightSq != InvalidSquare) {
+	BitBoardT specificKnightBb = bbForSquare(specificKnightSq);
+	if((specificKnightBb & myPinnedPiecesBb) == BbNone) {
+	  perftImplSpecificPieceMoves<Color, SpecificKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, specificKnightSq, myAttacks.pieceAttacks[SpecificKnight], allYourPiecesBb, allPiecesBb);
+	}
+      }
+    }
+    
     template <ColorT Color, CastlingRightsT CastlingRight, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImplCastlingMove(PerftStatsT& stats, const BoardT& board, const int depthToGo) {
       BoardT newBoard1 = moveSpecificPiece<Color, SpecificKing, Push>(board, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo);
@@ -297,7 +310,7 @@ namespace Chess {
 
       // We pass the rook 'to' square cos we use it for discovered check and check from castling is not considered 'discovered'
       // Or maybe not - getting wrong discoveries count compared to wiki lore - let's try the king instead.
-      perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, MoveInfoT(CastlingTraitsT<Color, CastlingRight>::KingTo, CastlingMove));
+      perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, MoveInfoT(CastlingMove, CastlingTraitsT<Color, CastlingRight>::KingTo));
     }
 
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
@@ -468,9 +481,19 @@ namespace Chess {
       BitBoardT nonPinnedPawnsPushTwoBb = myAttacks.pawnsPushTwo & ~myDiagAndKingRankPinsPushTwoBb;
       perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, nonPinnedPawnsPushTwoBb);
       
-      // Pawn captures
-      perftImplPawnsCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & allYourPiecesBb);
-      perftImplPawnsCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & allYourPiecesBb);
+      // Pawn captures - remove pawns with orthogonal pins, and pawns with diagonal pins in the other direction from the capture.
+      // Pawn captures on the king's bishop rays are always safe, so we want to remove diagonal pins that are NOT on the king's bishop rays
+      BitBoardT myKingBishopRays = BishopRays[myKingSq];
+
+      BitBoardT myOrthogPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myOrthogPinnedPiecesBb);
+      BitBoardT myDiagPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myDiagPinnedPiecesBb);
+      BitBoardT myUnsafeDiagPinsLeftAttacksBb = myDiagPinsLeftAttacksBb & ~myKingBishopRays;
+      perftImplPawnsCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & allYourPiecesBb & ~(myOrthogPinsLeftAttacksBb | myUnsafeDiagPinsLeftAttacksBb));
+      
+      BitBoardT myOrthogPinsRightAttacksBb = pawnsRightAttacks<Color>(myOrthogPinnedPiecesBb);
+      BitBoardT myDiagPinsRightAttacksBb = pawnsRightAttacks<Color>(myDiagPinnedPiecesBb);
+      BitBoardT myUnsafeDiagPinsRightAttacksBb = myDiagPinsRightAttacksBb & ~myKingBishopRays;
+      perftImplPawnsCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & allYourPiecesBb & ~(myOrthogPinsRightAttacksBb | myUnsafeDiagPinsRightAttacksBb));
       
       // Pawn en-passant captures
       if(yourState.epSquare) {
@@ -482,11 +505,27 @@ namespace Chess {
 
       // Piece moves
 
-      // Knights
-      
-      perftImplSpecificPieceMoves<Color, QueenKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[QueenKnight], myAttacks.pieceAttacks[QueenKnight], allYourPiecesBb, allPiecesBb);
+      // Knights - pinned knights can never move
+      BitBoardT myPinnedPiecesBb = myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb;
 
-      perftImplSpecificPieceMoves<Color, KingKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[KingKnight], myAttacks.pieceAttacks[KingKnight], allYourPiecesBb, allPiecesBb);
+      
+      
+      SquareT queenKnightSq = myState.pieceSquares[QueenKnight];
+      if(queenKnightSq != InvalidSquare) {
+	BitBoardT queenKnightBb = bbForSquare(queenKnightSq);
+	if((queenKnightBb & myPinnedPiecesBb) == BbNone) {
+	  perftImplSpecificPieceMoves<Color, QueenKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, queenKnightSq, myAttacks.pieceAttacks[QueenKnight], allYourPiecesBb, allPiecesBb);
+	}
+      }
+
+      SquareT kingKnightSq = myState.pieceSquares[KingKnight];
+      if(kingKnightSq != InvalidSquare) {
+	BitBoardT kingKnightBb = bbForSquare(kingKnightSq);
+	if((kingKnightBb & myPinnedPiecesBb) == BbNone) {
+	  perftImplSpecificPieceMoves<Color, KingKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, kingKnightSq, myAttacks.pieceAttacks[KingKnight], allYourPiecesBb, allPiecesBb);
+	}
+      }
+      //perftImplSpecificPieceMoves<Color, KingKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[KingKnight], myAttacks.pieceAttacks[KingKnight], allYourPiecesBb, allPiecesBb);
 
       // Bishops
       
@@ -543,7 +582,7 @@ namespace Chess {
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT> inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
       PerftStatsT stats = {0};
 
-      perftImpl<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, MoveInfoT(InvalidSquare, PushMove));
+      perftImpl<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, MoveInfoT(PushMove, InvalidSquare));
 
       return stats;
     }
