@@ -435,87 +435,8 @@ namespace Chess {
       const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 
-      // Find my pinned pieces - used to filter out invalid moves
-      SquareT myKingSq = myState.pieceSquares[SpecificKing];
-
-      // Diagonally pinned pieces
-      BitBoardT myKingDiagAttackersBb = bishopAttacks(myKingSq, allPiecesBb);
-      // Potentially pinned pieces are my pieces that are on an open diagonal from my king
-      BitBoardT myCandidateDiagPinnedPiecesBb = myKingDiagAttackersBb & allMyPiecesBb;
-      // Your pinning pieces are those that attack my king once my candidate pinned pieces are removed from the board
-      BitBoardT myKingDiagXrayAttackersBb = bishopAttacks(myKingSq, (allPiecesBb & ~myCandidateDiagPinnedPiecesBb));
-      // We don't want direct attackers of the king, but only attackers that were exposed by removing our candidate pins.
-      BitBoardT yourDiagPinnersBb = myKingDiagXrayAttackersBb & ~myKingDiagAttackersBb & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
-      // Then my pinned pieces are those candidate pinned pieces that lie on one of your pinners' diagonals
-      BitBoardT pinnerDiagonalsBb = BbNone;
-      for(BitBoardT bb = yourDiagPinnersBb; bb;) {
-	SquareT pinnerSq = Bits::popLsb(bb);
-	pinnerDiagonalsBb |= bishopAttacks(pinnerSq, allPiecesBb);
-      }
-      BitBoardT myDiagPinnedPiecesBb = myCandidateDiagPinnedPiecesBb & pinnerDiagonalsBb;
-
-      // Orthogonally pinned pieces
-      BitBoardT myKingOrthogAttackersBb = rookAttacks(myKingSq, allPiecesBb);
-      // Potentially pinned pieces are my pieces that are on an open orthogonal from my king
-      BitBoardT myCandidateOrthogPinnedPiecesBb = myKingOrthogAttackersBb & allMyPiecesBb;
-      // Your pinning pieces are those that attack my king once my candidate pinned pieces are removed from the board
-      BitBoardT myKingOrthogXrayAttackersBb = rookAttacks(myKingSq, (allPiecesBb & ~myCandidateOrthogPinnedPiecesBb));
-      BitBoardT yourOrthogPinnersBb = myKingOrthogXrayAttackersBb & ~myKingOrthogAttackersBb & (yourState.bbs[Rook] | yourState.bbs[Queen]);
-      // Then my pinned pieces are those candidate pinned pieces that lie on one of your pinners' orthogonals
-      BitBoardT pinnerOrthogonalsBb = BbNone;
-      for(BitBoardT bb = yourOrthogPinnersBb; bb;) {
-	SquareT pinnerSq = Bits::popLsb(bb);
-	pinnerOrthogonalsBb |= rookAttacks(pinnerSq, allPiecesBb);
-      }
-      // Gack - picks up pieces on the other side of the king
-      BitBoardT myOrthogPinnedPiecesBb = myCandidateOrthogPinnedPiecesBb & pinnerOrthogonalsBb;
-
-      if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) != BbNone) {
-	if(false && myDiagPinnedPiecesBb) {
-	  static bool done = false;
-	  if(!done) {
-	    printf("\n==================== Color %s ========================= Diag Pins! ===================================\n\n", (Color == White ? "White" : "Black"));
-	    printBoard(board);
-	    printf("\n\n myKingDiagAttackersBb:\n");
-	    printBb(myKingDiagAttackersBb);
-	    printf("\n\n myCandidateDiagPinnedPiecesBb:\n");
-	    printBb(myCandidateDiagPinnedPiecesBb);
-	    printf("\n\n myKingDiagXrayAttackersBb:\n");
-	    printBb(myKingDiagXrayAttackersBb);
-	    printf("\n\n yourDiagPinnersBb:\n");
-	    printBb(yourDiagPinnersBb);
-	    printf("\n\n myDiagPinnedPiecesBb:\n");
-	    printBb(myDiagPinnedPiecesBb);
-	    printf("\n");
-	    done = true;
-	  }
-	  stats.withyourpins++;
-	}
-	if(false && myOrthogPinnedPiecesBb) {
-	  static bool done = false;
-	  if(!done) {
-	    printf("\n============================================== Orthog Pins! ===================================\n\n");
-	    printBoard(board);
-	    printf("\n\n myKingOrthogAttackersBb:\n");
-	    printBb(myKingOrthogAttackersBb);
-	    printf("\n\n myCandidateOrthogPinnedPiecesBb:\n");
-	    printBb(myCandidateOrthogPinnedPiecesBb);
-	    printf("\n\n myKingOrthogXrayAttackersBb:\n");
-	    printBb(myKingOrthogXrayAttackersBb);
-	    printf("\n\n yourOrthogPinnersBb:\n");
-	    printBb(yourOrthogPinnersBb);
-	    printf("\n\n myOrthogPinnedPiecesBb:\n");
-	    printBb(myOrthogPinnedPiecesBb);
-	    printf("\n");
-	    done = true;
-	  }
-	  stats.withyourpins++;
-	}
-      }
-      if((yourDiagPinnersBb | yourOrthogPinnersBb) != BbNone) {
-	stats.withyourpins2++;
-      }
-
+      // Check for position legality - eventually do this in the parent
+      
       // Generate moves
       PieceAttacksT myAttacks = genPieceAttacks<Color, MyBoardTraitsT>(myState, allPiecesBb);
 
@@ -523,99 +444,215 @@ namespace Chess {
       if((myAttacks.allAttacks & yourState.bbs[King]) != 0) {
 	// Illegal position - doesn't count
 	stats.invalidsnon0++;
+	static bool done = false;
+	if(false && !done) {
+	  printf("\n============================================== Invalid - last move to %d! ===================================\n\n", moveInfo.to);
+	  printBoard(board);
+	  printf("\n");
+	  done = true;
+	}
 	return;
       }
 
       // This is now a legal position.
 
-      // Evaluate moves
+      // Evaluate check - eventually do this in the parent
 
-      // Pawn pushes - remove pawns with diagonal pins, and pawns with orthogonal pins along the rank of the king
-      BitBoardT myDiagAndKingRankPinsBb = myDiagPinnedPiecesBb | (myOrthogPinnedPiecesBb & RankBbs[rankOf(myKingSq)]);
-      BitBoardT myDiagAndKingRankPinsPushOneBb = pawnsPushOne<Color>(myDiagAndKingRankPinsBb, BbNone);
-      BitBoardT nonPinnedPawnsPushOneBb = myAttacks.pawnsPushOne & ~myDiagAndKingRankPinsPushOneBb;
-      perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, nonPinnedPawnsPushOneBb);
-      BitBoardT myDiagAndKingRankPinsPushTwoBb = pawnsPushOne<Color>(myDiagAndKingRankPinsPushOneBb, BbNone);
-      BitBoardT nonPinnedPawnsPushTwoBb = myAttacks.pawnsPushTwo & ~myDiagAndKingRankPinsPushTwoBb;
-      perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, nonPinnedPawnsPushTwoBb);
-      
-      // Pawn captures - remove pawns with orthogonal pins, and pawns with diagonal pins in the other direction from the capture.
-      // Pawn captures on the king's bishop rays are always safe, so we want to remove diagonal pins that are NOT on the king's bishop rays
-      BitBoardT myKingBishopRays = BishopRays[myKingSq];
-      BitBoardT myKingRookRays = RookRays[myKingSq];
+      SquareAttackersT myKingAttackers = genSquareAttackers<OtherColorT<Color>::value, MyBoardTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
+      BitBoardT allMyKingAttackersBb = myKingAttackers.pieceAttackers[AllPieces];
 
-      BitBoardT myOrthogPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myOrthogPinnedPiecesBb);
-      BitBoardT myDiagPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myDiagPinnedPiecesBb);
-      BitBoardT myUnsafeDiagPinsLeftAttacksBb = myDiagPinsLeftAttacksBb & ~myKingBishopRays;
-      perftImplPawnsCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & allYourPiecesBb & ~(myOrthogPinsLeftAttacksBb | myUnsafeDiagPinsLeftAttacksBb));
-      
-      BitBoardT myOrthogPinsRightAttacksBb = pawnsRightAttacks<Color>(myOrthogPinnedPiecesBb);
-      BitBoardT myDiagPinsRightAttacksBb = pawnsRightAttacks<Color>(myDiagPinnedPiecesBb);
-      BitBoardT myUnsafeDiagPinsRightAttacksBb = myDiagPinsRightAttacksBb & ~myKingBishopRays;
-      perftImplPawnsCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & allYourPiecesBb & ~(myOrthogPinsRightAttacksBb | myUnsafeDiagPinsRightAttacksBb));
-      
-      // Pawn en-passant captures
-      if(yourState.epSquare) {
-	BitBoardT epSquareBb = bbForSquare(yourState.epSquare);
-	
-	perftImplPawnEpCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & epSquareBb);
-	perftImplPawnEpCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & epSquareBb);
-      }
+      int nChecks = Bits::count(allMyKingAttackersBb);
 
-      // Piece moves
-
-      // Knights - pinned knights can never move
-
-      BitBoardT myPinnedPiecesBb = myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb;
-
-      perftImplKnightMoves<Color, QueenKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myPinnedPiecesBb, allYourPiecesBb, allPiecesBb);
-
-      perftImplKnightMoves<Color, KingKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myPinnedPiecesBb, allYourPiecesBb, allPiecesBb);
-      
-      // Bishops
-      //   - diagonally pinned bishops can only move along the king's bishop rays
-      //   - orthogonally pinned bishops cannot move
-      
-      perftImplBishopMoves<Color, BlackBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-
-      perftImplBishopMoves<Color, WhiteBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-
-      // Rooks
-      //   - diagonally pinned rooks cannot move
-      //   - orthogonally pinned bishops can only move along the king's rook rays
-
-      perftImplRookMoves<Color, QueenRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-
-      perftImplRookMoves<Color, KingRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-
-      // Queens
-      //   - diagonally pinned queens can only move along the king's bishop rays
-      //   - orthogonally pinned queens can only move along the king's rook rays
-
-      perftImplQueenMoves<Color, SpecificQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-      // King - cannot move into check
+      // Needed for castling and for king moves so evaluate this here.
       PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
-      perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], myAttacks.pieceAttacks[SpecificKing] & ~yourAttacks.allAttacks, allYourPiecesBb, allPiecesBb);
+      
+      // Double check can only be evaded by moving the king
+      if(nChecks < 2) {
 
-      // TODO other promo pieces
-      if(MyBoardTraitsT::hasPromos) {
-	if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
-	  perftImplQueenMoves<Color, PromoQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	// When in check, limit moves to captures of the checking piece, and blockers of the checking piece
+	//BitBoardT moveFilterBb = (nChecks != 0) ? allMyKingAttackersBb : BbNone;
+
+	// Calculate pins
+      
+	// Find my pinned pieces - used to filter out invalid moves
+	SquareT myKingSq = myState.pieceSquares[SpecificKing];
+
+	// Diagonally pinned pieces
+	BitBoardT myKingDiagAttackersBb = bishopAttacks(myKingSq, allPiecesBb);
+	// Potentially pinned pieces are my pieces that are on an open diagonal from my king
+	BitBoardT myCandidateDiagPinnedPiecesBb = myKingDiagAttackersBb & allMyPiecesBb;
+	// Your pinning pieces are those that attack my king once my candidate pinned pieces are removed from the board
+	BitBoardT myKingDiagXrayAttackersBb = bishopAttacks(myKingSq, (allPiecesBb & ~myCandidateDiagPinnedPiecesBb));
+	// We don't want direct attackers of the king, but only attackers that were exposed by removing our candidate pins.
+	BitBoardT yourDiagPinnersBb = myKingDiagXrayAttackersBb & ~myKingDiagAttackersBb & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
+	// Then my pinned pieces are those candidate pinned pieces that lie on one of your pinners' diagonals
+	BitBoardT pinnerDiagonalsBb = BbNone;
+	for(BitBoardT bb = yourDiagPinnersBb; bb;) {
+	  SquareT pinnerSq = Bits::popLsb(bb);
+	  pinnerDiagonalsBb |= bishopAttacks(pinnerSq, allPiecesBb);
 	}
-      }
+	BitBoardT myDiagPinnedPiecesBb = myCandidateDiagPinnedPiecesBb & pinnerDiagonalsBb;
 
-      // Castling
-      CastlingRightsT castlingRights2 = castlingRightsWithSpace<Color>(myState.castlingRights, allPiecesBb);
-      if(castlingRights2) {
+	// Orthogonally pinned pieces
+	BitBoardT myKingOrthogAttackersBb = rookAttacks(myKingSq, allPiecesBb);
+	// Potentially pinned pieces are my pieces that are on an open orthogonal from my king
+	BitBoardT myCandidateOrthogPinnedPiecesBb = myKingOrthogAttackersBb & allMyPiecesBb;
+	// Your pinning pieces are those that attack my king once my candidate pinned pieces are removed from the board
+	BitBoardT myKingOrthogXrayAttackersBb = rookAttacks(myKingSq, (allPiecesBb & ~myCandidateOrthogPinnedPiecesBb));
+	BitBoardT yourOrthogPinnersBb = myKingOrthogXrayAttackersBb & ~myKingOrthogAttackersBb & (yourState.bbs[Rook] | yourState.bbs[Queen]);
+	// Then my pinned pieces are those candidate pinned pieces that lie on one of your pinners' orthogonals
+	BitBoardT pinnerOrthogonalsBb = BbNone;
+	for(BitBoardT bb = yourOrthogPinnersBb; bb;) {
+	  SquareT pinnerSq = Bits::popLsb(bb);
+	  pinnerOrthogonalsBb |= rookAttacks(pinnerSq, allPiecesBb);
+	}
+	// Gack - picks up pieces on the other side of the king
+	BitBoardT myOrthogPinnedPiecesBb = myCandidateOrthogPinnedPiecesBb & pinnerOrthogonalsBb;
 
-	if((castlingRights2 & CanCastleQueenside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleQueenside>::CastlingThruCheckBbMask) == BbNone) {
-	  perftImplCastlingMove<Color, CanCastleQueenside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo);
+	if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) != BbNone) {
+	  if(false && myDiagPinnedPiecesBb) {
+	    static bool done = false;
+	    if(!done) {
+	      printf("\n==================== Color %s ========================= Diag Pins! ===================================\n\n", (Color == White ? "White" : "Black"));
+	      printBoard(board);
+	      printf("\n\n myKingDiagAttackersBb:\n");
+	      printBb(myKingDiagAttackersBb);
+	      printf("\n\n myCandidateDiagPinnedPiecesBb:\n");
+	      printBb(myCandidateDiagPinnedPiecesBb);
+	      printf("\n\n myKingDiagXrayAttackersBb:\n");
+	      printBb(myKingDiagXrayAttackersBb);
+	      printf("\n\n yourDiagPinnersBb:\n");
+	      printBb(yourDiagPinnersBb);
+	      printf("\n\n myDiagPinnedPiecesBb:\n");
+	      printBb(myDiagPinnedPiecesBb);
+	      printf("\n");
+	      done = true;
+	    }
+	    stats.withyourpins++;
+	  }
+	  if(false && myOrthogPinnedPiecesBb) {
+	    static bool done = false;
+	    if(!done) {
+	      printf("\n============================================== Orthog Pins! ===================================\n\n");
+	      printBoard(board);
+	      printf("\n\n myKingOrthogAttackersBb:\n");
+	      printBb(myKingOrthogAttackersBb);
+	      printf("\n\n myCandidateOrthogPinnedPiecesBb:\n");
+	      printBb(myCandidateOrthogPinnedPiecesBb);
+	      printf("\n\n myKingOrthogXrayAttackersBb:\n");
+	      printBb(myKingOrthogXrayAttackersBb);
+	      printf("\n\n yourOrthogPinnersBb:\n");
+	      printBb(yourOrthogPinnersBb);
+	      printf("\n\n myOrthogPinnedPiecesBb:\n");
+	      printBb(myOrthogPinnedPiecesBb);
+	      printf("\n");
+	      done = true;
+	    }
+	    stats.withyourpins++;
+	  }
+	}
+	if((yourDiagPinnersBb | yourOrthogPinnersBb) != BbNone) {
+	  stats.withyourpins2++;
 	}
 
-	if((castlingRights2 & CanCastleKingside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleKingside>::CastlingThruCheckBbMask) == BbNone) {
-	  perftImplCastlingMove<Color, CanCastleKingside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo);
-	}	
-      }
+	// Evaluate moves
+
+	// We can only push pawns if we're not in check
+	// TODO erm, no - we can also block the checking piece. Urg
+
+	if(true || allMyKingAttackersBb == BbNone) {
+	  // Pawn pushes - remove pawns with diagonal pins, and pawns with orthogonal pins along the rank of the king
+	  BitBoardT myDiagAndKingRankPinsBb = myDiagPinnedPiecesBb | (myOrthogPinnedPiecesBb & RankBbs[rankOf(myKingSq)]);
+	  BitBoardT myDiagAndKingRankPinsPushOneBb = pawnsPushOne<Color>(myDiagAndKingRankPinsBb, BbNone);
+	  BitBoardT nonPinnedPawnsPushOneBb = myAttacks.pawnsPushOne & ~myDiagAndKingRankPinsPushOneBb;
+	  perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, nonPinnedPawnsPushOneBb);
+	  BitBoardT myDiagAndKingRankPinsPushTwoBb = pawnsPushOne<Color>(myDiagAndKingRankPinsPushOneBb, BbNone);
+	  BitBoardT nonPinnedPawnsPushTwoBb = myAttacks.pawnsPushTwo & ~myDiagAndKingRankPinsPushTwoBb;
+	  perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, nonPinnedPawnsPushTwoBb);
+	}
+	
+	// Pawn captures - remove pawns with orthogonal pins, and pawns with diagonal pins in the other direction from the capture.
+	// Pawn captures on the king's bishop rays are always safe, so we want to remove diagonal pins that are NOT on the king's bishop rays
+	BitBoardT myKingBishopRays = BishopRays[myKingSq];
+	BitBoardT myKingRookRays = RookRays[myKingSq];
+      
+	BitBoardT myOrthogPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myOrthogPinnedPiecesBb);
+	BitBoardT myDiagPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myDiagPinnedPiecesBb);
+	BitBoardT myUnsafeDiagPinsLeftAttacksBb = myDiagPinsLeftAttacksBb & ~myKingBishopRays;
+	perftImplPawnsCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & allYourPiecesBb & ~(myOrthogPinsLeftAttacksBb | myUnsafeDiagPinsLeftAttacksBb));
+      
+	BitBoardT myOrthogPinsRightAttacksBb = pawnsRightAttacks<Color>(myOrthogPinnedPiecesBb);
+	BitBoardT myDiagPinsRightAttacksBb = pawnsRightAttacks<Color>(myDiagPinnedPiecesBb);
+	BitBoardT myUnsafeDiagPinsRightAttacksBb = myDiagPinsRightAttacksBb & ~myKingBishopRays;
+	perftImplPawnsCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & allYourPiecesBb & ~(myOrthogPinsRightAttacksBb | myUnsafeDiagPinsRightAttacksBb));
+      
+	// Pawn en-passant captures
+	// TODO pinned piece eval
+	if(yourState.epSquare) {
+	  BitBoardT epSquareBb = bbForSquare(yourState.epSquare);
+	
+	  perftImplPawnEpCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & epSquareBb);
+	  perftImplPawnEpCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & epSquareBb);
+	}
+
+	// Piece moves
+
+	// Knights - pinned knights can never move
+
+	BitBoardT myPinnedPiecesBb = myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb;
+
+	perftImplKnightMoves<Color, QueenKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myPinnedPiecesBb, allYourPiecesBb, allPiecesBb);
+
+	perftImplKnightMoves<Color, KingKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myPinnedPiecesBb, allYourPiecesBb, allPiecesBb);
+      
+	// Bishops
+	//   - diagonally pinned bishops can only move along the king's bishop rays
+	//   - orthogonally pinned bishops cannot move
+      
+	perftImplBishopMoves<Color, BlackBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+
+	perftImplBishopMoves<Color, WhiteBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+
+	// Rooks
+	//   - diagonally pinned rooks cannot move
+	//   - orthogonally pinned bishops can only move along the king's rook rays
+
+	perftImplRookMoves<Color, QueenRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+
+	perftImplRookMoves<Color, KingRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+
+	// Queens
+	//   - diagonally pinned queens can only move along the king's bishop rays
+	//   - orthogonally pinned queens can only move along the king's rook rays
+
+	perftImplQueenMoves<Color, SpecificQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	// TODO other promo pieces
+	if(MyBoardTraitsT::hasPromos) {
+	  if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
+	    perftImplQueenMoves<Color, PromoQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	  }
+	}
+
+	// Castling
+	CastlingRightsT castlingRights2 = castlingRightsWithSpace<Color>(myState.castlingRights, allPiecesBb);
+	if(castlingRights2) {
+
+	  if((castlingRights2 & CanCastleQueenside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleQueenside>::CastlingThruCheckBbMask) == BbNone) {
+	    perftImplCastlingMove<Color, CanCastleQueenside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo);
+	  }
+
+	  if((castlingRights2 & CanCastleKingside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleKingside>::CastlingThruCheckBbMask) == BbNone) {
+	    perftImplCastlingMove<Color, CanCastleKingside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo);
+	  }	
+	}
+
+      } // nChecks < 2
+      
+      // King - cannot move into check
+      SquareT kingSq = myState.pieceSquares[SpecificKing];
+      BitBoardT legalKingMovesBb = KingAttacks[kingSq] & ~yourAttacks.allAttacks;
+      perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], legalKingMovesBb, allYourPiecesBb, allPiecesBb);
+
     }
 
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
