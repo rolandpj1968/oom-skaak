@@ -354,10 +354,10 @@ namespace Chess {
 	BitBoardT specificQueenBb = bbForSquare(specificQueenSq);
 	BitBoardT specificQueenAttacksBb = myAttacks.pieceAttacks[SpecificQueenPiece];
 	if((specificQueenBb & myDiagPinnedPiecesBb) != BbNone) {
-	  specificQueenAttacksBb &= myKingBishopRays;
+	  specificQueenAttacksBb &= myKingBishopRays & ~RookRays[specificQueenSq];
 	}
 	if((specificQueenBb & myOrthogPinnedPiecesBb) != BbNone) {
-	  specificQueenAttacksBb &= myKingRookRays;
+	  specificQueenAttacksBb &= myKingRookRays & ~BishopRays[specificQueenSq];
 	}
 	perftImplSpecificPieceMoves<Color, SpecificQueenPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, specificQueenSq, specificQueenAttacksBb, allYourPiecesBb, allPiecesBb, legalMoveFilterBb);
       }
