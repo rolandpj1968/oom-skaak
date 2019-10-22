@@ -461,19 +461,23 @@ namespace Chess {
       const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 
-      // Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
-      const SquareAttackersT yourKingAttackers = genSquareAttackers<Color, MyBoardTraitsT>(yourState.pieceSquares[SpecificKing], myState, allPiecesBb);
-      if(yourKingAttackers.pieceAttackers[AllPieces] != 0) {
-	// Illegal position - doesn't count
-	stats.invalids++;
-	static bool done = false;
-	if(!done) {
-	  printf("\n============================================== Invalid Depth 0 - last move to %d! ===================================\n\n", moveInfo.to);
-	  printBoard(board);
-	  printf("\n");
-	  done = true;
+      // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
+      const bool CheckForInvalid = false;
+      if(CheckForInvalid) {
+	// Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
+	const SquareAttackersT yourKingAttackers = genSquareAttackers<Color, MyBoardTraitsT>(yourState.pieceSquares[SpecificKing], myState, allPiecesBb);
+	if(yourKingAttackers.pieceAttackers[AllPieces] != 0) {
+	  // Illegal position - doesn't count
+	  stats.invalids++;
+	  static bool done = false;
+	  if(!done) {
+	    printf("\n============================================== Invalid Depth 0 - last move to %d! ===================================\n\n", moveInfo.to);
+	    printBoard(board);
+	    printf("\n");
+	    done = true;
+	  }
+	  return;
 	}
-	return;
       }
 	
       stats.nodes++;
