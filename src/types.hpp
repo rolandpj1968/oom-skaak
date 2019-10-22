@@ -215,6 +215,11 @@ namespace Chess {
     // Temporary working ctor
     MoveInfoT(MoveTypeT moveType, SquareT to): moveType(moveType), to(to) {}
   };
+
+  enum SliderDirectionT {
+    Diagonal,
+    Orthogonal
+  };
 }
 
 #endif //ndef TYPES_HPP

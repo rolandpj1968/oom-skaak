@@ -456,7 +456,32 @@ namespace Chess {
 	return legalMoveFilterBb;
     }
 
-    inline BitBoardT genDiagPinnedPieces(const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allMyPiecesBb, const ColorStateT& yourState) {
+    template <SliderDirectionT SliderDirection> inline BitBoardT genSliderAttacksBb(const SquareT square, const BitBoardT allPiecesBb) {
+      return SliderDirection == Diagonal ? bishopAttacks(square, allPiecesBb) : rookAttacks(square, allPiecesBb);
+    }
+
+    template <SliderDirectionT SliderDirection> inline BitBoardT genPinnedPiecesBb(const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allMyPiecesBb, const ColorStateT& yourState) {
+      BitBoardT myKingSliderAttackersBb = genSliderAttacksBb<SliderDirection>(myKingSq, allPiecesBb);
+      // Potentially pinned pieces are my pieces that are on an open ray from my king
+      BitBoardT myCandidateSliderPinnedPiecesBb = myKingSliderAttackersBb & allMyPiecesBb;
+      // Your pinning pieces are those that attack my king once my candidate pinned pieces are removed from the board
+      BitBoardT myKingSliderXrayAttackersBb = genSliderAttacksBb<SliderDirection>(myKingSq, (allPiecesBb & ~myCandidateSliderPinnedPiecesBb));
+      // Your sliders of the required slider direction
+      BitBoardT yourSlidersBb = yourState.bbs[SliderDirection == Diagonal ? Bishop : Rook] | yourState.bbs[Queen];
+      // We don't want direct attackers of the king, but only attackers that were exposed by removing our candidate pins.
+      BitBoardT yourSliderPinnersBb = myKingSliderXrayAttackersBb & ~myKingSliderAttackersBb & yourSlidersBb;
+      // Then my pinned pieces are those candidate pinned pieces that lie on one of your pinners' rays
+      BitBoardT pinnerRaysBb = BbNone;
+      for(BitBoardT bb = yourSliderPinnersBb; bb;) {
+	SquareT pinnerSq = Bits::popLsb(bb);
+	pinnerRaysBb |= genSliderAttacksBb<SliderDirection>(pinnerSq, allPiecesBb);
+      }
+      BitBoardT mySliderPinnedPiecesBb = myCandidateSliderPinnedPiecesBb & pinnerRaysBb;
+      
+      return mySliderPinnedPiecesBb;
+    }
+    
+    inline BitBoardT genDiagPinnedPiecesBb(const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allMyPiecesBb, const ColorStateT& yourState) {
 	// Diagonally pinned pieces
 	BitBoardT myKingDiagAttackersBb = bishopAttacks(myKingSq, allPiecesBb);
 	// Potentially pinned pieces are my pieces that are on an open diagonal from my king
@@ -474,6 +499,26 @@ namespace Chess {
 	BitBoardT myDiagPinnedPiecesBb = myCandidateDiagPinnedPiecesBb & pinnerDiagonalsBb;
 
 	return myDiagPinnedPiecesBb;
+    }
+    
+    inline BitBoardT genOrthogPinnedPiecesBb(const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allMyPiecesBb, const ColorStateT& yourState) {
+	// Orthogonally pinned pieces
+	BitBoardT myKingOrthogAttackersBb = rookAttacks(myKingSq, allPiecesBb);
+	// Potentially pinned pieces are my pieces that are on an open orthogonal from my king
+	BitBoardT myCandidateOrthogPinnedPiecesBb = myKingOrthogAttackersBb & allMyPiecesBb;
+	// Your pinning pieces are those that attack my king once my candidate pinned pieces are removed from the board
+	BitBoardT myKingOrthogXrayAttackersBb = rookAttacks(myKingSq, (allPiecesBb & ~myCandidateOrthogPinnedPiecesBb));
+	BitBoardT yourOrthogPinnersBb = myKingOrthogXrayAttackersBb & ~myKingOrthogAttackersBb & (yourState.bbs[Rook] | yourState.bbs[Queen]);
+	// Then my pinned pieces are those candidate pinned pieces that lie on one of your pinners' orthogonals
+	BitBoardT pinnerOrthogonalsBb = BbNone;
+	for(BitBoardT bb = yourOrthogPinnersBb; bb;) {
+	  SquareT pinnerSq = Bits::popLsb(bb);
+	  pinnerOrthogonalsBb |= rookAttacks(pinnerSq, allPiecesBb);
+	}
+	// Gack - picks up pieces on the other side of the king
+	BitBoardT myOrthogPinnedPiecesBb = myCandidateOrthogPinnedPiecesBb & pinnerOrthogonalsBb;
+
+	return myOrthogPinnedPiecesBb;
     }
     
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
@@ -525,47 +570,16 @@ namespace Chess {
 	  
 	// Calculate pins
       
-	// Find my pinned pieces - used to filter out invalid moves
-	BitBoardT myDiagPinnedPiecesBb = genDiagPinnedPieces( myKingSq, allPiecesBb, allMyPiecesBb, yourState);
-
-	// // Diagonally pinned pieces
-	// BitBoardT myKingDiagAttackersBb = bishopAttacks(myKingSq, allPiecesBb);
-	// // Potentially pinned pieces are my pieces that are on an open diagonal from my king
-	// BitBoardT myCandidateDiagPinnedPiecesBb = myKingDiagAttackersBb & allMyPiecesBb;
-	// // Your pinning pieces are those that attack my king once my candidate pinned pieces are removed from the board
-	// BitBoardT myKingDiagXrayAttackersBb = bishopAttacks(myKingSq, (allPiecesBb & ~myCandidateDiagPinnedPiecesBb));
-	// // We don't want direct attackers of the king, but only attackers that were exposed by removing our candidate pins.
-	// BitBoardT yourDiagPinnersBb = myKingDiagXrayAttackersBb & ~myKingDiagAttackersBb & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
-	// // Then my pinned pieces are those candidate pinned pieces that lie on one of your pinners' diagonals
-	// BitBoardT pinnerDiagonalsBb = BbNone;
-	// for(BitBoardT bb = yourDiagPinnersBb; bb;) {
-	//   SquareT pinnerSq = Bits::popLsb(bb);
-	//   pinnerDiagonalsBb |= bishopAttacks(pinnerSq, allPiecesBb);
-	// }
-	// BitBoardT myDiagPinnedPiecesBb = myCandidateDiagPinnedPiecesBb & pinnerDiagonalsBb;
-
-	// Orthogonally pinned pieces
-	BitBoardT myKingOrthogAttackersBb = rookAttacks(myKingSq, allPiecesBb);
-	// Potentially pinned pieces are my pieces that are on an open orthogonal from my king
-	BitBoardT myCandidateOrthogPinnedPiecesBb = myKingOrthogAttackersBb & allMyPiecesBb;
-	// Your pinning pieces are those that attack my king once my candidate pinned pieces are removed from the board
-	BitBoardT myKingOrthogXrayAttackersBb = rookAttacks(myKingSq, (allPiecesBb & ~myCandidateOrthogPinnedPiecesBb));
-	BitBoardT yourOrthogPinnersBb = myKingOrthogXrayAttackersBb & ~myKingOrthogAttackersBb & (yourState.bbs[Rook] | yourState.bbs[Queen]);
-	// Then my pinned pieces are those candidate pinned pieces that lie on one of your pinners' orthogonals
-	BitBoardT pinnerOrthogonalsBb = BbNone;
-	for(BitBoardT bb = yourOrthogPinnersBb; bb;) {
-	  SquareT pinnerSq = Bits::popLsb(bb);
-	  pinnerOrthogonalsBb |= rookAttacks(pinnerSq, allPiecesBb);
-	}
-	// Gack - picks up pieces on the other side of the king
-	BitBoardT myOrthogPinnedPiecesBb = myCandidateOrthogPinnedPiecesBb & pinnerOrthogonalsBb;
+	// Find my pinned pieces - used to filter out invalid moves due to discovered check on my king
+	//BitBoardT myDiagPinnedPiecesBb = genDiagPinnedPiecesBb(myKingSq, allPiecesBb, allMyPiecesBb, yourState);
+	BitBoardT myDiagPinnedPiecesBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourState);
+	//BitBoardT myOrthogPinnedPiecesBb = genOrthogPinnedPiecesBb(myKingSq, allPiecesBb, allMyPiecesBb, yourState);
+	BitBoardT myOrthogPinnedPiecesBb = genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourState);
 
 	// Evaluate moves
 
-	// We can only push pawns if we're not in check
-	// TODO erm, no - we can also block the checking piece. Urg
-
 	// Pawn pushes - remove pawns with diagonal pins, and pawns with orthogonal pins along the rank of the king
+	
 	BitBoardT myDiagAndKingRankPinsBb = myDiagPinnedPiecesBb | (myOrthogPinnedPiecesBb & RankBbs[rankOf(myKingSq)]);
 	BitBoardT myDiagAndKingRankPinsPushOneBb = pawnsPushOne<Color>(myDiagAndKingRankPinsBb, BbNone);
 	BitBoardT nonPinnedPawnsPushOneBb = myAttacks.pawnsPushOne & ~myDiagAndKingRankPinsPushOneBb;
