@@ -511,7 +511,7 @@ namespace Chess {
       
       // Pawn en-passant captures
       // TODO pinned piece eval
-      if(epSquare) {
+      if(epSquare != InvalidSquare) {
 	BitBoardT epSquareBb = bbForSquare(epSquare);
 	
 	perftImplPawnEpCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & epSquareBb);
@@ -601,7 +601,7 @@ namespace Chess {
       
 	// Pawn en-passant captures
 	// TODO pinned piece eval
-	if(yourState.epSquare) {
+	if(yourState.epSquare != InvalidSquare) {
 	  BitBoardT epSquareBb = bbForSquare(yourState.epSquare);
 	
 	  perftImplPawnEpCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & epSquareBb);

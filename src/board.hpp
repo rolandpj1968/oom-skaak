@@ -34,7 +34,7 @@ namespace Chess {
       // True iff there are promo pieces on the board.
       bool hasPromos;
 
-      // If non-zero, then en-passant square of the last move - i.e. the square behind a pawn two-square push.
+      // InvalidSquare, or else en-passant square of the last move - i.e. the square behind a pawn two-square push.
       SquareT epSquare;
 
       // Castling rights
@@ -157,8 +157,8 @@ namespace Chess {
       BoardT board = oldBoard;
       // En-passant squares are always lost after a move.
       // Only actually need to clear one side's square, so could template this on Color...
-      board.pieces[White].epSquare = 0;
-      board.pieces[Black].epSquare = 0;
+      board.pieces[White].epSquare = InvalidSquare;
+      board.pieces[Black].epSquare = InvalidSquare;
 
       return board;
     }
