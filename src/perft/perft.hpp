@@ -639,19 +639,20 @@ namespace Chess {
       
       // King - cannot move into check
       // King also cannot move away from a checking slider cos it's still in check.
-      // TODO - this seems to cut out too many squares.
+      // TODO - this cuts out some legal squares squares.
       BitBoardT illegalKingSquaresBb = BbNone;
+      BitBoardT myKingBb = myState.bbs[King];
       BitBoardT diagSliderCheckersBb = allMyKingAttackersBb & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
       while(diagSliderCheckersBb) {
 	SquareT sliderSq = Bits::popLsb(diagSliderCheckersBb);
-	illegalKingSquaresBb |= BishopRays[sliderSq];
+	illegalKingSquaresBb |= bishopAttacks(sliderSq, allPiecesBb & ~myKingBb);
       }
       BitBoardT orthogSliderCheckersBb = allMyKingAttackersBb & (yourState.bbs[Rook] | yourState.bbs[Queen]);
       while(orthogSliderCheckersBb) {
 	SquareT sliderSq = Bits::popLsb(orthogSliderCheckersBb);
-	illegalKingSquaresBb |= RookRays[sliderSq];
+	illegalKingSquaresBb |= rookAttacks(sliderSq, allPiecesBb & ~myKingBb);
       }
-      illegalKingSquaresBb = BbNone;// TODO - the above cuts out some legal moves?
+      //illegalKingSquaresBb = BbNone;// TODO - the above cuts out some legal moves?
       SquareT kingSq = myState.pieceSquares[SpecificKing];
       BitBoardT legalKingMovesBb = KingAttacks[kingSq] & ~yourAttacks.allAttacks & ~illegalKingSquaresBb;
       perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], legalKingMovesBb, allYourPiecesBb, allPiecesBb, BbAll);
@@ -660,7 +661,6 @@ namespace Chess {
 
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const MoveInfoT moveInfo) {
-
       // If this is a leaf node, gather stats.
       if(depthToGo == 0) {
 	perftImpl0<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, moveInfo);
