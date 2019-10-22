@@ -285,7 +285,7 @@ namespace Chess {
     }
     
     template <ColorT Color, SpecificPieceT SpecificPiece, typename MyBoardTraitsT, typename YourBoardTraitsT>
-    inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT attacksBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveFilterBb = BbAll/*TODO - get rid*/) {
+    inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT attacksBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveFilterBb) {
       BitBoardT legalAttacksBb = attacksBb & legalMoveFilterBb;
       perftImplSpecificPiecePushes<Color, SpecificPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, from, legalAttacksBb & ~allPiecesBb);
       perftImplSpecificPieceCaptures<Color, SpecificPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, from, legalAttacksBb & allYourPiecesBb);
@@ -309,7 +309,7 @@ namespace Chess {
     //   - orthogonally pinned bishops cannot move
     //   - diagonally pinned bishops can only move along the king's bishop rays
     template <ColorT Color, SpecificPieceT SpecificBishop, typename MyBoardTraitsT, typename YourBoardTraitsT>
-    inline void perftImplBishopMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT myKingBishopRays, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
+    inline void perftImplBishopMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT myKingBishopRays, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb, const BitBoardT legalMoveFilterBb) {
       const ColorStateT& myState = board.pieces[Color];
       SquareT specificBishopSq = myState.pieceSquares[SpecificBishop];
       if(specificBishopSq != InvalidSquare) {
@@ -319,7 +319,7 @@ namespace Chess {
 	  if(specificBishopBb & myDiagPinnedPiecesBb) {
 	    specificBishopAttacksBb &= myKingBishopRays;
 	  }
-	  perftImplSpecificPieceMoves<Color, SpecificBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, specificBishopSq, specificBishopAttacksBb, allYourPiecesBb, allPiecesBb);
+	  perftImplSpecificPieceMoves<Color, SpecificBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, specificBishopSq, specificBishopAttacksBb, allYourPiecesBb, allPiecesBb, legalMoveFilterBb);
 	}
       }
     }
@@ -328,7 +328,7 @@ namespace Chess {
     //   - diagonally pinned rooks cannot move
     //   - orthogonally pinned bishops can only move along the king's rook rays
     template <ColorT Color, SpecificPieceT SpecificRook, typename MyBoardTraitsT, typename YourBoardTraitsT>
-    inline void perftImplRookMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT myKingRookRays, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
+    inline void perftImplRookMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT myKingRookRays, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb, const BitBoardT legalMoveFilterBb) {
       const ColorStateT& myState = board.pieces[Color];
       SquareT specificRookSq = myState.pieceSquares[SpecificRook];
       if(specificRookSq != InvalidSquare) {
@@ -338,7 +338,7 @@ namespace Chess {
 	  if(specificRookBb & myOrthogPinnedPiecesBb) {
 	    specificRookAttacksBb &= myKingRookRays;
 	  }
-	  perftImplSpecificPieceMoves<Color, SpecificRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, specificRookSq, specificRookAttacksBb, allYourPiecesBb, allPiecesBb);
+	  perftImplSpecificPieceMoves<Color, SpecificRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, specificRookSq, specificRookAttacksBb, allYourPiecesBb, allPiecesBb, legalMoveFilterBb);
 	}
       }
     }
@@ -347,7 +347,7 @@ namespace Chess {
     //   - diagonally pinned queens can only move along the king's bishop rays
     //   - orthogonally pinned queens can only move along the king's rook rays
     template <ColorT Color, SpecificPieceT SpecificQueenPiece, typename MyBoardTraitsT, typename YourBoardTraitsT>
-    inline void perftImplQueenMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT myKingBishopRays, const BitBoardT myKingRookRays, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
+    inline void perftImplQueenMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT myKingBishopRays, const BitBoardT myKingRookRays, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb, const BitBoardT legalMoveFilterBb) {
       const ColorStateT& myState = board.pieces[Color];
       SquareT specificQueenSq = myState.pieceSquares[SpecificQueenPiece];
       if(specificQueenSq != InvalidSquare) {
@@ -359,7 +359,7 @@ namespace Chess {
 	if((specificQueenBb & myOrthogPinnedPiecesBb) != BbNone) {
 	  specificQueenAttacksBb &= myKingRookRays;
 	}
-	perftImplSpecificPieceMoves<Color, SpecificQueenPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, specificQueenSq, specificQueenAttacksBb, allYourPiecesBb, allPiecesBb);
+	perftImplSpecificPieceMoves<Color, SpecificQueenPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, specificQueenSq, specificQueenAttacksBb, allYourPiecesBb, allPiecesBb, legalMoveFilterBb);
       }
     }
       
@@ -628,27 +628,27 @@ namespace Chess {
 	//   - diagonally pinned bishops can only move along the king's bishop rays
 	//   - orthogonally pinned bishops cannot move
       
-	perftImplBishopMoves<Color, BlackBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	perftImplBishopMoves<Color, BlackBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, legalMoveFilterBb);
 
-	perftImplBishopMoves<Color, WhiteBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	perftImplBishopMoves<Color, WhiteBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, legalMoveFilterBb);
 
 	// Rooks
 	//   - diagonally pinned rooks cannot move
 	//   - orthogonally pinned bishops can only move along the king's rook rays
 
-	perftImplRookMoves<Color, QueenRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	perftImplRookMoves<Color, QueenRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, legalMoveFilterBb);
 
-	perftImplRookMoves<Color, KingRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	perftImplRookMoves<Color, KingRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, legalMoveFilterBb);
 
 	// Queens
 	//   - diagonally pinned queens can only move along the king's bishop rays
 	//   - orthogonally pinned queens can only move along the king's rook rays
 
-	perftImplQueenMoves<Color, SpecificQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	perftImplQueenMoves<Color, SpecificQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, legalMoveFilterBb);
 	// TODO other promo pieces
 	if(MyBoardTraitsT::hasPromos) {
 	  if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
-	    perftImplQueenMoves<Color, PromoQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	    perftImplQueenMoves<Color, PromoQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, legalMoveFilterBb);
 	  }
 	}
 
@@ -670,7 +670,7 @@ namespace Chess {
       // King - cannot move into check
       SquareT kingSq = myState.pieceSquares[SpecificKing];
       BitBoardT legalKingMovesBb = KingAttacks[kingSq] & ~yourAttacks.allAttacks;
-      perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], legalKingMovesBb, allYourPiecesBb, allPiecesBb);
+      perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], legalKingMovesBb, allYourPiecesBb, allPiecesBb, BbAll);
 
     }
 
