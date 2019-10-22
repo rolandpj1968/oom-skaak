@@ -332,10 +332,10 @@ namespace Chess {
 	  const SquareT captureSq = pawnPushOneTo2From<Color>(to);
 	  const BitBoardT captureSquareBb = bbForSquare(captureSq);
 
-	  // Note that a discovered check can only be diagonal or horizontal, because the capturing pawn ends up on the same orthogonal.
-	  // Mmm, horizontal is really tricky because it involves both capturing and captured pawn.
-	  // TODO - horizontal detection
+	  // Note that a discovered check can only be diagonal or horizontal, because the capturing pawn ends up on the same file as the captured pawn.
 	  const BitBoardT diagPinnedEpPawnBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
+	  // Horizontal is really tricky because it involves both capturing and captured pawn.
+	  // We detect it by removing them both and looking for a king attack - could optimise this... TODO anyhow
 	  const BitBoardT orthogPinnedEpPawnBb = BbNone; //genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
 
 	  if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) != BbNone) {
@@ -475,7 +475,7 @@ namespace Chess {
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 
       // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
-      const bool CheckForInvalid = true;
+      const bool CheckForInvalid = false;
       if(CheckForInvalid) {
 	// Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
 	const SquareAttackersT yourKingAttackers = genSquareAttackers<Color, MyBoardTraitsT>(yourState.pieceSquares[SpecificKing], myState, allPiecesBb);
