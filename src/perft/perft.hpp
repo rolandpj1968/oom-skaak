@@ -447,7 +447,7 @@ namespace Chess {
 	// Illegal position - doesn't count
 	stats.invalidsnon0++;
 	static bool done = false;
-	if(false && !done) {
+	if(!done) {
 	  printf("\n============================================== Invalid - last move to %d! ===================================\n\n", moveInfo.to);
 	  printBoard(board);
 	  printf("\n");
@@ -493,7 +493,6 @@ namespace Chess {
 	  }
 	}
 	  
-
 	// Calculate pins
       
 	// Find my pinned pieces - used to filter out invalid moves
@@ -529,52 +528,6 @@ namespace Chess {
 	}
 	// Gack - picks up pieces on the other side of the king
 	BitBoardT myOrthogPinnedPiecesBb = myCandidateOrthogPinnedPiecesBb & pinnerOrthogonalsBb;
-
-	if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) != BbNone) {
-	  if(false && myDiagPinnedPiecesBb) {
-	    static bool done = false;
-	    if(!done) {
-	      printf("\n==================== Color %s ========================= Diag Pins! ===================================\n\n", (Color == White ? "White" : "Black"));
-	      printBoard(board);
-	      printf("\n\n myKingDiagAttackersBb:\n");
-	      printBb(myKingDiagAttackersBb);
-	      printf("\n\n myCandidateDiagPinnedPiecesBb:\n");
-	      printBb(myCandidateDiagPinnedPiecesBb);
-	      printf("\n\n myKingDiagXrayAttackersBb:\n");
-	      printBb(myKingDiagXrayAttackersBb);
-	      printf("\n\n yourDiagPinnersBb:\n");
-	      printBb(yourDiagPinnersBb);
-	      printf("\n\n myDiagPinnedPiecesBb:\n");
-	      printBb(myDiagPinnedPiecesBb);
-	      printf("\n");
-	      done = true;
-	    }
-	    stats.withyourpins++;
-	  }
-	  if(false && myOrthogPinnedPiecesBb) {
-	    static bool done = false;
-	    if(!done) {
-	      printf("\n============================================== Orthog Pins! ===================================\n\n");
-	      printBoard(board);
-	      printf("\n\n myKingOrthogAttackersBb:\n");
-	      printBb(myKingOrthogAttackersBb);
-	      printf("\n\n myCandidateOrthogPinnedPiecesBb:\n");
-	      printBb(myCandidateOrthogPinnedPiecesBb);
-	      printf("\n\n myKingOrthogXrayAttackersBb:\n");
-	      printBb(myKingOrthogXrayAttackersBb);
-	      printf("\n\n yourOrthogPinnersBb:\n");
-	      printBb(yourOrthogPinnersBb);
-	      printf("\n\n myOrthogPinnedPiecesBb:\n");
-	      printBb(myOrthogPinnedPiecesBb);
-	      printf("\n");
-	      done = true;
-	    }
-	    stats.withyourpins++;
-	  }
-	}
-	if((yourDiagPinnersBb | yourOrthogPinnersBb) != BbNone) {
-	  stats.withyourpins2++;
-	}
 
 	// Evaluate moves
 
@@ -645,6 +598,7 @@ namespace Chess {
 	//   - orthogonally pinned queens can only move along the king's rook rays
 
 	perftImplQueenMoves<Color, SpecificQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, legalMoveFilterBb);
+
 	// TODO other promo pieces
 	if(MyBoardTraitsT::hasPromos) {
 	  if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
@@ -668,6 +622,7 @@ namespace Chess {
       } // nChecks < 2
       
       // King - cannot move into check
+      // TODO - king also cannot move away from a checking slider cos it's still in check. Ugh!
       SquareT kingSq = myState.pieceSquares[SpecificKing];
       BitBoardT legalKingMovesBb = KingAttacks[kingSq] & ~yourAttacks.allAttacks;
       perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], legalKingMovesBb, allYourPiecesBb, allPiecesBb, BbAll);
