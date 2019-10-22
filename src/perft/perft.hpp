@@ -444,12 +444,19 @@ namespace Chess {
 	  if(((KingAttacks[myKingSq] | KnightAttacks[myKingSq]) & allMyKingAttackersBb) == BbNone) {
 	    // Distant check by a slider - we can also block the check.
 	    // So here we want to generate all (open) squares between the your checking piece and the king.
-	    // Work backwards from the king - we could split the diagonal and othrogonal attack cases but this is not a common code path.
-	    BitBoardT sliderAttacksFromMyKingBb = rookAttacks(myKingSq, allPiecesBb) | bishopAttacks(myKingSq, allPiecesBb);
+	    // Work backwards from the king
+	    // Compute the check-blocking squares as the intersection of my king's slider 'view' and the checking piece's attack squares.
+	    // Note for queens we need to restrict to the slider direction otherwise we get bogus 'blocking' squares in the other queen direction.
 	    SquareT checkingPieceSq = Bits::lsb(allMyKingAttackersBb);
 	    SpecificPieceT checkingSpecificPiece = squarePieceSpecificPiece(board.board[checkingPieceSq]);
-	    // Compute the check-blocking squares as the intersection of my king's slider 'view' and the checking piece's attack squares.
-	    legalMoveFilterBb |= sliderAttacksFromMyKingBb & yourAttacks.pieceAttacks[checkingSpecificPiece];
+	    BitBoardT diagAttacksFromMyKingBb = bishopAttacks(myKingSq, allPiecesBb);
+	    if(allMyKingAttackersBb & diagAttacksFromMyKingBb) {
+	      legalMoveFilterBb |= diagAttacksFromMyKingBb & yourAttacks.pieceAttacks[checkingSpecificPiece] & BishopRays[checkingPieceSq];
+	    }
+	    BitBoardT orthogAttacksFromMyKingBb = rookAttacks(myKingSq, allPiecesBb);
+	    if(allMyKingAttackersBb & orthogAttacksFromMyKingBb) {
+	      legalMoveFilterBb |= orthogAttacksFromMyKingBb & yourAttacks.pieceAttacks[checkingSpecificPiece] & RookRays[checkingPieceSq];
+	    }
 	  }
 	}
 
@@ -632,6 +639,7 @@ namespace Chess {
       
       // King - cannot move into check
       // King also cannot move away from a checking slider cos it's still in check.
+      // TODO - this seems to cut out too many squares.
       BitBoardT illegalKingSquaresBb = BbNone;
       BitBoardT diagSliderCheckersBb = allMyKingAttackersBb & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
       while(diagSliderCheckersBb) {
@@ -643,6 +651,7 @@ namespace Chess {
 	SquareT sliderSq = Bits::popLsb(orthogSliderCheckersBb);
 	illegalKingSquaresBb |= RookRays[sliderSq];
       }
+      illegalKingSquaresBb = BbNone;// TODO - the above cuts out some legal moves?
       SquareT kingSq = myState.pieceSquares[SpecificKing];
       BitBoardT legalKingMovesBb = KingAttacks[kingSq] & ~yourAttacks.allAttacks & ~illegalKingSquaresBb;
       perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], legalKingMovesBb, allYourPiecesBb, allPiecesBb, BbAll);
