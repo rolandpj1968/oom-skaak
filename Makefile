@@ -10,16 +10,16 @@ OBJ_FILES = $(addprefix obj/,$(notdir $(CPP_FILES:.cpp=.o)))
 
 # don't seem to get much better than plain old -O3
 
-#CC_FLAGS = -Wall -std=c++11 -fshort-enums -fno-exceptions -fno-rtti -finline-limit=2000 -flto -march=native -Ofast -I$(SRC_DIR)
+CC_FLAGS = -Wall -std=c++11 -fshort-enums -fno-exceptions -fno-rtti -finline-limit=2000 -flto -march=native -Ofast -I$(SRC_DIR)
 #CC_FLAGS = -Wall -std=c++11 -flto -march=native -O3 -I$(SRC_DIR)
-CC_FLAGS = -Wall -std=c++11 -flto -O3 -I$(SRC_DIR)
+#CC_FLAGS = -Wall -std=c++11 -flto -O3 -I$(SRC_DIR)
 #CC_FLAGS = -Wall -std=c++11 -fshort-enums -fno-exceptions -fno-rtti -flto -march=native -O3 -I$(SRC_DIR)
 #CC_FLAGS = -Wall -std=c++11 -fshort-enums -fno-exceptions -fno-rtti -flto -march=native -O2 -I$(SRC_DIR)
 #CC_FLAGS = -Wall -std=c++11 -I$(SRC_DIR)
 
-#LD_FLAGS = -fshort-enums -fno-exceptions -fno-rtti -finline-limit=2000 -flto -march=native -Ofast
+LD_FLAGS = -fshort-enums -fno-exceptions -fno-rtti -finline-limit=2000 -flto -march=native -Ofast
 #LD_FLAGS = -flto -march=native -O3
-LD_FLAGS = -flto -O3
+#LD_FLAGS = -flto -O3
 #LD_FLAGS = -flto -march=native -O2
 #LD_FLAGS = 
 

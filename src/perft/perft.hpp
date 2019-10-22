@@ -324,7 +324,7 @@ namespace Chess {
 	const BitBoardT semiLegalEpCaptureRightBb = myAttacks.pawnsRightAttacks & epSquareBb & ~(myOrthogPinsRightAttacksBb | myUnsafeDiagPinsRightAttacksBb) & legalMoveFilterBb;
 
 	// Only do the heavy lifting of detecting discovered check through the captured pawn if there really is an en-passant opportunity
-	if((semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone) {
+	if(true || (semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone) {
 	  const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 	  const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
 	  
@@ -335,7 +335,7 @@ namespace Chess {
 	  const BitBoardT diagPinnedEpPawnBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
 	  const BitBoardT orthogPinnedEpPawnBb = genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
 
-	  if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) == BbNone) {
+	  if(true || (diagPinnedEpPawnBb | orthogPinnedEpPawnBb) == BbNone) {
 	    perftImplPawnEpCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, semiLegalEpCaptureLeftBb);
 	    perftImplPawnEpCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, semiLegalEpCaptureRightBb);
 	  }
@@ -462,7 +462,7 @@ namespace Chess {
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 
       // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
-      const bool CheckForInvalid = false;
+      const bool CheckForInvalid = true;
       if(CheckForInvalid) {
 	// Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
 	const SquareAttackersT yourKingAttackers = genSquareAttackers<Color, MyBoardTraitsT>(yourState.pieceSquares[SpecificKing], myState, allPiecesBb);
