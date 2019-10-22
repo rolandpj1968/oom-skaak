@@ -593,8 +593,9 @@ namespace Chess {
       //   - orthogonally pinned queens can only move along the king's rook rays
 
       perftImplQueenMoves<Color, SpecificQueen, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, myKingRookRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-      // King always present
-      perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], myAttacks.pieceAttacks[SpecificKing], allYourPiecesBb, allPiecesBb);
+      // King - cannot move into check
+      PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
+      perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], myAttacks.pieceAttacks[SpecificKing] & ~yourAttacks.allAttacks, allYourPiecesBb, allPiecesBb);
 
       // TODO other promo pieces
       if(MyBoardTraitsT::hasPromos) {
@@ -606,7 +607,6 @@ namespace Chess {
       // Castling
       CastlingRightsT castlingRights2 = castlingRightsWithSpace<Color>(myState.castlingRights, allPiecesBb);
       if(castlingRights2) {
-	PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
 
 	if((castlingRights2 & CanCastleQueenside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleQueenside>::CastlingThruCheckBbMask) == BbNone) {
 	  perftImplCastlingMove<Color, CanCastleQueenside, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo);
