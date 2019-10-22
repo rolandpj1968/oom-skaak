@@ -460,6 +460,7 @@ namespace Chess {
 
       SquareAttackersT myKingAttackers = genSquareAttackers<OtherColorT<Color>::value, MyBoardTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
       BitBoardT allMyKingAttackersBb = myKingAttackers.pieceAttackers[AllPieces];
+      SquareT myKingSq = myState.pieceSquares[SpecificKing];
 
       int nChecks = Bits::count(allMyKingAttackersBb);
 
@@ -469,13 +470,31 @@ namespace Chess {
       // Double check can only be evaded by moving the king
       if(nChecks < 2) {
 
+	BitBoardT legalMoveFilterBb = BbAll;
+	
 	// When in check, limit moves to captures of the checking piece, and blockers of the checking piece
-	//BitBoardT moveFilterBb = (nChecks != 0) ? allMyKingAttackersBb : BbNone;
+	if(nChecks != 0) {
+	  // We can evade check by capturing the checking piece
+	  legalMoveFilterBb = allMyKingAttackersBb;
+	  
+	  // There can be only one piece delivering check in this path (nChecks < 2)
+	  // If it is a contact check (including knight check) then only a capture (or king move) will evade check.
+	  if(((KingAttacks[myKingSq] | KnightAttacks[myKingSq]) & allMyKingAttackersBb) == BbNone) {
+	    // Distant check by a slider - we can also block the check.
+	    // So here we want to generate all (open) squares between the your checking piece and the king.
+	    // Work backwards from the king - we could split the diagonal and othrogonal attack cases but this is not a common code path.
+	    BitBoardT sliderAttacksFromMyKingBb = rookAttacks(myKingSq, allPiecesBb) | bishopAttacks(myKingSq, allPiecesBb);
+	    SquareT checkingPieceSq = Bits::lsb(allMyKingAttackersBb);
+	    SpecificPieceT checkingSpecificPiece = squarePieceSpecificPiece(board.board[checkingPieceSq]);
+	    // Compute the check-blocking squares as the intersection of my king's slider 'view' and the checking piece's attack squares.
+	    legalMoveFilterBb |= sliderAttacksFromMyKingBb & yourAttacks.pieceAttacks[checkingSpecificPiece];
+	  }
+	}
+	  
 
 	// Calculate pins
       
 	// Find my pinned pieces - used to filter out invalid moves
-	SquareT myKingSq = myState.pieceSquares[SpecificKing];
 
 	// Diagonally pinned pieces
 	BitBoardT myKingDiagAttackersBb = bishopAttacks(myKingSq, allPiecesBb);
@@ -560,16 +579,14 @@ namespace Chess {
 	// We can only push pawns if we're not in check
 	// TODO erm, no - we can also block the checking piece. Urg
 
-	if(true || allMyKingAttackersBb == BbNone) {
-	  // Pawn pushes - remove pawns with diagonal pins, and pawns with orthogonal pins along the rank of the king
-	  BitBoardT myDiagAndKingRankPinsBb = myDiagPinnedPiecesBb | (myOrthogPinnedPiecesBb & RankBbs[rankOf(myKingSq)]);
-	  BitBoardT myDiagAndKingRankPinsPushOneBb = pawnsPushOne<Color>(myDiagAndKingRankPinsBb, BbNone);
-	  BitBoardT nonPinnedPawnsPushOneBb = myAttacks.pawnsPushOne & ~myDiagAndKingRankPinsPushOneBb;
-	  perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, nonPinnedPawnsPushOneBb);
-	  BitBoardT myDiagAndKingRankPinsPushTwoBb = pawnsPushOne<Color>(myDiagAndKingRankPinsPushOneBb, BbNone);
-	  BitBoardT nonPinnedPawnsPushTwoBb = myAttacks.pawnsPushTwo & ~myDiagAndKingRankPinsPushTwoBb;
-	  perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, nonPinnedPawnsPushTwoBb);
-	}
+	// Pawn pushes - remove pawns with diagonal pins, and pawns with orthogonal pins along the rank of the king
+	BitBoardT myDiagAndKingRankPinsBb = myDiagPinnedPiecesBb | (myOrthogPinnedPiecesBb & RankBbs[rankOf(myKingSq)]);
+	BitBoardT myDiagAndKingRankPinsPushOneBb = pawnsPushOne<Color>(myDiagAndKingRankPinsBb, BbNone);
+	BitBoardT nonPinnedPawnsPushOneBb = myAttacks.pawnsPushOne & ~myDiagAndKingRankPinsPushOneBb;
+	perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, nonPinnedPawnsPushOneBb & legalMoveFilterBb);
+	BitBoardT myDiagAndKingRankPinsPushTwoBb = pawnsPushOne<Color>(myDiagAndKingRankPinsPushOneBb, BbNone);
+	BitBoardT nonPinnedPawnsPushTwoBb = myAttacks.pawnsPushTwo & ~myDiagAndKingRankPinsPushTwoBb;
+	perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, nonPinnedPawnsPushTwoBb);
 	
 	// Pawn captures - remove pawns with orthogonal pins, and pawns with diagonal pins in the other direction from the capture.
 	// Pawn captures on the king's bishop rays are always safe, so we want to remove diagonal pins that are NOT on the king's bishop rays
