@@ -346,9 +346,9 @@ namespace Chess {
     template <ColorT Color, SpecificPieceT SpecificPiece, PushOrCaptureT PushOrCapture, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT toBb, const MoveTypeT moveType) {
       while(toBb) {
-	SquareT to = Bits::popLsb(toBb);
+	const SquareT to = Bits::popLsb(toBb);
 
-	BoardT newBoard = moveSpecificPiece<Color, SpecificPiece, PushOrCapture>(board, from, to);
+	const BoardT newBoard = moveSpecificPiece<Color, SpecificPiece, PushOrCapture>(board, from, to);
 
 	perftImpl<OtherColorT<Color>::value, YourBoardTraitsT, MyBoardTraitsT>(stats, newBoard, depthToGo-1, MoveInfoT(moveType, to));
       }
@@ -375,7 +375,7 @@ namespace Chess {
     template <ColorT Color, SpecificPieceT SpecificKnight, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImplKnightMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT myPinnedPiecesBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveFilterBb) {
       const ColorStateT& myState = board.pieces[Color];
-      SquareT specificKnightSq = myState.pieceSquares[SpecificKnight];
+      const SquareT specificKnightSq = myState.pieceSquares[SpecificKnight];
       if(specificKnightSq != InvalidSquare) {
 	const BitBoardT specificKnightBb = bbForSquare(specificKnightSq);
 	if((specificKnightBb & myPinnedPiecesBb) == BbNone) {
@@ -391,7 +391,7 @@ namespace Chess {
     template <ColorT Color, SpecificPieceT SpecificBishop, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImplBishopMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT myKingBishopRays, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb, const BitBoardT legalMoveFilterBb) {
       const ColorStateT& myState = board.pieces[Color];
-      SquareT specificBishopSq = myState.pieceSquares[SpecificBishop];
+      const SquareT specificBishopSq = myState.pieceSquares[SpecificBishop];
       if(specificBishopSq != InvalidSquare) {
 	const BitBoardT specificBishopBb = bbForSquare(specificBishopSq);
 	if((specificBishopBb & myOrthogPinnedPiecesBb) == BbNone) {
@@ -410,7 +410,7 @@ namespace Chess {
     template <ColorT Color, SpecificPieceT SpecificRook, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImplRookMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT myKingRookRays, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb, const BitBoardT legalMoveFilterBb) {
       const ColorStateT& myState = board.pieces[Color];
-      SquareT specificRookSq = myState.pieceSquares[SpecificRook];
+      const SquareT specificRookSq = myState.pieceSquares[SpecificRook];
       if(specificRookSq != InvalidSquare) {
 	const BitBoardT specificRookBb = bbForSquare(specificRookSq);
 	if((specificRookBb & myDiagPinnedPiecesBb) == BbNone) {
@@ -429,7 +429,7 @@ namespace Chess {
     template <ColorT Color, SpecificPieceT SpecificQueenPiece, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImplQueenMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT myKingBishopRays, const BitBoardT myKingRookRays, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb, const BitBoardT legalMoveFilterBb) {
       const ColorStateT& myState = board.pieces[Color];
-      SquareT specificQueenSq = myState.pieceSquares[SpecificQueenPiece];
+      const SquareT specificQueenSq = myState.pieceSquares[SpecificQueenPiece];
       if(specificQueenSq != InvalidSquare) {
 	const BitBoardT specificQueenBb = bbForSquare(specificQueenSq);
 	BitBoardT specificQueenAttacksBb = myAttacks.pieceAttacks[SpecificQueenPiece];
@@ -445,8 +445,8 @@ namespace Chess {
       
     template <ColorT Color, CastlingRightsT CastlingRight, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImplCastlingMove(PerftStatsT& stats, const BoardT& board, const int depthToGo) {
-      BoardT newBoard1 = moveSpecificPiece<Color, SpecificKing, Push>(board, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo);
-      BoardT newBoard = moveSpecificPiece<Color, CastlingTraitsT<Color, CastlingRight>::SpecificRook, Push>(newBoard1, CastlingTraitsT<Color, CastlingRight>::RookFrom, CastlingTraitsT<Color, CastlingRight>::RookTo);
+      const BoardT newBoard1 = moveSpecificPiece<Color, SpecificKing, Push>(board, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo);
+      const BoardT newBoard = moveSpecificPiece<Color, CastlingTraitsT<Color, CastlingRight>::SpecificRook, Push>(newBoard1, CastlingTraitsT<Color, CastlingRight>::RookFrom, CastlingTraitsT<Color, CastlingRight>::RookTo);
 
       // We pass the rook 'to' square cos we use it for discovered check and check from castling is not considered 'discovered'
       // Or maybe not - getting wrong discoveries count compared to wiki lore - let's try the king instead.
@@ -462,7 +462,7 @@ namespace Chess {
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 
       // Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
-      SquareAttackersT yourKingAttackers = genSquareAttackers<Color, MyBoardTraitsT>(yourState.pieceSquares[SpecificKing], myState, allPiecesBb);
+      const SquareAttackersT yourKingAttackers = genSquareAttackers<Color, MyBoardTraitsT>(yourState.pieceSquares[SpecificKing], myState, allPiecesBb);
       if(yourKingAttackers.pieceAttackers[AllPieces] != 0) {
 	// Illegal position - doesn't count
 	stats.invalids++;
@@ -492,7 +492,7 @@ namespace Chess {
       }
 
       // Is my king in check?
-      SquareAttackersT myKingAttackers = genSquareAttackers<OtherColorT<Color>::value, MyBoardTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
+      const SquareAttackersT myKingAttackers = genSquareAttackers<OtherColorT<Color>::value, MyBoardTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
       const BitBoardT allMyKingAttackers = myKingAttackers.pieceAttackers[AllPieces];
       if(allMyKingAttackers != 0) {
 	stats.checks++;
@@ -534,8 +534,8 @@ namespace Chess {
 	    // Work backwards from the king
 	    // Compute the check-blocking squares as the intersection of my king's slider 'view' and the checking piece's attack squares.
 	    // Note for queens we need to restrict to the slider direction otherwise we get bogus 'blocking' squares in the other queen direction.
-	    SquareT checkingPieceSq = Bits::lsb(allMyKingAttackersBb);
-	    SpecificPieceT checkingSpecificPiece = squarePieceSpecificPiece(board.board[checkingPieceSq]);
+	    const SquareT checkingPieceSq = Bits::lsb(allMyKingAttackersBb);
+	    const SpecificPieceT checkingSpecificPiece = squarePieceSpecificPiece(board.board[checkingPieceSq]);
 	    const BitBoardT diagAttacksFromMyKingBb = bishopAttacks(myKingSq, allPiecesBb);
 	    if(allMyKingAttackersBb & diagAttacksFromMyKingBb) {
 	      legalMoveFilterBb |= diagAttacksFromMyKingBb & yourAttacks.pieceAttacks[checkingSpecificPiece] & BishopRays[checkingPieceSq];
@@ -562,7 +562,7 @@ namespace Chess {
       // Check for position legality - eventually do this in the parent
       
       // Generate moves
-      PieceAttacksT myAttacks = genPieceAttacks<Color, MyBoardTraitsT>(myState, allPiecesBb);
+      const PieceAttacksT myAttacks = genPieceAttacks<Color, MyBoardTraitsT>(myState, allPiecesBb);
 
       // Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
       if((myAttacks.allAttacks & yourState.bbs[King]) != 0) {
@@ -582,14 +582,14 @@ namespace Chess {
 
       // Evaluate check - eventually do this in the parent
 
-      SquareAttackersT myKingAttackers = genSquareAttackers<OtherColorT<Color>::value, MyBoardTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
+      const SquareAttackersT myKingAttackers = genSquareAttackers<OtherColorT<Color>::value, MyBoardTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
       const BitBoardT allMyKingAttackersBb = myKingAttackers.pieceAttackers[AllPieces];
-      SquareT myKingSq = myState.pieceSquares[SpecificKing];
+      const SquareT myKingSq = myState.pieceSquares[SpecificKing];
 
-      int nChecks = Bits::count(allMyKingAttackersBb);
+      const int nChecks = Bits::count(allMyKingAttackersBb);
 
       // Needed for castling and for king moves so evaluate this here.
-      PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
+      const PieceAttacksT yourAttacks = genPieceAttacks<OtherColorT<Color>::value, YourBoardTraitsT>(yourState, allPiecesBb);
       
       // Double check can only be evaded by moving the king
       if(nChecks < 2) {
@@ -669,16 +669,16 @@ namespace Chess {
       const BitBoardT myKingBb = myState.bbs[King];
       BitBoardT diagSliderCheckersBb = allMyKingAttackersBb & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
       while(diagSliderCheckersBb) {
-	SquareT sliderSq = Bits::popLsb(diagSliderCheckersBb);
+	const SquareT sliderSq = Bits::popLsb(diagSliderCheckersBb);
 	illegalKingSquaresBb |= bishopAttacks(sliderSq, allPiecesBb & ~myKingBb);
       }
       BitBoardT orthogSliderCheckersBb = allMyKingAttackersBb & (yourState.bbs[Rook] | yourState.bbs[Queen]);
       while(orthogSliderCheckersBb) {
-	SquareT sliderSq = Bits::popLsb(orthogSliderCheckersBb);
+	const SquareT sliderSq = Bits::popLsb(orthogSliderCheckersBb);
 	illegalKingSquaresBb |= rookAttacks(sliderSq, allPiecesBb & ~myKingBb);
       }
       //illegalKingSquaresBb = BbNone;// TODO - the above cuts out some legal moves?
-      SquareT kingSq = myState.pieceSquares[SpecificKing];
+      const SquareT kingSq = myState.pieceSquares[SpecificKing];
       const BitBoardT legalKingMovesBb = KingAttacks[kingSq] & ~yourAttacks.allAttacks & ~illegalKingSquaresBb;
       perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], legalKingMovesBb, allYourPiecesBb, allPiecesBb, BbAll);
 
