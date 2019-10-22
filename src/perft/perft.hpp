@@ -631,9 +631,20 @@ namespace Chess {
       } // nChecks < 2
       
       // King - cannot move into check
-      // TODO - king also cannot move away from a checking slider cos it's still in check. Ugh!
+      // King also cannot move away from a checking slider cos it's still in check.
+      BitBoardT illegalKingSquaresBb = BbNone;
+      BitBoardT diagSliderCheckersBb = allMyKingAttackersBb & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
+      while(diagSliderCheckersBb) {
+	SquareT sliderSq = Bits::popLsb(diagSliderCheckersBb);
+	illegalKingSquaresBb |= BishopRays[sliderSq];
+      }
+      BitBoardT orthogSliderCheckersBb = allMyKingAttackersBb & (yourState.bbs[Rook] | yourState.bbs[Queen]);
+      while(orthogSliderCheckersBb) {
+	SquareT sliderSq = Bits::popLsb(orthogSliderCheckersBb);
+	illegalKingSquaresBb |= RookRays[sliderSq];
+      }
       SquareT kingSq = myState.pieceSquares[SpecificKing];
-      BitBoardT legalKingMovesBb = KingAttacks[kingSq] & ~yourAttacks.allAttacks;
+      BitBoardT legalKingMovesBb = KingAttacks[kingSq] & ~yourAttacks.allAttacks & ~illegalKingSquaresBb;
       perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], legalKingMovesBb, allYourPiecesBb, allPiecesBb, BbAll);
 
     }
