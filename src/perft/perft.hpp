@@ -427,6 +427,34 @@ namespace Chess {
 	}
       }
     }
+
+    // Generate a legal move filter for non-king moves - only valid for no check or single check.
+    //   If we're not in check then all moves are legal.
+    //   If we're in check then we must capture or block the checking piece.
+    inline BitBoardT genLegalMoveFilterBb(const BoardT& board, const int nChecks, const BitBoardT allMyKingAttackersBb, const SquareT myKingSq, const BitBoardT allPiecesBb, const PieceAttacksT& yourAttacks) {
+	BitBoardT legalMoveFilterBb = BbAll;
+	
+	// When in check, limit moves to captures of the checking piece, and blockers of the checking piece
+	if(nChecks != 0) {
+	  // We can evade check by capturing the checking piece
+	  legalMoveFilterBb = allMyKingAttackersBb;
+	  
+	  // There can be only one piece delivering check in this path (nChecks < 2)
+	  // If it is a contact check (including knight check) then only a capture (or king move) will evade check.
+	  if(((KingAttacks[myKingSq] | KnightAttacks[myKingSq]) & allMyKingAttackersBb) == BbNone) {
+	    // Distant check by a slider - we can also block the check.
+	    // So here we want to generate all (open) squares between the your checking piece and the king.
+	    // Work backwards from the king - we could split the diagonal and othrogonal attack cases but this is not a common code path.
+	    BitBoardT sliderAttacksFromMyKingBb = rookAttacks(myKingSq, allPiecesBb) | bishopAttacks(myKingSq, allPiecesBb);
+	    SquareT checkingPieceSq = Bits::lsb(allMyKingAttackersBb);
+	    SpecificPieceT checkingSpecificPiece = squarePieceSpecificPiece(board.board[checkingPieceSq]);
+	    // Compute the check-blocking squares as the intersection of my king's slider 'view' and the checking piece's attack squares.
+	    legalMoveFilterBb |= sliderAttacksFromMyKingBb & yourAttacks.pieceAttacks[checkingSpecificPiece];
+	  }
+	}
+
+	return legalMoveFilterBb;
+    }
     
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImplFull(PerftStatsT& stats, const BoardT& board, const int depthToGo, const MoveInfoT moveInfo) {
@@ -472,26 +500,8 @@ namespace Chess {
       // Double check can only be evaded by moving the king
       if(nChecks < 2) {
 
-	BitBoardT legalMoveFilterBb = BbAll;
-	
-	// When in check, limit moves to captures of the checking piece, and blockers of the checking piece
-	if(nChecks != 0) {
-	  // We can evade check by capturing the checking piece
-	  legalMoveFilterBb = allMyKingAttackersBb;
-	  
-	  // There can be only one piece delivering check in this path (nChecks < 2)
-	  // If it is a contact check (including knight check) then only a capture (or king move) will evade check.
-	  if(((KingAttacks[myKingSq] | KnightAttacks[myKingSq]) & allMyKingAttackersBb) == BbNone) {
-	    // Distant check by a slider - we can also block the check.
-	    // So here we want to generate all (open) squares between the your checking piece and the king.
-	    // Work backwards from the king - we could split the diagonal and othrogonal attack cases but this is not a common code path.
-	    BitBoardT sliderAttacksFromMyKingBb = rookAttacks(myKingSq, allPiecesBb) | bishopAttacks(myKingSq, allPiecesBb);
-	    SquareT checkingPieceSq = Bits::lsb(allMyKingAttackersBb);
-	    SpecificPieceT checkingSpecificPiece = squarePieceSpecificPiece(board.board[checkingPieceSq]);
-	    // Compute the check-blocking squares as the intersection of my king's slider 'view' and the checking piece's attack squares.
-	    legalMoveFilterBb |= sliderAttacksFromMyKingBb & yourAttacks.pieceAttacks[checkingSpecificPiece];
-	  }
-	}
+	// If we're in check then the only legal moves are capture or blocking of the checking piece.
+	BitBoardT legalMoveFilterBb = genLegalMoveFilterBb(board, nChecks, allMyKingAttackersBb, myKingSq, allPiecesBb, yourAttacks);
 	  
 	// Calculate pins
       
