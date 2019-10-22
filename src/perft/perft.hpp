@@ -324,7 +324,7 @@ namespace Chess {
 	const BitBoardT semiLegalEpCaptureRightBb = myAttacks.pawnsRightAttacks & epSquareBb & ~(myOrthogPinsRightAttacksBb | myUnsafeDiagPinsRightAttacksBb) & legalMoveFilterBb;
 
 	// Only do the heavy lifting of detecting discovered check through the captured pawn if there really is an en-passant opportunity
-	if(true || (semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone) {
+	if((semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone) {
 	  const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 	  const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
 	  
@@ -332,10 +332,23 @@ namespace Chess {
 	  const SquareT captureSq = pawnPushOneTo2From<Color>(to);
 	  const BitBoardT captureSquareBb = bbForSquare(captureSq);
 
+	  // Note that a discovered check can only be diagonal or horizontal, because the capturing pawn ends up on the same orthogonal.
+	  // Mmm, horizontal is really tricky because it involves both capturing and captured pawn.
+	  // TODO - horizontal detection
 	  const BitBoardT diagPinnedEpPawnBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
-	  const BitBoardT orthogPinnedEpPawnBb = genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
+	  const BitBoardT orthogPinnedEpPawnBb = BbNone; //genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
 
-	  if(true || (diagPinnedEpPawnBb | orthogPinnedEpPawnBb) == BbNone) {
+	  if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) != BbNone) {
+	    static bool done = false;
+	    if(!done) {
+	      printf("\n============================================== EP avoidance EP square is %d ===================================\n\n", epSquare);
+	      printBoard(board);
+	      printf("\n");
+	      done = true;
+	    }
+	  }
+
+	  if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) == BbNone) {
 	    perftImplPawnEpCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, semiLegalEpCaptureLeftBb);
 	    perftImplPawnEpCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, semiLegalEpCaptureRightBb);
 	  }
