@@ -392,6 +392,15 @@ namespace Chess {
       return (specificKnightBb & (myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb)) == BbNone ? BbAll : BbNone;
     }
     
+    // Bishops
+    //   - orthogonally pinned bishops cannot move
+    //   - diagonally pinned bishops can only move along the king's bishop rays
+    template <> inline BitBoardT genPinnedMoveMask<Bishop>(const BitBoardT specificBishopBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb, const BitBoardT myKingBishopRays, const BitBoardT myKingRookRays) {
+      const BitBoardT orthogPinnedMoveMaskBb = (specificBishopBb & myOrthogPinnedPiecesBb) == BbNone ? BbAll : BbNone;
+      const BitBoardT diagPinnedMoveMask = (specificBishopBb & myDiagPinnedPiecesBb) == BbNone ? BbAll : myKingBishopRays;
+      return orthogPinnedMoveMaskBb & diagPinnedMoveMask;
+    }
+    
     template <ColorT Color, SpecificPieceT SpecificPiece, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImplSpecificPieceMovesWithPins(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb, const BitBoardT myKingBishopRays, const BitBoardT myKingRookRays) {
       
@@ -634,12 +643,10 @@ namespace Chess {
 	perftImplSpecificPieceMovesWithPins<Color, KingKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, myKingBishopRays, myKingRookRays);
 	
 	// Bishops
-	//   - diagonally pinned bishops can only move along the king's bishop rays
-	//   - orthogonally pinned bishops cannot move
       
-	perftImplBishopMoves<Color, BlackBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, legalMoveMaskBb);
+	perftImplSpecificPieceMovesWithPins<Color, BlackBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, myKingBishopRays, myKingRookRays);
 
-	perftImplBishopMoves<Color, WhiteBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingBishopRays, allYourPiecesBb, allPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, legalMoveMaskBb);
+	perftImplSpecificPieceMovesWithPins<Color, WhiteBishop, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, myKingBishopRays, myKingRookRays);
 
 	// Rooks
 	//   - diagonally pinned rooks cannot move
