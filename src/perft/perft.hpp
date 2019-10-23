@@ -31,6 +31,22 @@ namespace Chess {
       u64 non0withorthogpins;
     };
 
+    struct PiecePinMasksT {
+      // Pawn pin masks - single bit board for all pawns for each move type.
+      // BitBoardT pawnsLeftPinMasks;
+      // BitBoardT pawnsRightPinMasks;
+      // BitBoardT pawnsPushOne;
+      // BitBoardT pawnsPushTwo;
+
+      // Per-piece pin masks
+      BitBoardT piecePinMasks[NSpecificPieceTypes];
+      
+      // Uncommon promo piece moves - one for each pawn - one for each promo piece except 2nd queen.
+      // BitBoardT promoPiecePinMasks[NPawns];
+      
+      // BitBoardT allPinMasks;
+    };
+
 #include <boost/preprocessor/iteration/local.hpp>
     const u8 QueensideCastleSpaceBits = 0x07;
     const u8 KingsideCastleSpaceBits = 0x30;
@@ -379,12 +395,25 @@ namespace Chess {
     }
     
     template <ColorT Color, SpecificPieceT SpecificPiece, typename MyBoardTraitsT, typename YourBoardTraitsT>
-    inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, const BitBoardT attacksBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const BitBoardT pinnedMoveMaskBb = BbAll) {
+    inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, const BitBoardT attacksBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const BitBoardT pinnedMoveMaskBb) {
       const BitBoardT legalAttacksBb = attacksBb & legalMoveMaskBb & pinnedMoveMaskBb;
       perftImplSpecificPiecePushes<Color, SpecificPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, from, legalAttacksBb & ~allPiecesBb);
       perftImplSpecificPieceCaptures<Color, SpecificPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, from, legalAttacksBb & allYourPiecesBb);
     }
 
+    template <ColorT Color, SpecificPieceT SpecificPiece, typename MyBoardTraitsT, typename YourBoardTraitsT>
+    inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
+
+      const ColorStateT& myState = board.pieces[Color];
+      const SquareT from = myState.pieceSquares[SpecificPiece];
+
+      const BitBoardT legalAttacksBb = myAttacks.pieceAttacks[SpecificPiece] & legalMoveMaskBb & pinMasks.piecePinMasks[SpecificPiece];
+      
+      perftImplSpecificPiecePushes<Color, SpecificPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, from, legalAttacksBb & ~allPiecesBb);
+      
+      perftImplSpecificPieceCaptures<Color, SpecificPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, from, legalAttacksBb & allYourPiecesBb);
+    }
+    
     // Pinned move mark generation - TODO factor out for pawns too
     
     template <PieceT Piece>
@@ -437,22 +466,6 @@ namespace Chess {
       
       perftImplSpecificPieceMoves<Color, SpecificPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, pieceSq, myAttacks.pieceAttacks[SpecificPiece], allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinnedMoveMaskBb);
     }
-
-    struct PiecePinMasksT {
-      // Pawn pin masks - single bit board for all pawns for each move type.
-      // BitBoardT pawnsLeftPinMasks;
-      // BitBoardT pawnsRightPinMasks;
-      // BitBoardT pawnsPushOne;
-      // BitBoardT pawnsPushTwo;
-
-      // Per-piece pin masks
-      BitBoardT piecePinMasks[NSpecificPieceTypes];
-      
-      // Uncommon promo piece moves - one for each pawn - one for each promo piece except 2nd queen.
-      // BitBoardT promoPiecePinMasks[NPawns];
-      
-      // BitBoardT allPinMasks;
-    };
 
     // Fill a pin mask structure with BbAll for all pieces.
     // TODO - pawns too
@@ -698,9 +711,8 @@ namespace Chess {
 	perftImplPawnMoves<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingSq, allMyPiecesBb, allYourPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, yourState.epSquare, legalMoveMaskBb);
 	// Knights
 
-	perftImplSpecificPieceMovesWithPins<Color, QueenKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-
-	perftImplSpecificPieceMovesWithPins<Color, KingKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	perftImplSpecificPieceMoves<Color, QueenKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perftImplSpecificPieceMoves<Color, KingKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
 	
 	// Bishops
       
@@ -743,7 +755,6 @@ namespace Chess {
       
       // King - cannot move into check
       // King also cannot move away from a checking slider cos it's still in check.
-      // TODO - this cuts out some legal squares squares.
       BitBoardT illegalKingSquaresBb = BbNone;
       const BitBoardT myKingBb = myState.bbs[King];
       BitBoardT diagSliderCheckersBb = allMyKingAttackersBb & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
@@ -756,10 +767,10 @@ namespace Chess {
 	const SquareT sliderSq = Bits::popLsb(orthogSliderCheckersBb);
 	illegalKingSquaresBb |= rookAttacks(sliderSq, allPiecesBb & ~myKingBb);
       }
-      //illegalKingSquaresBb = BbNone;// TODO - the above cuts out some legal moves?
+
       const SquareT kingSq = myState.pieceSquares[SpecificKing];
       const BitBoardT legalKingMovesBb = KingAttacks[kingSq] & ~yourAttacks.allAttacks & ~illegalKingSquaresBb;
-      perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], legalKingMovesBb, allYourPiecesBb, allPiecesBb, BbAll);
+      perftImplSpecificPieceMoves<Color, SpecificKing, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], legalKingMovesBb, allYourPiecesBb, allPiecesBb, BbAll, BbAll);
 
     }
 
