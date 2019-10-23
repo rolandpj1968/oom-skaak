@@ -385,7 +385,7 @@ namespace Chess {
       perftImplSpecificPieceCaptures<Color, SpecificPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, from, legalAttacksBb & allYourPiecesBb);
     }
 
-    // New plan
+    // Pinned move mark generation - TODO factor out for pawns too
     
     template <PieceT Piece>
     inline BitBoardT genPinnedMoveMask(const SquareT pieceSq, const SquareT myKingSq, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb);
@@ -436,6 +436,82 @@ namespace Chess {
       const BitBoardT pinnedMoveMaskBb = genPinnedMoveMask<PieceForSpecificPieceT<SpecificPiece>::value>(pieceSq, myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
       
       perftImplSpecificPieceMoves<Color, SpecificPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, pieceSq, myAttacks.pieceAttacks[SpecificPiece], allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinnedMoveMaskBb);
+    }
+
+    struct PiecePinMasksT {
+      // Pawn pin masks - single bit board for all pawns for each move type.
+      // BitBoardT pawnsLeftPinMasks;
+      // BitBoardT pawnsRightPinMasks;
+      // BitBoardT pawnsPushOne;
+      // BitBoardT pawnsPushTwo;
+
+      // Per-piece pin masks
+      BitBoardT piecePinMasks[NSpecificPieceTypes];
+      
+      // Uncommon promo piece moves - one for each pawn - one for each promo piece except 2nd queen.
+      // BitBoardT promoPiecePinMasks[NPawns];
+      
+      // BitBoardT allPinMasks;
+    };
+
+    // Fill a pin mask structure with BbAll for all pieces.
+    // TODO - pawns too
+    template <typename MyBoardTraitsT>
+    inline void genDefaultPiecePinMasks(PiecePinMasksT& pinMasks) {
+      // Knights
+      pinMasks.piecePinMasks[QueenKnight] = BbAll;
+      pinMasks.piecePinMasks[KingKnight] = BbAll;
+	
+      // Bishops
+      pinMasks.piecePinMasks[BlackBishop] = BbAll;
+      pinMasks.piecePinMasks[WhiteBishop] = BbAll;
+
+      // Rooks
+      pinMasks.piecePinMasks[QueenRook] = BbAll;
+      pinMasks.piecePinMasks[KingRook] = BbAll;
+
+      // Queens
+      //   - diagonally pinned queens can only move along the king's bishop rays
+      //   - orthogonally pinned queens can only move along the king's rook rays
+      pinMasks.piecePinMasks[SpecificQueen] = BbAll;
+
+      // TODO other promo pieces
+      if(MyBoardTraitsT::hasPromos) {
+	if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
+	  pinMasks.piecePinMasks[PromoQueen] = BbAll;
+	}
+      }
+    }
+    
+    // Generate the pin masks for all pieces
+    // TODO - pawns too
+    template <typename MyBoardTraitsT>
+    inline void genPiecePinMasks(PiecePinMasksT& pinMasks, const ColorStateT& myState, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
+      const SquareT myKingSq = myState.pieceSquares[SpecificKing];
+      
+      // Knights
+      pinMasks.piecePinMasks[QueenKnight] = genPinnedMoveMask<Knight>(myState.pieceSquares[QueenKnight], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+      pinMasks.piecePinMasks[KingKnight] = genPinnedMoveMask<Knight>(myState.pieceSquares[KingKnight], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	
+      // Bishops
+      pinMasks.piecePinMasks[BlackBishop] = genPinnedMoveMask<Bishop>(myState.pieceSquares[BlackBishop], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+      pinMasks.piecePinMasks[WhiteBishop] = genPinnedMoveMask<Bishop>(myState.pieceSquares[WhiteBishop], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+
+      // Rooks
+      pinMasks.piecePinMasks[QueenRook] = genPinnedMoveMask<Rook>(myState.pieceSquares[QueenRook], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+      pinMasks.piecePinMasks[KingRook] = genPinnedMoveMask<Rook>(myState.pieceSquares[KingRook], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+
+      // Queens
+      //   - diagonally pinned queens can only move along the king's bishop rays
+      //   - orthogonally pinned queens can only move along the king's rook rays
+      pinMasks.piecePinMasks[SpecificQueen] = genPinnedMoveMask<Queen>(myState.pieceSquares[SpecificQueen], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+
+      // TODO other promo pieces
+      if(MyBoardTraitsT::hasPromos) {
+	if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
+	  pinMasks.piecePinMasks[PromoQueen] = genPinnedMoveMask<Queen>(myState.pieceSquares[PromoQueen], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	}
+      }
     }
     
     template <ColorT Color, CastlingRightsT CastlingRight, typename MyBoardTraitsT, typename YourBoardTraitsT>
@@ -601,6 +677,15 @@ namespace Chess {
 	// Find my pinned pieces - used to mask out invalid moves due to discovered check on my king
 	const BitBoardT myDiagPinnedPiecesBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourState);
 	const BitBoardT myOrthogPinnedPiecesBb = genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourState);
+
+	// Generate pinned piece move masks for each piece
+	PiecePinMasksT pinMasks = {0};
+	// Majority of positions have no pins
+	if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) == BbNone) {
+	  genDefaultPiecePinMasks<MyBoardTraitsT>(pinMasks);
+	} else {
+	  genPiecePinMasks<MyBoardTraitsT>(pinMasks, myState, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	}
 
 	stats.non0inpinpath++;
 	if(myDiagPinnedPiecesBb) { stats.non0withdiagpins++; }
