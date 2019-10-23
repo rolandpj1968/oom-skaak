@@ -385,6 +385,30 @@ namespace Chess {
       perftImplSpecificPieceCaptures<Color, SpecificPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, from, legalAttacksBb & allYourPiecesBb);
     }
 
+    // New plan
+    
+    template <PieceT Piece>
+    inline BitBoardT genPinnedMoveMask(const SquareT specificPieceSq, const SquareT myKingSq, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb);
+    
+    // Knights - pinned knights can never move
+    template <> inline BitBoardT genPinnedMoveMask<Knight>(const SquareT specificKnightSq, const SquareT myKingSq, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
+      const BitBoardT specificKnightBb = bbForSquare(specificKnightSq);
+      return (specificKnightBb & (myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb)) == BbNone ? BbAll : BbNone;
+    }
+    
+    template <ColorT Color, SpecificPieceT SpecificPiece, typename MyBoardTraitsT, typename YourBoardTraitsT>
+    inline void perftImplSpecificPieceMovesWithPins(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
+      
+      const ColorStateT& myState = board.pieces[Color];
+      const SquareT specificPieceSq = myState.pieceSquares[SpecificPiece];
+      const SquareT myKingSq = myState.pieceSquares[SpecificKing];
+      const BitBoardT pinnedMoveMaskBb = genPinnedMoveMask<PieceForSpecificPieceT<SpecificPiece>::value>(specificPieceSq, myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+      
+      perftImplSpecificPieceMoves<Color, SpecificPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, specificPieceSq, myAttacks.pieceAttacks[SpecificPiece], allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinnedMoveMaskBb);
+    }
+
+    // Old plan
+    
     template <PieceT Piece>
     inline BitBoardT genPinnedMoveMask(const BitBoardT specificPieceBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb, const BitBoardT myKingBishopRays, const BitBoardT myKingRookRays);
 
@@ -410,6 +434,16 @@ namespace Chess {
       const BitBoardT orthogPinnedMoveMaskBb = (specificRookBb & myOrthogPinnedPiecesBb) == BbNone ? BbAll : myKingRookRays;
       return diagPinnedMoveMask & orthogPinnedMoveMaskBb;
     }
+    
+    // // Queen Moves
+    // //   - diagonally pinned queens can only move along the king's bishop rays
+    // //   - orthogonally pinned queens can only move along the king's rook rays
+    // template <> inline BitBoardT genPinnedMoveMask<Queen>(const BitBoardT specificQueenBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb, const BitBoardT myKingBishopRays, const BitBoardT myKingRookRays) {
+    //   const BitBoardT specificQueenBb = bbForSquare(specificQueenSq);
+    //   const BitBoardT diagPinnedMoveMask = (specificQueenBb & myDiagPinnedPiecesBb) == BbNone ? BbAll : myKingBishopRays & ~RookRays[specificQueenSq];
+    //   const BitBoardT orthogPinnedMoveMaskBb = (specificQueenBb & myOrthogPinnedPiecesBb) == BbNone ? BbAll : myKingRookRays & ~BishopRays[specificQueenSq];
+    //   return diagPinnedMoveMask & orthogPinnedMoveMaskBb;
+    // }
     
     template <ColorT Color, SpecificPieceT SpecificPiece, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImplSpecificPieceMovesWithPins(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb, const BitBoardT myKingBishopRays, const BitBoardT myKingRookRays) {
@@ -620,7 +654,8 @@ namespace Chess {
 	perftImplPawnMoves<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingSq, allMyPiecesBb, allYourPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, yourState.epSquare, legalMoveMaskBb);
 	// Knights
 
-	perftImplSpecificPieceMovesWithPins<Color, QueenKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, myKingBishopRays, myKingRookRays);
+	perftImplSpecificPieceMovesWithPins<Color, QueenKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	//perftImplSpecificPieceMovesWithPins<Color, QueenKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, myKingBishopRays, myKingRookRays);
 
 	perftImplSpecificPieceMovesWithPins<Color, KingKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, myKingBishopRays, myKingRookRays);
 	
