@@ -655,9 +655,8 @@ namespace Chess {
 	// Knights
 
 	perftImplSpecificPieceMovesWithPins<Color, QueenKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-	//perftImplSpecificPieceMovesWithPins<Color, QueenKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, myKingBishopRays, myKingRookRays);
 
-	perftImplSpecificPieceMovesWithPins<Color, KingKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, myKingBishopRays, myKingRookRays);
+	perftImplSpecificPieceMovesWithPins<Color, KingKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
 	
 	// Bishops
       
