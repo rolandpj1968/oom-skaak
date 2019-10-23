@@ -70,10 +70,29 @@ namespace Chess {
     return square & 0x7;
   }
 
-  inline BitBoardT bbForSquare(const SquareT square) {
+#include <boost/preprocessor/iteration/local.hpp>
+  // Lookup table for single square -> bitboard (including InvalidSquare -> BbNone)
+  const BitBoardT BbForSquare[64+1] = {
+#define BOOST_PP_LOCAL_MACRO(n) \
+    BbOne << (n),
+#define BOOST_PP_LOCAL_LIMITS (0, 63)
+#include BOOST_PP_LOCAL_ITERATE()
+    BbNone // InvalidSquare
+  };
+  
+  inline BitBoardT bbForSquareLookup(const SquareT square) {
+    return BbForSquare[square];
+  }
+
+  inline BitBoardT bbForSquareShift(const SquareT square) {
     return BbOne << square;
   }
 
+  // Lookup and shift seem like a wash performance-wise so leaving this as lookup to get safe bbForSquare(InvalidSquare) -> BbNone
+  inline BitBoardT bbForSquare(const SquareT square) {
+    return bbForSquareLookup(square);
+  }
+  
   enum DirT {
     N,
     S,
