@@ -407,6 +407,16 @@ namespace Chess {
       return diagPinnedMoveMask & orthogPinnedMoveMaskBb;
     }
     
+    // Rooks
+    //   - diagonally pinned rooks cannot move
+    //   - orthogonally pinned rooks can only move along the king's rook rays
+    template <> inline BitBoardT genPinnedMoveMask<Rook>(const SquareT rookSq, const SquareT myKingSq, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
+      const BitBoardT rookBb = bbForSquare(rookSq);
+      const BitBoardT diagPinnedMoveMask = (rookBb & myDiagPinnedPiecesBb) == BbNone ? BbAll : BbNone;
+      const BitBoardT orthogPinnedMoveMaskBb = (rookBb & myOrthogPinnedPiecesBb) == BbNone ? BbAll : RookRays[myKingSq];
+      return diagPinnedMoveMask & orthogPinnedMoveMaskBb;
+    }
+    
     template <ColorT Color, SpecificPieceT SpecificPiece, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImplSpecificPieceMovesWithPins(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
       
@@ -677,9 +687,9 @@ namespace Chess {
 
 	// Rooks
 
-	perftImplSpecificPieceMovesWithPins<Color, QueenRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, myKingBishopRays, myKingRookRays);
+	perftImplSpecificPieceMovesWithPins<Color, QueenRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
 
-	perftImplSpecificPieceMovesWithPins<Color, KingRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, myKingBishopRays, myKingRookRays);
+	perftImplSpecificPieceMovesWithPins<Color, KingRook, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
 
 	// Queens
 	//   - diagonally pinned queens can only move along the king's bishop rays
