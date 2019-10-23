@@ -33,10 +33,10 @@ namespace Chess {
 
     struct PiecePinMasksT {
       // Pawn pin masks - single bit board for all pawns for each move type.
-      // BitBoardT pawnsLeftPinMasks;
-      // BitBoardT pawnsRightPinMasks;
-      // BitBoardT pawnsPushOne;
-      // BitBoardT pawnsPushTwo;
+      BitBoardT pawnsLeftPinMask;
+      BitBoardT pawnsRightPinMask;
+      BitBoardT pawnsPushOnePinMask;
+      BitBoardT pawnsPushTwoPinMask;
 
       // Per-piece pin masks
       BitBoardT piecePinMasks[NSpecificPieceTypes];
@@ -306,70 +306,68 @@ namespace Chess {
     }
 
     template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
-    inline void perftImplPawnMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const SquareT myKingSq, const BitBoardT allMyPiecesBb, const BitBoardT allYourPiecesBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb, const SquareT epSquare, const BitBoardT legalMoveMaskBb) {
+    inline void perftImplPawnEpMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, SquareT epSquare, const BitBoardT allPiecesBb, const BitBoardT legalPawnsLeftBb, const BitBoardT legalPawnsRightBb) {
+      const BitBoardT epSquareBb = bbForSquare(epSquare);
 
-      // Pawn pushes - remove pawns with diagonal pins, and pawns with orthogonal pins along the rank of the king
+      const BitBoardT semiLegalEpCaptureLeftBb = legalPawnsLeftBb & epSquareBb;
+      const BitBoardT semiLegalEpCaptureRightBb = legalPawnsRightBb & epSquareBb;
+
+      // Only do the heavy lifting of detecting discovered check through the captured pawn if there really is an en-passant opportunity
+      if((semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone) {
+	const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
+	const ColorStateT& myState = board.pieces[Color];
+	const SquareT myKingSq = myState.pieceSquares[SpecificKing];
+	  
+	const SquareT to = Bits::lsb(semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb);
+	const SquareT captureSq = pawnPushOneTo2From<Color>(to);
+	const BitBoardT captureSquareBb = bbForSquare(captureSq);
+
+	// Note that a discovered check can only be diagonal or horizontal, because the capturing pawn ends up on the same file as the captured pawn.
+	const BitBoardT diagPinnedEpPawnBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
+	// Horizontal is really tricky because it involves both capturing and captured pawn.
+	// We detect it by removing them both and looking for a king attack - could optimise this... TODO anyhow
+	const BitBoardT orthogPinnedEpPawnBb = BbNone; //genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
+
+	if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) != BbNone) {
+	  static bool done = false;
+	  if(!done) {
+	    printf("\n============================================== EP avoidance EP square is %d ===================================\n\n", epSquare);
+	    printBoard(board);
+	    printf("\n");
+	    done = true;
+	  }
+	}
+
+	if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) == BbNone) {
+	  perftImplPawnEpCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, semiLegalEpCaptureLeftBb);
+	  perftImplPawnEpCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, semiLegalEpCaptureRightBb);
+	}
+      }
+    }
+    
+    template <ColorT Color, typename MyBoardTraitsT, typename YourBoardTraitsT>
+    inline void perftImplPawnMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
+
+      // Pawn pushes
 	
-      const BitBoardT myDiagAndKingRankPinsBb = myDiagPinnedPiecesBb | (myOrthogPinnedPiecesBb & RankBbs[rankOf(myKingSq)]);
-      const BitBoardT myDiagAndKingRankPinsPushOneBb = pawnsPushOne<Color>(myDiagAndKingRankPinsBb, BbNone);
-      const BitBoardT nonPinnedPawnsPushOneBb = myAttacks.pawnsPushOne & ~myDiagAndKingRankPinsPushOneBb;
-      perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, nonPinnedPawnsPushOneBb & legalMoveMaskBb);
-      const BitBoardT myDiagAndKingRankPinsPushTwoBb = pawnsPushOne<Color>(myDiagAndKingRankPinsPushOneBb, BbNone);
-      const BitBoardT nonPinnedPawnsPushTwoBb = myAttacks.pawnsPushTwo & ~myDiagAndKingRankPinsPushTwoBb;
-      perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, nonPinnedPawnsPushTwoBb & legalMoveMaskBb);
+      const BitBoardT legalPawnsPushOneBb = myAttacks.pawnsPushOne & legalMoveMaskBb & pinMasks.pawnsPushOnePinMask;
+      perftImplPawnsPushOne<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, legalPawnsPushOneBb);
+
+      const BitBoardT legalPawnsPushTwoBb = myAttacks.pawnsPushTwo & legalMoveMaskBb & pinMasks.pawnsPushTwoPinMask;
+      perftImplPawnsPushTwo<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, legalPawnsPushTwoBb);
 	
-      // Pawn captures - remove pawns with orthogonal pins, and pawns with diagonal pins in the other direction from the capture.
-      // Pawn captures on the king's bishop rays are always safe, so we want to remove diagonal pins that are NOT on the king's bishop rays
-      const BitBoardT myKingBishopRays = BishopRays[myKingSq];
+      // Pawn captures
+
+      const BitBoardT legalPawnsLeftBb = myAttacks.pawnsLeftAttacks & legalMoveMaskBb & pinMasks.pawnsLeftPinMask;
+      perftImplPawnsCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, legalPawnsLeftBb & allYourPiecesBb);
       
-      const BitBoardT myOrthogPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myOrthogPinnedPiecesBb);
-      const BitBoardT myDiagPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myDiagPinnedPiecesBb);
-      const BitBoardT myUnsafeDiagPinsLeftAttacksBb = myDiagPinsLeftAttacksBb & ~myKingBishopRays;
-      perftImplPawnsCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsLeftAttacks & allYourPiecesBb & ~(myOrthogPinsLeftAttacksBb | myUnsafeDiagPinsLeftAttacksBb) & legalMoveMaskBb);
-      
-      const BitBoardT myOrthogPinsRightAttacksBb = pawnsRightAttacks<Color>(myOrthogPinnedPiecesBb);
-      const BitBoardT myDiagPinsRightAttacksBb = pawnsRightAttacks<Color>(myDiagPinnedPiecesBb);
-      const BitBoardT myUnsafeDiagPinsRightAttacksBb = myDiagPinsRightAttacksBb & ~myKingBishopRays;
-      perftImplPawnsCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks.pawnsRightAttacks & allYourPiecesBb & ~(myOrthogPinsRightAttacksBb | myUnsafeDiagPinsRightAttacksBb) & legalMoveMaskBb);
+      const BitBoardT legalPawnsRightBb = myAttacks.pawnsRightAttacks & legalMoveMaskBb & pinMasks.pawnsRightPinMask;
+      perftImplPawnsCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, legalPawnsRightBb & allYourPiecesBb);
       
       // Pawn en-passant captures
       // En-passant is tricky because the captured pawn is not on the same square as the capturing piece, and might expose a discovered check itself.
       if(epSquare != InvalidSquare) {
-	const BitBoardT epSquareBb = bbForSquare(epSquare);
-
-	const BitBoardT semiLegalEpCaptureLeftBb = myAttacks.pawnsLeftAttacks & epSquareBb & ~(myOrthogPinsLeftAttacksBb | myUnsafeDiagPinsLeftAttacksBb) & legalMoveMaskBb;
-	const BitBoardT semiLegalEpCaptureRightBb = myAttacks.pawnsRightAttacks & epSquareBb & ~(myOrthogPinsRightAttacksBb | myUnsafeDiagPinsRightAttacksBb) & legalMoveMaskBb;
-
-	// Only do the heavy lifting of detecting discovered check through the captured pawn if there really is an en-passant opportunity
-	if((semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone) {
-	  const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
-	  const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
-	  
-	  const SquareT to = Bits::lsb(semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb);
-	  const SquareT captureSq = pawnPushOneTo2From<Color>(to);
-	  const BitBoardT captureSquareBb = bbForSquare(captureSq);
-
-	  // Note that a discovered check can only be diagonal or horizontal, because the capturing pawn ends up on the same file as the captured pawn.
-	  const BitBoardT diagPinnedEpPawnBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
-	  // Horizontal is really tricky because it involves both capturing and captured pawn.
-	  // We detect it by removing them both and looking for a king attack - could optimise this... TODO anyhow
-	  const BitBoardT orthogPinnedEpPawnBb = BbNone; //genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
-
-	  if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) != BbNone) {
-	    static bool done = false;
-	    if(!done) {
-	      printf("\n============================================== EP avoidance EP square is %d ===================================\n\n", epSquare);
-	      printBoard(board);
-	      printf("\n");
-	      done = true;
-	    }
-	  }
-
-	  if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) == BbNone) {
-	    perftImplPawnEpCaptureLeft<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, semiLegalEpCaptureLeftBb);
-	    perftImplPawnEpCaptureRight<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, semiLegalEpCaptureRightBb);
-	  }
-	}
+	perftImplPawnEpMoves<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, epSquare, allPiecesBb, legalPawnsLeftBb, legalPawnsRightBb);
       }
     }
     
@@ -393,7 +391,8 @@ namespace Chess {
     inline void perftImplSpecificPieceCaptures(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, const BitBoardT capturesBb) {
       perftImplSpecificPieceMoves<Color, SpecificPiece, Capture, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, from, capturesBb, CaptureMove);
     }
-    
+
+    // Ugh - king still uses this
     template <ColorT Color, SpecificPieceT SpecificPiece, typename MyBoardTraitsT, typename YourBoardTraitsT>
     inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, const BitBoardT attacksBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const BitBoardT pinnedMoveMaskBb) {
       const BitBoardT legalAttacksBb = attacksBb & legalMoveMaskBb & pinnedMoveMaskBb;
@@ -456,21 +455,16 @@ namespace Chess {
       return diagPinnedMoveMask & orthogPinnedMoveMaskBb;
     }
     
-    template <ColorT Color, SpecificPieceT SpecificPiece, typename MyBoardTraitsT, typename YourBoardTraitsT>
-    inline void perftImplSpecificPieceMovesWithPins(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
-      
-      const ColorStateT& myState = board.pieces[Color];
-      const SquareT pieceSq = myState.pieceSquares[SpecificPiece];
-      const SquareT myKingSq = myState.pieceSquares[SpecificKing];
-      const BitBoardT pinnedMoveMaskBb = genPinnedMoveMask<PieceForSpecificPieceT<SpecificPiece>::value>(pieceSq, myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-      
-      perftImplSpecificPieceMoves<Color, SpecificPiece, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, pieceSq, myAttacks.pieceAttacks[SpecificPiece], allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinnedMoveMaskBb);
-    }
-
     // Fill a pin mask structure with BbAll for all pieces.
     // TODO - pawns too
     template <typename MyBoardTraitsT>
     inline void genDefaultPiecePinMasks(PiecePinMasksT& pinMasks) {
+      // Pawns
+      pinMasks.pawnsPushOnePinMask = BbAll;
+      pinMasks.pawnsPushTwoPinMask = BbAll;
+      pinMasks.pawnsLeftPinMask = BbAll;
+      pinMasks.pawnsRightPinMask = BbAll;
+      
       // Knights
       pinMasks.piecePinMasks[QueenKnight] = BbAll;
       pinMasks.piecePinMasks[KingKnight] = BbAll;
@@ -498,9 +492,31 @@ namespace Chess {
     
     // Generate the pin masks for all pieces
     // TODO - pawns too
-    template <typename MyBoardTraitsT>
+    template <ColorT Color, typename MyBoardTraitsT>
     inline void genPiecePinMasks(PiecePinMasksT& pinMasks, const ColorStateT& myState, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
       const SquareT myKingSq = myState.pieceSquares[SpecificKing];
+      
+      // Pawn pushes - remove pawns with diagonal pins, and pawns with orthogonal pins along the rank of the king
+	
+      const BitBoardT myDiagAndKingRankPinsBb = myDiagPinnedPiecesBb | (myOrthogPinnedPiecesBb & RankBbs[rankOf(myKingSq)]);
+      const BitBoardT myDiagAndKingRankPinsPushOneBb = pawnsPushOne<Color>(myDiagAndKingRankPinsBb, BbNone);
+      pinMasks.pawnsPushOnePinMask = ~myDiagAndKingRankPinsPushOneBb;
+
+      const BitBoardT myDiagAndKingRankPinsPushTwoBb = pawnsPushOne<Color>(myDiagAndKingRankPinsPushOneBb, BbNone);
+      pinMasks.pawnsPushTwoPinMask = ~myDiagAndKingRankPinsPushTwoBb;
+	
+      // Pawn captures - remove pawns with orthogonal pins, and pawns with diagonal pins in the other direction from the capture.
+      // Pawn captures on the king's bishop rays are always safe, so we want to remove diagonal pins that are NOT on the king's bishop rays
+      
+      const BitBoardT myOrthogPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myOrthogPinnedPiecesBb);
+      const BitBoardT myDiagPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myDiagPinnedPiecesBb);
+      const BitBoardT myUnsafeDiagPinsLeftAttacksBb = myDiagPinsLeftAttacksBb & ~BishopRays[myKingSq];
+      pinMasks.pawnsLeftPinMask = ~(myOrthogPinsLeftAttacksBb | myUnsafeDiagPinsLeftAttacksBb);
+      
+      const BitBoardT myOrthogPinsRightAttacksBb = pawnsRightAttacks<Color>(myOrthogPinnedPiecesBb);
+      const BitBoardT myDiagPinsRightAttacksBb = pawnsRightAttacks<Color>(myDiagPinnedPiecesBb);
+      const BitBoardT myUnsafeDiagPinsRightAttacksBb = myDiagPinsRightAttacksBb & ~BishopRays[myKingSq];
+      pinMasks.pawnsRightPinMask = ~(myOrthogPinsRightAttacksBb | myUnsafeDiagPinsRightAttacksBb); 
       
       // Knights
       pinMasks.piecePinMasks[QueenKnight] = genPinnedMoveMask<Knight>(myState.pieceSquares[QueenKnight], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
@@ -691,24 +707,26 @@ namespace Chess {
 	const BitBoardT myDiagPinnedPiecesBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourState);
 	const BitBoardT myOrthogPinnedPiecesBb = genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourState);
 
+	stats.non0inpinpath++;
+	
 	// Generate pinned piece move masks for each piece
 	PiecePinMasksT pinMasks = {0};
 	// Majority of positions have no pins
 	if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) == BbNone) {
 	  genDefaultPiecePinMasks<MyBoardTraitsT>(pinMasks);
 	} else {
-	  genPiecePinMasks<MyBoardTraitsT>(pinMasks, myState, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	  if(myDiagPinnedPiecesBb) { stats.non0withdiagpins++; }
+	  if(myOrthogPinnedPiecesBb) { stats.non0withorthogpins++; }
+	  genPiecePinMasks<Color, MyBoardTraitsT>(pinMasks, myState, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
 	}
-
-	stats.non0inpinpath++;
-	if(myDiagPinnedPiecesBb) { stats.non0withdiagpins++; }
-	if(myOrthogPinnedPiecesBb) { stats.non0withorthogpins++; }
 
 	// Evaluate moves
 
 	// Pawns
 	
-	perftImplPawnMoves<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingSq, allMyPiecesBb, allYourPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, yourState.epSquare, legalMoveMaskBb);
+	//perftImplPawnMoves<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, myKingSq, allMyPiecesBb, allYourPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, yourState.epSquare, legalMoveMaskBb);
+	perftImplPawnMoves<Color, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, yourState.epSquare, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	
 	// Knights
 
 	perftImplSpecificPieceMoves<Color, QueenKnight, MyBoardTraitsT, YourBoardTraitsT>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
