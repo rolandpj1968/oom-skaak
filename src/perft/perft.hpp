@@ -634,7 +634,7 @@ namespace Chess {
 	  // If it is a contact check (including knight check) then only a capture (or king move) will evade check.
 	  if(((KingAttacks[myKingSq] | KnightAttacks[myKingSq]) & allMyKingAttackersBb) == BbNone) {
 	    // Distant check by a slider - we can also block the check.
-	    // So here we want to generate all (open) squares between the your checking piece and the king.
+	    // So here we want to generate all (open) squares between your checking piece and the king.
 	    // Work backwards from the king
 	    // Compute the check-blocking squares as the intersection of my king's slider 'view' and the checking piece's attack squares.
 	    // Note for queens we need to restrict to the slider direction otherwise we get bogus 'blocking' squares in the other queen direction.
