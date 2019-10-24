@@ -403,7 +403,7 @@ namespace Chess {
       attacks.allAttacks |= attacks.pieceAttacks[SpecificKing];
 
       // TODO - unusual promos
-      if(ColorTraitsT::hasPromos) {
+      if(ColorTraitsT::HasPromos) {
 	if(true/*piecesPresent & PromoQueenPresentFlag*/) {
 	  SquareT promoQueenSquare = colorState.pieceSquares[PromoQueen];
 	  

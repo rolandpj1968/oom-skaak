@@ -53,29 +53,34 @@ namespace Chess {
     // Board traits used for optimising move generation etc.
     // The compile-time traits can be false only if the run-time state is also false.
     //   On the other hand the code should handle compile-time traits being true even if run-time traits are false.
-    template <bool HasPromos, bool CanCastle = true, bool HasQueen = true, bool HasRooks = true, bool HasBishops = true>
+    template <ColorT ColorVal, bool HasPromosVal, bool CanCastleVal = true, bool HasQueenVal = true, bool HasRooksVal = true, bool HasBishopsVal = true>
     struct ColorTraitsImplT {
-      static const bool hasPromos = HasPromos;
-      static const bool canCastle = CanCastle;
-      static const bool hasQueen = HasQueen;
-      static const bool hasRooks = HasRooks;
-      static const bool hasBishops = HasBishops;
+      static const ColorT Color = ColorVal;
+      static const bool HasPromos = HasPromosVal;
+      static const bool CanCastle = CanCastleVal;
+      static const bool HasQueen = HasQueenVal;
+      static const bool HasRooks = HasRooksVal;
+      static const bool HasBishops = HasBishopsVal;
 
-      typedef ColorTraitsImplT<DoesHavePromos, CanCastle, HasQueen, HasRooks, HasBishops> WithPromosT;
-      typedef ColorTraitsImplT<DoesNotHavePromos, CanCastle, HasQueen, HasRooks, HasBishops> WithoutPromosT;
+      typedef ColorTraitsImplT<Color, DoesHavePromos, CanCastle, HasQueen, HasRooks, HasBishops> WithPromosT;
+      typedef ColorTraitsImplT<Color, DoesNotHavePromos, CanCastle, HasQueen, HasRooks, HasBishops> WithoutPromosT;
     };
 
-    typedef ColorTraitsImplT<DoesNotHavePromos> StartingColorTraitsT;
+    typedef ColorTraitsImplT<White, DoesNotHavePromos> WhiteStartingColorTraitsT;
+    typedef ColorTraitsImplT<Black, DoesNotHavePromos> BlackStartingColorTraitsT;
 
     template <typename MyColorTraitsImplT, typename YourColorTraitsImplT>
     struct BoardTraitsImplT {
       typedef MyColorTraitsImplT MyColorTraitsT;
       typedef YourColorTraitsImplT YourColorTraitsT;
 
+      static const ColorT Color = MyColorTraitsT::Color;
+      static const ColorT OtherColor = YourColorTraitsT::Color;
+
       typedef BoardTraitsImplT<YourColorTraitsT, MyColorTraitsT> ReverseT;
     };
 
-    typedef BoardTraitsImplT<StartingColorTraitsT, StartingColorTraitsT> StartingBoardTraitsT;
+    typedef BoardTraitsImplT<WhiteStartingColorTraitsT, BlackStartingColorTraitsT> StartingBoardTraitsT;
 
     template <ColorT Color> inline SpecificPieceT removePiece(BoardT& board, const SquareT square) {
       const SquarePieceT squarePiece = board.board[square];
