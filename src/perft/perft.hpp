@@ -676,10 +676,6 @@ namespace Chess {
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
-      if(Color != BoardTraitsT::Color) {
-	printf("Boooo depthToGo %d - Color is %d, BoardTraitsT::Color = %d\n", depthToGo, Color, BoardTraitsT::Color);
-	exit(1);
-      }
       const ColorStateT& myState = board.pieces[Color];
       const ColorStateT& yourState = board.pieces[OtherColor];
       const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
