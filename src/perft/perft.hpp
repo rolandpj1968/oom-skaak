@@ -623,7 +623,7 @@ namespace Chess {
 	}
 	  
 	// It's checkmate if there are no valid child nodes.
-	PerftStatsT childStats = perft<Color, typename BoardTraitsT::ReverseT>(board, 1);
+	PerftStatsT childStats = perft<Color, BoardTraitsT>(board, 1);
 	if(childStats.nodes == 0) {
 	  stats.checkmates++;
 	}
