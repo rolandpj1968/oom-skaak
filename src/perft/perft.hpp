@@ -562,7 +562,7 @@ namespace Chess {
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 
       // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
-      const bool CheckForInvalid = false;
+      const bool CheckForInvalid = true;
       if(CheckForInvalid) {
 	// Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
 	const SquareAttackersT yourKingAttackers = genSquareAttackers<Color, typename BoardTraitsT::MyColorTraitsT>(yourState.pieceSquares[SpecificKing], myState, allPiecesBb);
@@ -595,7 +595,7 @@ namespace Chess {
 	stats.castles++;
       }
 
-      const bool DoCheckStats = false;
+      const bool DoCheckStats = true;
       if(!DoCheckStats) {
 	return;
       }
@@ -617,7 +617,7 @@ namespace Chess {
 	}
 	  
 	// It's checkmate if there are no valid child nodes.
-	PerftStatsT childStats = perft<Color, typename BoardTraitsT::ReverseT>(board, 1);
+	PerftStatsT childStats = perft<Color, BoardTraitsT>(board, 1);
 	if(childStats.nodes == 0) {
 	  stats.checkmates++;
 	}
