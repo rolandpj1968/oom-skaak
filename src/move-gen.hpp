@@ -331,7 +331,7 @@ namespace Chess {
     // Generate attacks/defenses for all pieces.
     // Note that move gen for a piece on InvalidSquare MUST always generate BbNone (and not SIGSEGV :P).
     // TODO - missing support for unusual promos.
-    template <ColorT Color, typename BoardTraitsT>
+    template <ColorT Color, typename ColorTraitsT>
     inline PieceAttacksT genPieceAttacks(const ColorStateT& colorState, const BitBoardT allPiecesBb) {
       PieceAttacksT attacks = {0};
 
@@ -403,7 +403,7 @@ namespace Chess {
       attacks.allAttacks |= attacks.pieceAttacks[SpecificKing];
 
       // TODO - unusual promos
-      if(BoardTraitsT::hasPromos) {
+      if(ColorTraitsT::hasPromos) {
 	if(true/*piecesPresent & PromoQueenPresentFlag*/) {
 	  SquareT promoQueenSquare = colorState.pieceSquares[PromoQueen];
 	  
@@ -423,7 +423,7 @@ namespace Chess {
 
     // Generate attackers/defenders of a particular square.
     // Useful for check detection.
-    template <ColorT Color, typename BoardTraitsT>
+    template <ColorT Color, typename ColorTraitsT>
     inline SquareAttackersT genSquareAttackers(const SquareT square, const ColorStateT& colorState, const BitBoardT allPiecesBb) {
       SquareAttackersT attackers = {0};
 

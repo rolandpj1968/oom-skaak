@@ -54,18 +54,28 @@ namespace Chess {
     // The compile-time traits can be false only if the run-time state is also false.
     //   On the other hand the code should handle compile-time traits being true even if run-time traits are false.
     template <bool HasPromos, bool CanCastle = true, bool HasQueen = true, bool HasRooks = true, bool HasBishops = true>
-    struct BoardTraitsImplT {
+    struct ColorTraitsImplT {
       static const bool hasPromos = HasPromos;
       static const bool canCastle = CanCastle;
       static const bool hasQueen = HasQueen;
       static const bool hasRooks = HasRooks;
       static const bool hasBishops = HasBishops;
 
-      typedef BoardTraitsImplT<DoesHavePromos, CanCastle, HasQueen, HasRooks, HasBishops> WithPromosT;
-      typedef BoardTraitsImplT<DoesNotHavePromos, CanCastle, HasQueen, HasRooks, HasBishops> WithoutPromosT;
+      typedef ColorTraitsImplT<DoesHavePromos, CanCastle, HasQueen, HasRooks, HasBishops> WithPromosT;
+      typedef ColorTraitsImplT<DoesNotHavePromos, CanCastle, HasQueen, HasRooks, HasBishops> WithoutPromosT;
     };
 
-    typedef BoardTraitsImplT<DoesNotHavePromos> StartingBoardTraitsT;
+    typedef ColorTraitsImplT<DoesNotHavePromos> StartingColorTraitsT;
+
+    template <typename MyColorTraitsImplT, typename YourColorTraitsImplT>
+    struct BoardTraitsImplT {
+      typedef MyColorTraitsImplT MyColorTraitsT;
+      typedef YourColorTraitsImplT YourColorTraitsT;
+
+      typedef BoardTraitsImplT<YourColorTraitsT, MyColorTraitsT> ReverseT;
+    };
+
+    typedef BoardTraitsImplT<StartingColorTraitsT, StartingColorTraitsT> StartingBoardTraitsT;
 
     template <ColorT Color> inline SpecificPieceT removePiece(BoardT& board, const SquareT square) {
       const SquarePieceT squarePiece = board.board[square];
