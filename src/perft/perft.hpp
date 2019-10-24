@@ -561,6 +561,11 @@ namespace Chess {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
       typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
 
+      if(Color != BoardTraitsT::Color) {
+	printf("Boooo level 0 - Color is %d, BoardTraitsT::Color = %d\n", Color, BoardTraitsT::Color);
+	exit(1);
+      }
+      
       const ColorStateT& myState = board.pieces[Color];
       const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
       const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
@@ -670,6 +675,10 @@ namespace Chess {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
       typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
       
+      if(Color != BoardTraitsT::Color) {
+	printf("Boooo depthToGo %d - Color is %d, BoardTraitsT::Color = %d\n", depthToGo, Color, BoardTraitsT::Color);
+	exit(1);
+      }
       const ColorStateT& myState = board.pieces[Color];
       const ColorStateT& yourState = board.pieces[OtherColorT<Color>::value];
       const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
