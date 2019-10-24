@@ -575,7 +575,7 @@ namespace Chess {
       const bool CheckForInvalid = true;
       if(CheckForInvalid) {
 	// Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
-	const SquareAttackersT yourKingAttackers = genSquareAttackers<Color, MyColorTraitsT>(yourState.pieceSquares[SpecificKing], myState, allPiecesBb);
+	const SquareAttackersT yourKingAttackers = genSquareAttackers<MyColorTraitsT>(yourState.pieceSquares[SpecificKing], myState, allPiecesBb);
 	if(yourKingAttackers.pieceAttackers[AllPieces] != 0) {
 	  // Illegal position - doesn't count
 	  stats.invalids++;
@@ -611,7 +611,7 @@ namespace Chess {
       }
 
       // Is my king in check?
-      const SquareAttackersT myKingAttackers = genSquareAttackers<OtherColor, YourColorTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
+      const SquareAttackersT myKingAttackers = genSquareAttackers<YourColorTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
       const BitBoardT allMyKingAttackers = myKingAttackers.pieceAttackers[AllPieces];
       if(allMyKingAttackers != 0) {
 	stats.checks++;
@@ -689,7 +689,7 @@ namespace Chess {
       // Check for position legality - eventually do this in the parent
       
       // Generate moves
-      const PieceAttacksT myAttacks = genPieceAttacks<Color, MyColorTraitsT>(myState, allPiecesBb);
+      const PieceAttacksT myAttacks = genPieceAttacks<MyColorTraitsT>(myState, allPiecesBb);
 
       // Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
       if((myAttacks.allAttacks & yourState.bbs[King]) != 0) {
@@ -709,14 +709,14 @@ namespace Chess {
 
       // Evaluate check - eventually do this in the parent
 
-      const SquareAttackersT myKingAttackers = genSquareAttackers<OtherColor, YourColorTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
+      const SquareAttackersT myKingAttackers = genSquareAttackers<YourColorTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
       const BitBoardT allMyKingAttackersBb = myKingAttackers.pieceAttackers[AllPieces];
       const SquareT myKingSq = myState.pieceSquares[SpecificKing];
 
       const int nChecks = Bits::count(allMyKingAttackersBb);
 
       // Needed for castling and for king moves so evaluate this here.
-      const PieceAttacksT yourAttacks = genPieceAttacks<OtherColor, YourColorTraitsT>(yourState, allPiecesBb);
+      const PieceAttacksT yourAttacks = genPieceAttacks<YourColorTraitsT>(yourState, allPiecesBb);
       
       // Double check can only be evaded by moving the king
       if(nChecks < 2) {

@@ -58,14 +58,14 @@ int main(int argc, char* argv[]) {
   ColorStateT& w = startingBoard.pieces[White];
   ColorStateT& b = startingBoard.pieces[Black];
   
-  auto whiteAttacks = genPieceAttacks<White, WhiteStartingColorTraitsT>(w, w.bbs[AllPieces] | b.bbs[AllPieces]);
+  auto whiteAttacks = genPieceAttacks<WhiteStartingColorTraitsT>(w, w.bbs[AllPieces] | b.bbs[AllPieces]);
 
   printf("\nWhite:\n");
   dumpAttacks(whiteAttacks);
 
   printf("\n%d attacks, %d valid moves, all white pieces %016lx\n", countAttacks(whiteAttacks), countAttacks(whiteAttacks, w.bbs[AllPieces], b.bbs[AllPieces]), w.bbs[AllPieces]);
   
-  auto blackAttacks = genPieceAttacks<Black, BlackStartingColorTraitsT>(b, w.bbs[AllPieces] | b.bbs[AllPieces]);
+  auto blackAttacks = genPieceAttacks<BlackStartingColorTraitsT>(b, w.bbs[AllPieces] | b.bbs[AllPieces]);
 
   printf("\nBlack:\n");
   dumpAttacks(blackAttacks);
