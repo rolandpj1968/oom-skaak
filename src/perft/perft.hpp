@@ -29,6 +29,9 @@ namespace Chess {
       u64 non0inpinpath;
       u64 non0withdiagpins;
       u64 non0withorthogpins;
+      u64 l0nondiscoveries;
+      u64 l0checkertakable;
+      u64 l0checkkingcanmove;
     };
 
     struct PiecePinMasksT {
@@ -559,7 +562,7 @@ namespace Chess {
     }
 
     template <typename BoardTraitsT>
-    inline void perftImpl0(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
+    inline void perft0Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
       typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
       const ColorT Color = BoardTraitsT::Color;
@@ -605,7 +608,8 @@ namespace Chess {
 	stats.castles++;
       }
 
-      const bool DoCheckStats = false;
+      const bool DoCheckStats = true;
+      const bool DoCheckMateStats = true;
       if(!DoCheckStats) {
 	return;
       }
@@ -617,19 +621,50 @@ namespace Chess {
 	stats.checks++;
 
 	// If the moved piece is not attacking the king then this is a discovered check
+	bool isDiscovery = false;
 	if((bbForSquare(moveInfo.to) & allMyKingAttackers) == 0) {
+	  isDiscovery = true;
 	  stats.discoverychecks++;
 	}
 	  
 	// If there are multiple king attackers then we have a double check
+	bool isDoubleCheck = false;
 	if(Bits::count(allMyKingAttackers) != 1) {
+	  isDoubleCheck = true;
 	  stats.doublechecks++;
 	}
-	  
-	// It's checkmate if there are no valid child nodes.
-	PerftStatsT childStats = perft<BoardTraitsT>(board, 1);
-	if(childStats.nodes == 0) {
-	  stats.checkmates++;
+
+	if(DoCheckMateStats) {
+	  bool isPossibleCheckmate = true;
+	  // If it's a non-discovery and we can take the checker then it's not checkmate - hrm this misses some checkmates and is slower
+	  if(isPossibleCheckmate && !isDiscovery && !isDoubleCheck) {
+	    // See if the checking piece can be taken
+	    stats.l0nondiscoveries++;
+	    const SquareAttackersT checkerAttackers = genSquareAttackers<MyColorTraitsT>(moveInfo.to, myState, allPiecesBb);
+	    if(checkerAttackers.pieceAttackers[AllPieces] &~ checkerAttackers.pieceAttackers[SpecificKing]) {
+	      stats.l0checkertakable++;
+	      isPossibleCheckmate = false;
+	    }
+	  }
+	  // It's not checkmate if the king can move to safety - hrm this misses some checkmates
+	  if(isPossibleCheckmate) {
+	    // Remove my king to expose moving away from a slider checker
+	    const PieceAttacksT yourAttacks = genPieceAttacks<YourColorTraitsT>(yourState, allPiecesBb & ~myState.bbs[King]);
+	    const SquareT myKingSq = myState.pieceSquares[SpecificKing];
+	    const BitBoardT myKingAttacksBb = KingAttacks[myKingSq];
+	    const BitBoardT myKingMovesBb = myKingAttacksBb & ~allMyPiecesBb;
+	    if(myKingMovesBb & ~yourAttacks.allAttacks) {
+	      stats.l0checkkingcanmove++;
+	      isPossibleCheckmate = false;
+	    }
+	  }
+	  // It's checkmate if there are no valid child nodes.
+	  if(isPossibleCheckmate) {
+	    PerftStatsT childStats = perft<BoardTraitsT>(board, 1);
+	    if(childStats.nodes == 0) {
+	      stats.checkmates++;
+	    }
+	  }
 	}
       }
     }
@@ -816,7 +851,7 @@ namespace Chess {
     inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const MoveInfoT moveInfo) {
       // If this is a leaf node, gather stats.
       if(depthToGo == 0) {
-	perftImpl0<BoardTraitsT>(stats, board, moveInfo);
+	perft0Impl<BoardTraitsT>(stats, board, moveInfo);
       } else {
 	perftImplFull<BoardTraitsT>(stats, board, depthToGo, moveInfo);
       }
