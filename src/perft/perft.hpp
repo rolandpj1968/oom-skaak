@@ -636,17 +636,18 @@ namespace Chess {
 
 	if(DoCheckMateStats) {
 	  bool isPossibleCheckmate = true;
-	  // If it's a non-discovery and we can take the checker then it's not checkmate - hrm this misses some checkmates and is slower
+	  // If it's a non-discovery and we can take the checker then it's not checkmate
 	  if(isPossibleCheckmate && !isDiscovery && !isDoubleCheck) {
 	    // See if the checking piece can be taken
 	    stats.l0nondiscoveries++;
 	    const SquareAttackersT checkerAttackers = genSquareAttackers<MyColorTraitsT>(moveInfo.to, myState, allPiecesBb);
+	    // It's not safe for the king to capture cos he might still be in check
 	    if(checkerAttackers.pieceAttackers[AllPieces] &~ checkerAttackers.pieceAttackers[SpecificKing]) {
 	      stats.l0checkertakable++;
 	      isPossibleCheckmate = false;
 	    }
 	  }
-	  // It's not checkmate if the king can move to safety - hrm this misses some checkmates
+	  // It's not checkmate if the king can move to safety
 	  if(isPossibleCheckmate) {
 	    // Remove my king to expose moving away from a slider checker
 	    const PieceAttacksT yourAttacks = genPieceAttacks<YourColorTraitsT>(yourState, allPiecesBb & ~myState.bbs[King]);
