@@ -373,13 +373,50 @@ namespace Chess {
     }
     
     template <typename BoardTraitsT, SpecificPieceT SpecificPiece, PushOrCaptureT PushOrCapture>
+    inline void perftImplSpecificPieceMoveNoCopy(PerftStatsT& stats, const BoardT& theBoard, const int depthToGo, const SquareT from, const SquareT to, const MoveTypeT moveType) {
+      BoardT& board = (BoardT&)theBoard;
+
+      const ColorT Color = BoardTraitsT::Color;
+      const ColorT OtherColor = BoardTraitsT::OtherColor;
+      
+      const SpecificPieceT capturedSpecificPiece = (PushOrCapture == Capture) ? removePiece<OtherColor>(board, to) : SpecificNoPiece;
+
+      removeSpecificPiece<Color, SpecificPiece>(board, from);
+
+      placeSpecificPiece<Color, SpecificPiece>(board, to);
+
+      // Save and clear en-passant square
+      const SquareT epSquare = board.pieces[Color].epSquare;
+      board.pieces[Color].epSquare = InvalidSquare;
+      
+      perftImpl<typename BoardTraitsT::ReverseT>(stats, board, depthToGo-1, MoveInfoT(moveType, to));
+
+      // Unmove
+      board.pieces[Color].epSquare = epSquare;
+
+      removeSpecificPiece<Color, SpecificPiece>(board, to);
+      
+      placeSpecificPiece<Color, SpecificPiece>(board, from);
+
+      if(PushOrCapture) {
+	placePiece<OtherColor>(board, capturedSpecificPiece, to);
+      }
+    }
+    
+    template <typename BoardTraitsT, SpecificPieceT SpecificPiece, PushOrCaptureT PushOrCapture>
+    inline void perftImplSpecificPieceMove(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, const SquareT to, const MoveTypeT moveType) {
+      
+      const BoardT newBoard = moveSpecificPiece<BoardTraitsT::Color, SpecificPiece, PushOrCapture>(board, from, to);
+      
+      perftImpl<typename BoardTraitsT::ReverseT>(stats, newBoard, depthToGo-1, MoveInfoT(moveType, to));
+    }
+    
+    template <typename BoardTraitsT, SpecificPieceT SpecificPiece, PushOrCaptureT PushOrCapture>
     inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT toBb, const MoveTypeT moveType) {
       while(toBb) {
 	const SquareT to = Bits::popLsb(toBb);
 
-	const BoardT newBoard = moveSpecificPiece<BoardTraitsT::Color, SpecificPiece, PushOrCapture>(board, from, to);
-
-	perftImpl<typename BoardTraitsT::ReverseT>(stats, newBoard, depthToGo-1, MoveInfoT(moveType, to));
+	perftImplSpecificPieceMoveNoCopy<BoardTraitsT, SpecificPiece, PushOrCapture>(stats, board, depthToGo, from, to, moveType);
       }
     }
     
