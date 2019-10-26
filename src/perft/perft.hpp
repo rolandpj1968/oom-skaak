@@ -636,8 +636,8 @@ namespace Chess {
 
 	if(DoCheckMateStats) {
 	  bool isPossibleCheckmate = true;
-	  // If it's a non-discovery and we can take the checker then it's not checkmate
-	  if(isPossibleCheckmate && !isDiscovery && !isDoubleCheck) {
+	  // If it's a non-discovery and we can take the checker then it's not checkmate - wrong - still missing some checkmates
+	  if(false && isPossibleCheckmate && !isDiscovery && !isDoubleCheck) {
 	    // See if the checking piece can be taken
 	    stats.l0nondiscoveries++;
 	    const SquareAttackersT checkerAttackers = genSquareAttackers<MyColorTraitsT>(moveInfo.to, myState, allPiecesBb);
@@ -849,10 +849,157 @@ namespace Chess {
     }
 
     template <typename BoardTraitsT>
+    inline void perft1Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
+      typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
+      typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
+      const ColorT Color = BoardTraitsT::Color;
+      const ColorT OtherColor = BoardTraitsT::OtherColor;
+
+      const int depthToGo = 1;
+      
+      const ColorStateT& myState = board.pieces[Color];
+      const ColorStateT& yourState = board.pieces[OtherColor];
+      const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
+      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
+      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
+
+      // Check for position legality - eventually do this in the parent
+      
+      // Generate moves
+      const PieceAttacksT myAttacks = genPieceAttacks<MyColorTraitsT>(myState, allPiecesBb);
+
+      // Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
+      if((myAttacks.allAttacks & yourState.bbs[King]) != 0) {
+	// Illegal position - doesn't count
+	stats.invalidsnon0++;
+	static bool done = false;
+	if(!done) {
+	  printf("\n============================================== Invalid - last move to %d! ===================================\n\n", moveInfo.to);
+	  printBoard(board);
+	  printf("\n");
+	  done = true;
+	}
+	return;
+      }
+
+      // This is now a legal position.
+
+      // Evaluate check - eventually do this in the parent
+
+      const SquareAttackersT myKingAttackers = genSquareAttackers<YourColorTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
+      const BitBoardT allMyKingAttackersBb = myKingAttackers.pieceAttackers[AllPieces];
+      const SquareT myKingSq = myState.pieceSquares[SpecificKing];
+
+      const int nChecks = Bits::count(allMyKingAttackersBb);
+
+      // Needed for castling and for king moves so evaluate this here.
+      const PieceAttacksT yourAttacks = genPieceAttacks<YourColorTraitsT>(yourState, allPiecesBb);
+      
+      // Double check can only be evaded by moving the king
+      if(nChecks < 2) {
+
+	// If we're in check then the only legal moves are capture or blocking of the checking piece.
+	const BitBoardT legalMoveMaskBb = genLegalMoveMaskBb(board, nChecks, allMyKingAttackersBb, myKingSq, allPiecesBb, yourAttacks);
+	  
+	// Calculate pins
+      
+	// Find my pinned pieces - used to mask out invalid moves due to discovered check on my king
+	const BitBoardT myDiagPinnedPiecesBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourState);
+	const BitBoardT myOrthogPinnedPiecesBb = genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourState);
+
+	stats.non0inpinpath++;
+	
+	// Generate pinned piece move masks for each piece
+	PiecePinMasksT pinMasks = {0};
+	// Majority of positions have no pins
+	if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) == BbNone) {
+	  genDefaultPiecePinMasks<MyColorTraitsT>(pinMasks);
+	} else {
+	  if(myDiagPinnedPiecesBb) { stats.non0withdiagpins++; }
+	  if(myOrthogPinnedPiecesBb) { stats.non0withorthogpins++; }
+	  genPiecePinMasks<MyColorTraitsT>(pinMasks, myState, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	}
+
+	// Evaluate moves
+
+	// Pawns
+	
+	//perftImplPawnMoves<BoardTraitsT>(stats, board, depthToGo, myAttacks, myKingSq, allMyPiecesBb, allYourPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, yourState.epSquare, legalMoveMaskBb);
+	perftImplPawnMoves<BoardTraitsT>(stats, board, depthToGo, myAttacks, yourState.epSquare, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	
+	// Knights
+
+	perftImplSpecificPieceMoves<BoardTraitsT, QueenKnight>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perftImplSpecificPieceMoves<BoardTraitsT, KingKnight>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	
+	// Bishops
+      
+	perftImplSpecificPieceMoves<BoardTraitsT, BlackBishop>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+
+	perftImplSpecificPieceMoves<BoardTraitsT, WhiteBishop>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+
+	// Rooks
+
+	perftImplSpecificPieceMoves<BoardTraitsT, QueenRook>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+
+	perftImplSpecificPieceMoves<BoardTraitsT, KingRook>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+
+	// Queens
+	//   - diagonally pinned queens can only move along the king's bishop rays
+	//   - orthogonally pinned queens can only move along the king's rook rays
+
+	perftImplSpecificPieceMoves<BoardTraitsT, SpecificQueen>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+
+	// TODO other promo pieces
+	if(MyColorTraitsT::HasPromos) {
+	  if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
+	    perftImplSpecificPieceMoves<BoardTraitsT, PromoQueen>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	  }
+	}
+
+	// Castling
+	CastlingRightsT castlingRights2 = castlingRightsWithSpace<Color>(myState.castlingRights, allPiecesBb);
+	if(castlingRights2) {
+
+	  if((castlingRights2 & CanCastleQueenside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleQueenside>::CastlingThruCheckBbMask) == BbNone) {
+	    perftImplCastlingMove<BoardTraitsT, CanCastleQueenside>(stats, board, depthToGo);
+	  }
+
+	  if((castlingRights2 & CanCastleKingside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleKingside>::CastlingThruCheckBbMask) == BbNone) {
+	    perftImplCastlingMove<BoardTraitsT, CanCastleKingside>(stats, board, depthToGo);
+	  }	
+	}
+
+      } // nChecks < 2
+      
+      // King - cannot move into check
+      // King also cannot move away from a checking slider cos it's still in check.
+      BitBoardT illegalKingSquaresBb = BbNone;
+      const BitBoardT myKingBb = myState.bbs[King];
+      BitBoardT diagSliderCheckersBb = allMyKingAttackersBb & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
+      while(diagSliderCheckersBb) {
+	const SquareT sliderSq = Bits::popLsb(diagSliderCheckersBb);
+	illegalKingSquaresBb |= bishopAttacks(sliderSq, allPiecesBb & ~myKingBb);
+      }
+      BitBoardT orthogSliderCheckersBb = allMyKingAttackersBb & (yourState.bbs[Rook] | yourState.bbs[Queen]);
+      while(orthogSliderCheckersBb) {
+	const SquareT sliderSq = Bits::popLsb(orthogSliderCheckersBb);
+	illegalKingSquaresBb |= rookAttacks(sliderSq, allPiecesBb & ~myKingBb);
+      }
+
+      const SquareT kingSq = myState.pieceSquares[SpecificKing];
+      const BitBoardT legalKingMovesBb = KingAttacks[kingSq] & ~yourAttacks.allAttacks & ~illegalKingSquaresBb;
+      perftImplSpecificPieceMoves<BoardTraitsT, SpecificKing>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], legalKingMovesBb, allYourPiecesBb, allPiecesBb, BbAll, BbAll);
+
+    }
+    
+    template <typename BoardTraitsT>
     inline void perftImpl(PerftStatsT& stats, const BoardT& board, const int depthToGo, const MoveInfoT moveInfo) {
       // If this is a leaf node, gather stats.
       if(depthToGo == 0) {
 	perft0Impl<BoardTraitsT>(stats, board, moveInfo);
+      } else if(depthToGo == 1) {
+	perft1Impl<BoardTraitsT>(stats, board, moveInfo);
       } else {
 	perftImplFull<BoardTraitsT>(stats, board, depthToGo, moveInfo);
       }
