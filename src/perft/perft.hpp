@@ -572,7 +572,7 @@ namespace Chess {
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 
       // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
-      const bool CheckForInvalid = true;
+      const bool CheckForInvalid = false;
       if(CheckForInvalid) {
 	// Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
 	const SquareAttackersT yourKingAttackers = genSquareAttackers<MyColorTraitsT>(yourState.pieceSquares[SpecificKing], myState, allPiecesBb);
@@ -605,7 +605,7 @@ namespace Chess {
 	stats.castles++;
       }
 
-      const bool DoCheckStats = true;
+      const bool DoCheckStats = false;
       if(!DoCheckStats) {
 	return;
       }
