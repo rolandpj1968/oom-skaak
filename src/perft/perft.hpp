@@ -1117,7 +1117,7 @@ namespace Chess {
       // If this is a leaf node, gather stats.
       if(depthToGo == 0) {
 	perft0Impl<BoardTraitsT>(stats, board, moveInfo);
-      } else if(false && depthToGo == 1) {
+      } else if(depthToGo == 1) {
 	perft1Impl<BoardTraitsT>(stats, board, moveInfo);
       } else {
 	perftImplFull<BoardTraitsT>(stats, board, depthToGo, moveInfo);
