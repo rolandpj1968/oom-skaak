@@ -352,7 +352,7 @@ namespace Chess {
     }
     
     template <typename BoardTraitsT>
-    inline void perft1ImplPawnEpMoveCounts(PerftStatsT& stats, const BoardT& board, const int depthToGo, SquareT epSquare, const BitBoardT allPiecesBb, const BitBoardT legalPawnsLeftBb, const BitBoardT legalPawnsRightBb) {
+    inline void perft1ImplPawnEpMoveCountsNoCaptures(PerftStatsT& stats, const BoardT& board, const int depthToGo, SquareT epSquare, const BitBoardT allPiecesBb, const BitBoardT legalPawnsLeftBb, const BitBoardT legalPawnsRightBb) {
       const BitBoardT epSquareBb = bbForSquare(epSquare);
 
       const BitBoardT semiLegalEpCaptureLeftBb = legalPawnsLeftBb & epSquareBb;
@@ -388,14 +388,14 @@ namespace Chess {
 	  //perftImplPawnEpCaptureLeft<BoardTraitsT>(stats, board, depthToGo, semiLegalEpCaptureLeftBb);
 	  if(semiLegalEpCaptureLeftBb) {
 	    stats.nodes++;
-	    stats.captures++;
-	    stats.eps++;
+	    //stats.captures++;
+	    //stats.eps++;
 	  }
 	  //perftImplPawnEpCaptureRight<BoardTraitsT>(stats, board, depthToGo, semiLegalEpCaptureRightBb);
 	  if(semiLegalEpCaptureRightBb) {
 	    stats.nodes++;
-	    stats.captures++;
-	    stats.eps++;
+	    //stats.captures++;
+	    //stats.eps++;
 	  }
 	}
       }
@@ -429,7 +429,7 @@ namespace Chess {
     }
     
     template <typename BoardTraitsT>
-    inline void perft1ImplPawnMoveCounts(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
+    inline void perft1ImplPawnMoveCountsNoCaptures(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
 
       // Pawn pushes
 	
@@ -446,20 +446,20 @@ namespace Chess {
       //const BitBoard legalPawnsLeftCapturesBb = legalPawnsLeftBb & allYourPiecesBb;
       const auto legalPawnsLeftCapturesCount = Bits::count(legalPawnsLeftBb & allYourPiecesBb);
       stats.nodes += legalPawnsLeftCapturesCount;
-      stats.captures += legalPawnsLeftCapturesCount;
+      //stats.captures += legalPawnsLeftCapturesCount;
       //perftImplPawnsCaptureLeft<BoardTraitsT>(stats, board, depthToGo, legalPawnsLeftBb & allYourPiecesBb);
       
       const BitBoardT legalPawnsRightBb = myAttacks.pawnsRightAttacks & legalMoveMaskBb & pinMasks.pawnsRightPinMask;
       const auto legalPawnsRightCapturesCount = Bits::count(legalPawnsRightBb & allYourPiecesBb);
       stats.nodes += legalPawnsRightCapturesCount;
-      stats.captures += legalPawnsRightCapturesCount;
+      //stats.captures += legalPawnsRightCapturesCount;
       //perftImplPawnsCaptureRight<BoardTraitsT>(stats, board, depthToGo, legalPawnsRightBb & allYourPiecesBb);
       
       // Pawn en-passant captures
       // En-passant is tricky because the captured pawn is not on the same square as the capturing piece, and might expose a discovered check itself.
       if(epSquare != InvalidSquare) {
 	//perftImplPawnEpMoves<BoardTraitsT>(stats, board, depthToGo, epSquare, allPiecesBb, legalPawnsLeftBb, legalPawnsRightBb);
-	perft1ImplPawnEpMoveCounts<BoardTraitsT>(stats, board, depthToGo, epSquare, allPiecesBb, legalPawnsLeftBb, legalPawnsRightBb);
+	perft1ImplPawnEpMoveCountsNoCaptures<BoardTraitsT>(stats, board, depthToGo, epSquare, allPiecesBb, legalPawnsLeftBb, legalPawnsRightBb);
       }
     }
     
@@ -494,13 +494,13 @@ namespace Chess {
 
     // Ugh - king still uses this - TODO!
     template <typename BoardTraitsT, SpecificPieceT SpecificPiece>
-    inline void perft1ImplSpecificPieceMoveCounts(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, const BitBoardT attacksBb, const BitBoardT allMyPiecesBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const BitBoardT pinnedMoveMaskBb) {
+    inline void perft1ImplSpecificPieceMoveCountsNoCaptures(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, const BitBoardT attacksBb, const BitBoardT allMyPiecesBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const BitBoardT pinnedMoveMaskBb) {
       const BitBoardT legalAttacksBb = attacksBb & legalMoveMaskBb & pinnedMoveMaskBb;
       //perftImplSpecificPiecePushes<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, legalAttacksBb & ~allPiecesBb);
       stats.nodes += Bits::count(legalAttacksBb & ~allMyPiecesBb);
       
       //perftImplSpecificPieceCaptures<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, legalAttacksBb & allYourPiecesBb);
-      stats.captures += Bits::count(legalAttacksBb & allYourPiecesBb);
+      //stats.captures += Bits::count(legalAttacksBb & allYourPiecesBb);
     }
 
     template <typename BoardTraitsT, SpecificPieceT SpecificPiece>
@@ -525,6 +525,18 @@ namespace Chess {
       //perftImplSpecificPiecePushes<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, legalAttacksBb & ~allPiecesBb);
       
       stats.captures += Bits::count(legalAttacksBb & allYourPiecesBb);
+      //perftImplSpecificPieceCaptures<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, legalAttacksBb & allYourPiecesBb);
+    }
+
+    template <typename BoardTraitsT, SpecificPieceT SpecificPiece>
+    inline void perft1ImplSpecificPieceMoveCountsNoCaptures(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT allMyPiecesBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
+
+      const BitBoardT legalAttacksBb = myAttacks.pieceAttacks[SpecificPiece] & legalMoveMaskBb & pinMasks.piecePinMasks[SpecificPiece];
+
+      stats.nodes += Bits::count(legalAttacksBb & ~allMyPiecesBb);
+      //perftImplSpecificPiecePushes<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, legalAttacksBb & ~allPiecesBb);
+      
+      //stats.captures += Bits::count(legalAttacksBb & allYourPiecesBb);
       //perftImplSpecificPieceCaptures<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, legalAttacksBb & allYourPiecesBb);
     }
     
@@ -1038,36 +1050,36 @@ namespace Chess {
 
 	// Pawns
 
-	perft1ImplPawnMoveCounts<BoardTraitsT>(stats, board, depthToGo, myAttacks, yourState.epSquare, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perft1ImplPawnMoveCountsNoCaptures<BoardTraitsT>(stats, board, depthToGo, myAttacks, yourState.epSquare, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
 
 	
 	// Knights
 
-	perft1ImplSpecificPieceMoveCounts<BoardTraitsT, QueenKnight>(stats, board, depthToGo, myAttacks, allMyPiecesBb, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
-	perft1ImplSpecificPieceMoveCounts<BoardTraitsT, KingKnight>(stats, board, depthToGo, myAttacks, allMyPiecesBb, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perft1ImplSpecificPieceMoveCountsNoCaptures<BoardTraitsT, QueenKnight>(stats, board, depthToGo, myAttacks, allMyPiecesBb, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perft1ImplSpecificPieceMoveCountsNoCaptures<BoardTraitsT, KingKnight>(stats, board, depthToGo, myAttacks, allMyPiecesBb, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
 	
 	// Bishops
       
-	perft1ImplSpecificPieceMoveCounts<BoardTraitsT, BlackBishop>(stats, board, depthToGo, myAttacks, allMyPiecesBb, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perft1ImplSpecificPieceMoveCountsNoCaptures<BoardTraitsT, BlackBishop>(stats, board, depthToGo, myAttacks, allMyPiecesBb, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
 
-	perft1ImplSpecificPieceMoveCounts<BoardTraitsT, WhiteBishop>(stats, board, depthToGo, myAttacks, allMyPiecesBb, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perft1ImplSpecificPieceMoveCountsNoCaptures<BoardTraitsT, WhiteBishop>(stats, board, depthToGo, myAttacks, allMyPiecesBb, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
 
 	// Rooks
 
-	perft1ImplSpecificPieceMoveCounts<BoardTraitsT, QueenRook>(stats, board, depthToGo, myAttacks, allMyPiecesBb, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perft1ImplSpecificPieceMoveCountsNoCaptures<BoardTraitsT, QueenRook>(stats, board, depthToGo, myAttacks, allMyPiecesBb, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
 
-	perft1ImplSpecificPieceMoveCounts<BoardTraitsT, KingRook>(stats, board, depthToGo, myAttacks, allMyPiecesBb, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perft1ImplSpecificPieceMoveCountsNoCaptures<BoardTraitsT, KingRook>(stats, board, depthToGo, myAttacks, allMyPiecesBb, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
 
 	// Queens
 	//   - diagonally pinned queens can only move along the king's bishop rays
 	//   - orthogonally pinned queens can only move along the king's rook rays
 
-	perft1ImplSpecificPieceMoveCounts<BoardTraitsT, SpecificQueen>(stats, board, depthToGo, myAttacks, allMyPiecesBb, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perft1ImplSpecificPieceMoveCountsNoCaptures<BoardTraitsT, SpecificQueen>(stats, board, depthToGo, myAttacks, allMyPiecesBb, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
 
 	// TODO other promo pieces
 	if(MyColorTraitsT::HasPromos) {
 	  if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
-	    perft1ImplSpecificPieceMoveCounts<BoardTraitsT, PromoQueen>(stats, board, depthToGo, myAttacks, allMyPiecesBb, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	    perft1ImplSpecificPieceMoveCountsNoCaptures<BoardTraitsT, PromoQueen>(stats, board, depthToGo, myAttacks, allMyPiecesBb, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
 	  }
 	}
 
@@ -1108,7 +1120,7 @@ namespace Chess {
       const SquareT kingSq = myState.pieceSquares[SpecificKing];
       const BitBoardT legalKingMovesBb = KingAttacks[kingSq] & ~yourAttacks.allAttacks & ~illegalKingSquaresBb;
       //perftImplSpecificPieceMoves<BoardTraitsT, SpecificKing>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], legalKingMovesBb, allYourPiecesBb, allPiecesBb, BbAll, BbAll);
-      perft1ImplSpecificPieceMoveCounts<BoardTraitsT, SpecificKing>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], legalKingMovesBb, allMyPiecesBb, allYourPiecesBb, allPiecesBb, BbAll, BbAll);
+      perft1ImplSpecificPieceMoveCountsNoCaptures<BoardTraitsT, SpecificKing>(stats, board, depthToGo, myState.pieceSquares[SpecificKing], legalKingMovesBb, allMyPiecesBb, allYourPiecesBb, allPiecesBb, BbAll, BbAll);
 
     }
     
