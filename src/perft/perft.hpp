@@ -706,6 +706,40 @@ namespace Chess {
     }
 
     template <typename BoardTraitsT>
+    inline PiecePinMasksT genPinMasks(PerftStatsT& stats, const BoardT& board) {
+      typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
+      const ColorT Color = BoardTraitsT::Color;
+      const ColorT OtherColor = BoardTraitsT::OtherColor;
+      
+      const ColorStateT& myState = board.pieces[Color];
+      const ColorStateT& yourState = board.pieces[OtherColor];
+      const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
+      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
+      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
+
+      const SquareT myKingSq = myState.pieceSquares[SpecificKing];
+
+      stats.non0inpinpath++;
+      
+      // Find my pinned pieces - used to mask out invalid moves due to discovered check on my king
+      const BitBoardT myDiagPinnedPiecesBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourState);
+      const BitBoardT myOrthogPinnedPiecesBb = genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourState);
+      
+      // Generate pinned piece move masks for each piece
+      PiecePinMasksT pinMasks = {0};
+      // Majority of positions have no pins
+      if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) == BbNone) {
+	genDefaultPiecePinMasks<MyColorTraitsT>(pinMasks);
+      } else {
+	if(myDiagPinnedPiecesBb) { stats.non0withdiagpins++; }
+	if(myOrthogPinnedPiecesBb) { stats.non0withorthogpins++; }
+	genPiecePinMasks<MyColorTraitsT>(pinMasks, myState, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+      }
+      
+      return pinMasks;
+    }
+
+    template <typename BoardTraitsT>
     inline void perftImplFull(PerftStatsT& stats, const BoardT& board, const int depthToGo, const MoveInfoT moveInfo) {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
       typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
@@ -741,9 +775,9 @@ namespace Chess {
 
       // Evaluate check - eventually do this in the parent
 
-      const SquareAttackersT myKingAttackers = genSquareAttackers<YourColorTraitsT>(myState.pieceSquares[SpecificKing], yourState, allPiecesBb);
-      const BitBoardT allMyKingAttackersBb = myKingAttackers.pieceAttackers[AllPieces];
       const SquareT myKingSq = myState.pieceSquares[SpecificKing];
+      const SquareAttackersT myKingAttackers = genSquareAttackers<YourColorTraitsT>(myKingSq, yourState, allPiecesBb);
+      const BitBoardT allMyKingAttackersBb = myKingAttackers.pieceAttackers[AllPieces];
 
       const int nChecks = Bits::count(allMyKingAttackersBb);
 
@@ -756,30 +790,13 @@ namespace Chess {
 	// If we're in check then the only legal moves are capture or blocking of the checking piece.
 	const BitBoardT legalMoveMaskBb = genLegalMoveMaskBb(board, nChecks, allMyKingAttackersBb, myKingSq, allPiecesBb, yourAttacks);
 	  
-	// Calculate pins
-      
-	// Find my pinned pieces - used to mask out invalid moves due to discovered check on my king
-	const BitBoardT myDiagPinnedPiecesBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourState);
-	const BitBoardT myOrthogPinnedPiecesBb = genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourState);
-
-	stats.non0inpinpath++;
-	
-	// Generate pinned piece move masks for each piece
-	PiecePinMasksT pinMasks = {0};
-	// Majority of positions have no pins
-	if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) == BbNone) {
-	  genDefaultPiecePinMasks<MyColorTraitsT>(pinMasks);
-	} else {
-	  if(myDiagPinnedPiecesBb) { stats.non0withdiagpins++; }
-	  if(myOrthogPinnedPiecesBb) { stats.non0withorthogpins++; }
-	  genPiecePinMasks<MyColorTraitsT>(pinMasks, myState, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-	}
+	// Calculate pinned piece move restrictions.
+	const PiecePinMasksT pinMasks = genPinMasks<BoardTraitsT>(stats, board);
 
 	// Evaluate moves
 
 	// Pawns
 	
-	//perftImplPawnMoves<BoardTraitsT>(stats, board, depthToGo, myAttacks, myKingSq, allMyPiecesBb, allYourPiecesBb, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb, yourState.epSquare, legalMoveMaskBb);
 	perftImplPawnMoves<BoardTraitsT>(stats, board, depthToGo, myAttacks, yourState.epSquare, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
 	
 	// Knights
