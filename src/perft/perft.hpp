@@ -739,6 +739,79 @@ namespace Chess {
       return pinMasks;
     }
 
+    struct PushesAndCapturesT {
+      BitBoardT pushesBb;
+      BitBoardT capturesBb;
+
+      PushesAndCapturesT():
+	pushesBb(BbNone), capturesBb(BbNone) {}
+      
+      PushesAndCapturesT(const BitBoardT pushesBb, const BitBoardT capturesBb):
+	pushesBb(pushesBb), capturesBb(capturesBb) {}
+    };
+
+    struct PawnPushesAndCapturesT {
+      BitBoardT pushesOneBb;
+      BitBoardT pushesTwoBb;
+      BitBoardT capturesLeftBb;
+      BitBoardT capturesRightBb;
+
+      PawnPushesAndCapturesT():
+	pushesOneBb(0), pushesTwoBb(0), capturesLeftBb(0), capturesRightBb(0) {}
+      
+      PawnPushesAndCapturesT(const BitBoardT pushesOneBb, const BitBoardT pushesTwoBb, const BitBoardT capturesLeftBb, const BitBoardT capturesRightBb):
+	pushesOneBb(pushesOneBb), pushesTwoBb(pushesTwoBb), capturesLeftBb(capturesLeftBb), capturesRightBb(capturesRightBb) {}
+    };
+
+    struct LegalMovesT {
+      PawnPushesAndCapturesT pawnMoves;
+      PushesAndCapturesT specificPieceMoves[NSpecificPieceTypes];
+    };
+
+    template <SpecificPieceT SpecificPiece>
+    inline PushesAndCapturesT filterSpecificPieceLegalMoves(const PieceAttacksT myAttacks, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT pinMasks) {
+      const BitBoardT legalAttacksBb = myAttacks.pieceAttacks[SpecificPiece] & legalMoveMaskBb & pinMasks.piecePinMasks[SpecificPiece];
+      const BitBoardT legalPushesBb = legalAttacksBb & ~allPiecesBb;
+      const BitBoardT legalCapturesBb = legalAttacksBb & allYourPiecesBb;
+
+      return PushesAndCapturesT(legalPushesBb, legalCapturesBb);
+    }
+
+    template <typename BoardTraitsT> 
+    inline LegalMovesT filterLegalMoves(const BoardT& board, const PieceAttacksT myAttacks/*, const SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb*/, const BitBoardT legalMoveMaskBb, const PiecePinMasksT pinMasks) {
+      typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
+      const ColorT Color = BoardTraitsT::Color;
+      const ColorT OtherColor = BoardTraitsT::OtherColor;
+      
+      const ColorStateT& myState = board.pieces[Color];
+      const ColorStateT& yourState = board.pieces[OtherColor];
+      const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
+      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
+      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
+      
+      LegalMovesT legalMoves;
+
+      legalMoves.specificPieceMoves[QueenKnight] = filterSpecificPieceLegalMoves<QueenKnight>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+      legalMoves.specificPieceMoves[KingKnight] = filterSpecificPieceLegalMoves<KingKnight>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+
+      legalMoves.specificPieceMoves[BlackBishop] = filterSpecificPieceLegalMoves<BlackBishop>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+      legalMoves.specificPieceMoves[WhiteBishop] = filterSpecificPieceLegalMoves<WhiteBishop>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+      
+      legalMoves.specificPieceMoves[QueenRook] = filterSpecificPieceLegalMoves<QueenRook>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+      legalMoves.specificPieceMoves[KingRook] = filterSpecificPieceLegalMoves<KingRook>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+
+      legalMoves.specificPieceMoves[SpecificQueen] = filterSpecificPieceLegalMoves<SpecificQueen>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+      
+      // TODO other promo pieces
+      if(MyColorTraitsT::HasPromos) {
+	if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
+	  legalMoves.specificPieceMoves[PromoQueen] = filterSpecificPieceLegalMoves<PromoQueen>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	}
+      }
+      
+      return legalMoves;
+    }
+
     template <typename BoardTraitsT>
     inline void perftImplFull(PerftStatsT& stats, const BoardT& board, const int depthToGo, const MoveInfoT moveInfo) {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
@@ -793,6 +866,13 @@ namespace Chess {
 	// Calculate pinned piece move restrictions.
 	const PiecePinMasksT pinMasks = genPinMasks<BoardTraitsT>(stats, board);
 
+	// Filter legal moves
+	const LegalMovesT legalMoves = filterLegalMoves<BoardTraitsT>(board, myAttacks/*, yourState.epSquare, allYourPiecesBb, allPiecesBb*/, legalMoveMaskBb, pinMasks);
+
+	if(legalMoves.pawnMoves.pushesOneBb == BbNone) {
+	  static int n = 0;
+	  n++;
+	}
 	// Evaluate moves
 
 	// Pawns
@@ -802,6 +882,7 @@ namespace Chess {
 	// Knights
 
 	perftImplSpecificPieceMoves<BoardTraitsT, QueenKnight>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+
 	perftImplSpecificPieceMoves<BoardTraitsT, KingKnight>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
 	
 	// Bishops
