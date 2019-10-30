@@ -50,6 +50,35 @@ namespace Chess {
       // BitBoardT allPinMasks;
     };
 
+    struct PushesAndCapturesT {
+      BitBoardT pushesBb;
+      BitBoardT capturesBb;
+
+      PushesAndCapturesT():
+	pushesBb(BbNone), capturesBb(BbNone) {}
+      
+      PushesAndCapturesT(const BitBoardT pushesBb, const BitBoardT capturesBb):
+	pushesBb(pushesBb), capturesBb(capturesBb) {}
+    };
+
+    struct PawnPushesAndCapturesT {
+      BitBoardT pushesOneBb;
+      BitBoardT pushesTwoBb;
+      BitBoardT capturesLeftBb;
+      BitBoardT capturesRightBb;
+
+      PawnPushesAndCapturesT():
+	pushesOneBb(0), pushesTwoBb(0), capturesLeftBb(0), capturesRightBb(0) {}
+      
+      PawnPushesAndCapturesT(const BitBoardT pushesOneBb, const BitBoardT pushesTwoBb, const BitBoardT capturesLeftBb, const BitBoardT capturesRightBb):
+	pushesOneBb(pushesOneBb), pushesTwoBb(pushesTwoBb), capturesLeftBb(capturesLeftBb), capturesRightBb(capturesRightBb) {}
+    };
+
+    struct LegalMovesT {
+      PawnPushesAndCapturesT pawnMoves;
+      PushesAndCapturesT specificPieceMoves[NSpecificPieceTypes];
+    };
+
 #include <boost/preprocessor/iteration/local.hpp>
     const u8 QueensideCastleSpaceBits = 0x07;
     const u8 KingsideCastleSpaceBits = 0x30;
@@ -396,14 +425,16 @@ namespace Chess {
       perftImplSpecificPieceMoves<BoardTraitsT, SpecificPiece, Capture>(stats, board, depthToGo, from, capturesBb, CaptureMove);
     }
 
-    // Ugh - king still uses this - TODO!
     template <typename BoardTraitsT, SpecificPieceT SpecificPiece>
-    inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, const BitBoardT attacksBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const BitBoardT pinnedMoveMaskBb) {
-      const BitBoardT legalAttacksBb = attacksBb & legalMoveMaskBb & pinnedMoveMaskBb;
-      perftImplSpecificPiecePushes<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, legalAttacksBb & ~allPiecesBb);
-      perftImplSpecificPieceCaptures<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, legalAttacksBb & allYourPiecesBb);
-    }
+    inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PushesAndCapturesT pushesAndCaptures) {
+      const ColorStateT& myState = board.pieces[BoardTraitsT::Color];
+      const SquareT from = myState.pieceSquares[SpecificPiece];
 
+      perftImplSpecificPiecePushes<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, pushesAndCaptures.pushesBb);
+      
+      perftImplSpecificPieceCaptures<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, pushesAndCaptures.capturesBb);
+    }
+    
     template <typename BoardTraitsT, SpecificPieceT SpecificPiece>
     inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
 
@@ -417,6 +448,14 @@ namespace Chess {
       perftImplSpecificPieceCaptures<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, legalAttacksBb & allYourPiecesBb);
     }
     
+    // Ugh - king still uses this - TODO!
+    template <typename BoardTraitsT, SpecificPieceT SpecificPiece>
+    inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, const BitBoardT attacksBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const BitBoardT pinnedMoveMaskBb) {
+      const BitBoardT legalAttacksBb = attacksBb & legalMoveMaskBb & pinnedMoveMaskBb;
+      perftImplSpecificPiecePushes<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, legalAttacksBb & ~allPiecesBb);
+      perftImplSpecificPieceCaptures<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, legalAttacksBb & allYourPiecesBb);
+    }
+
     // Pinned move mark generation - TODO factor out for pawns too
     
     template <PieceT Piece>
@@ -739,35 +778,6 @@ namespace Chess {
       return pinMasks;
     }
 
-    struct PushesAndCapturesT {
-      BitBoardT pushesBb;
-      BitBoardT capturesBb;
-
-      PushesAndCapturesT():
-	pushesBb(BbNone), capturesBb(BbNone) {}
-      
-      PushesAndCapturesT(const BitBoardT pushesBb, const BitBoardT capturesBb):
-	pushesBb(pushesBb), capturesBb(capturesBb) {}
-    };
-
-    struct PawnPushesAndCapturesT {
-      BitBoardT pushesOneBb;
-      BitBoardT pushesTwoBb;
-      BitBoardT capturesLeftBb;
-      BitBoardT capturesRightBb;
-
-      PawnPushesAndCapturesT():
-	pushesOneBb(0), pushesTwoBb(0), capturesLeftBb(0), capturesRightBb(0) {}
-      
-      PawnPushesAndCapturesT(const BitBoardT pushesOneBb, const BitBoardT pushesTwoBb, const BitBoardT capturesLeftBb, const BitBoardT capturesRightBb):
-	pushesOneBb(pushesOneBb), pushesTwoBb(pushesTwoBb), capturesLeftBb(capturesLeftBb), capturesRightBb(capturesRightBb) {}
-    };
-
-    struct LegalMovesT {
-      PawnPushesAndCapturesT pawnMoves;
-      PushesAndCapturesT specificPieceMoves[NSpecificPieceTypes];
-    };
-
     template <SpecificPieceT SpecificPiece>
     inline PushesAndCapturesT filterSpecificPieceLegalMoves(const PieceAttacksT myAttacks, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT pinMasks) {
       const BitBoardT legalAttacksBb = myAttacks.pieceAttacks[SpecificPiece] & legalMoveMaskBb & pinMasks.piecePinMasks[SpecificPiece];
@@ -881,9 +891,9 @@ namespace Chess {
 	
 	// Knights
 
-	perftImplSpecificPieceMoves<BoardTraitsT, QueenKnight>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perftImplSpecificPieceMoves<BoardTraitsT, QueenKnight>(stats, board, depthToGo, legalMoves.specificPieceMoves[QueenKnight]);
 
-	perftImplSpecificPieceMoves<BoardTraitsT, KingKnight>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perftImplSpecificPieceMoves<BoardTraitsT, KingKnight>(stats, board, depthToGo, legalMoves.specificPieceMoves[KingKnight]);
 	
 	// Bishops
       
