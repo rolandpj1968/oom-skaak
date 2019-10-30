@@ -897,26 +897,24 @@ namespace Chess {
 	
 	// Bishops
       
-	perftImplSpecificPieceMoves<BoardTraitsT, BlackBishop>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perftImplSpecificPieceMoves<BoardTraitsT, BlackBishop>(stats, board, depthToGo, legalMoves.specificPieceMoves[BlackBishop]); 
 
-	perftImplSpecificPieceMoves<BoardTraitsT, WhiteBishop>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perftImplSpecificPieceMoves<BoardTraitsT, WhiteBishop>(stats, board, depthToGo, legalMoves.specificPieceMoves[WhiteBishop]); 
 
 	// Rooks
 
-	perftImplSpecificPieceMoves<BoardTraitsT, QueenRook>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perftImplSpecificPieceMoves<BoardTraitsT, QueenRook>(stats, board, depthToGo, legalMoves.specificPieceMoves[QueenRook]); 
 
-	perftImplSpecificPieceMoves<BoardTraitsT, KingRook>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perftImplSpecificPieceMoves<BoardTraitsT, KingRook>(stats, board, depthToGo, legalMoves.specificPieceMoves[KingRook]); 
 
 	// Queens
-	//   - diagonally pinned queens can only move along the king's bishop rays
-	//   - orthogonally pinned queens can only move along the king's rook rays
 
-	perftImplSpecificPieceMoves<BoardTraitsT, SpecificQueen>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perftImplSpecificPieceMoves<BoardTraitsT, SpecificQueen>(stats, board, depthToGo, legalMoves.specificPieceMoves[SpecificQueen]); 
 
 	// TODO other promo pieces
 	if(MyColorTraitsT::HasPromos) {
 	  if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
-	    perftImplSpecificPieceMoves<BoardTraitsT, PromoQueen>(stats, board, depthToGo, myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	    perftImplSpecificPieceMoves<BoardTraitsT, PromoQueen>(stats, board, depthToGo, legalMoves.specificPieceMoves[PromoQueen]);  
 	  }
 	}
 
