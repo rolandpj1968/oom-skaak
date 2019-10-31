@@ -1018,7 +1018,7 @@ namespace Chess {
 	genLegalNonKingMoves<BoardTraitsT>(legalMoves, board, myAttacks, legalMoveMaskBb, pinMasks);
 
 	// Castling
-	legalMoves.canCastleFlags = genLegalCastlingFlags<BoardTraitsT>(board, yourAttacks, allMyKingAttackersBb);
+	legalMoves.canCastleFlags = genLegalCastlingFlags<BoardTraitsT>(board, yourAttacks, allPiecesBb);
       }
 
       legalMoves.specificPieceMoves[SpecificKing] = genLegalKingMoves<BoardTraitsT>(board, yourAttacks, allMyKingAttackersBb);
