@@ -8,7 +8,7 @@ namespace Chess {
     // TODO - PieceT should be inferred from SpecificPieceT
     // TODO - unusual promos
     static void addPiece(BoardT& board, const ColorT color, const SquareT square, const SpecificPieceT specificPiece) {
-      ColorStateT& c = board.pieces[color];
+      ColorStateT& c = board.pieces[(size_t)color];
       
       const BitBoardT pieceBb = bbForSquare(square);
 
@@ -37,7 +37,7 @@ namespace Chess {
       }
 
       // Castling rights
-      board.pieces[color].castlingRights = (CastlingRightsT)(CanCastleQueenside | CanCastleKingside);
+      board.pieces[(size_t)color].castlingRights = (CastlingRightsT)(CanCastleQueenside | CanCastleKingside);
     }
 
     BoardT startingPosition() {
@@ -64,7 +64,7 @@ namespace Chess {
 	ColorT color = squarePieceColor(squarePiece);
 	SpecificPieceT specificPiece = squarePieceSpecificPiece(squarePiece);
 	PieceT piece = PieceForSpecificPiece[specificPiece];
-	printf("%c ", PieceChar[color][piece]);
+	printf("%c ", PieceChar[(size_t)color][piece]);
       }
       printf(" | %d\n", rank+1);
     }

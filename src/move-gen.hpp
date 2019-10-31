@@ -433,7 +433,7 @@ namespace Chess {
 
       // Pawns
       
-      BitBoardT pawnAttackersBb = PawnAttackers[Color][square] & colorState.bbs[Pawn];
+      BitBoardT pawnAttackersBb = PawnAttackers[(size_t)Color][square] & colorState.bbs[Pawn];
       attackers.pieceAttackers[Pawn] = pawnAttackersBb;
       attackers.pieceAttackers[AllPieces] |= pawnAttackersBb;
 

@@ -55,8 +55,8 @@ int main(int argc, char* argv[]) {
 
   BoardT startingBoard = Board::startingPosition();
   
-  ColorStateT& w = startingBoard.pieces[White];
-  ColorStateT& b = startingBoard.pieces[Black];
+  ColorStateT& w = startingBoard.pieces[(size_t)White];
+  ColorStateT& b = startingBoard.pieces[(size_t)Black];
   
   auto whiteAttacks = genPieceAttacks<WhiteStartingColorTraitsT>(w, w.bbs[AllPieces] | b.bbs[AllPieces]);
 

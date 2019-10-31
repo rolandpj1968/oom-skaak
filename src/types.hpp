@@ -9,11 +9,15 @@ typedef uint64_t u64;
 
 namespace Chess {
   
-  enum ColorT {
+  enum class ColorT: u8 {
     White,
     Black,
     NColors,
   };
+
+  const ColorT White = ColorT::White;
+  const ColorT Black = ColorT::Black;
+  const size_t NColors = (size_t)ColorT::NColors;
 
   template <ColorT color> struct OtherColorT { static const ColorT value; };
   template <> struct OtherColorT<White> { static const ColorT value = Black; };
