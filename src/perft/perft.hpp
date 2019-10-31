@@ -422,6 +422,22 @@ namespace Chess {
       }
     }
     
+    template <typename BoardTraitsT>
+    inline void perftImplPawnMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PawnPushesAndCapturesT& pawnMoves) {
+
+      // Pawn pushes
+      perftImplPawnsPushOne<BoardTraitsT>(stats, board, depthToGo, pawnMoves.pushesOneBb);
+      perftImplPawnsPushTwo<BoardTraitsT>(stats, board, depthToGo, pawnMoves.pushesTwoBb);
+	
+      // Pawn captures
+      perftImplPawnsCaptureLeft<BoardTraitsT>(stats, board, depthToGo, pawnMoves.capturesLeftBb);
+      perftImplPawnsCaptureRight<BoardTraitsT>(stats, board, depthToGo, pawnMoves.capturesRightBb);
+      
+      // Pawn en-passant captures
+      perftImplPawnEpCaptureLeft<BoardTraitsT>(stats, board, depthToGo, pawnMoves.epCaptures.epLeftCaptureBb);
+      perftImplPawnEpCaptureRight<BoardTraitsT>(stats, board, depthToGo, pawnMoves.epCaptures.epRightCaptureBb);
+    }
+    
     template <typename BoardTraitsT, SpecificPieceT SpecificPiece, PushOrCaptureT PushOrCapture>
     inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, BitBoardT toBb, const MoveTypeT moveType) {
       while(toBb) {
@@ -807,8 +823,8 @@ namespace Chess {
       const BitBoardT semiLegalEpCaptureLeftBb = legalPawnsLeftBb & epSquareBb;
       const BitBoardT semiLegalEpCaptureRightBb = legalPawnsRightBb & epSquareBb;
 
-      const BitBoardT legalEpCaptureLeftBb = BbNone;
-      const BitBoardT legalEpCaptureRightBb = BbNone;
+      BitBoardT legalEpCaptureLeftBb = BbNone;
+      BitBoardT legalEpCaptureRightBb = BbNone;
 
       // Only do the heavy lifting of detecting discovered check through the captured pawn if there really is an en-passant opportunity
       // En-passant is tricky because the captured pawn is not on the same square as the capturing piece, and might expose a discovered check itself.
@@ -874,7 +890,7 @@ namespace Chess {
       const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 
-      legalMoves.pawnMoves = genLegalPawnMoves<BoardTraitsT>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+      legalMoves.pawnMoves = genLegalPawnMoves<BoardTraitsT>(board, myAttacks, yourState.epSquare, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
       
       legalMoves.specificPieceMoves[QueenKnight] = genSpecificPieceLegalMoves<QueenKnight>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
       legalMoves.specificPieceMoves[KingKnight] = genSpecificPieceLegalMoves<KingKnight>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
@@ -906,11 +922,11 @@ namespace Chess {
       if(castlingRights) {
 	
 	if((castlingRights & CanCastleQueenside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleQueenside>::CastlingThruCheckBbMask) == BbNone) {
-	  canCastleFlags |= CanCastleQueenside;
+	  canCastleFlags = (CastlingRightsT)(canCastleFlags | CanCastleQueenside);
 	}
 	
 	if((castlingRights & CanCastleKingside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleKingside>::CastlingThruCheckBbMask) == BbNone) {
-	  canCastleFlags |= CanCastleKingside;
+	  canCastleFlags = (CastlingRightsT)(canCastleFlags | CanCastleKingside);
 	}	
       }
       
@@ -1005,7 +1021,7 @@ namespace Chess {
 	legalMoves.canCastleFlags = genLegalCastlingFlags<BoardTraitsT>(board, yourAttacks, allMyKingAttackersBb);
       }
 
-      legalMoves.specificPieceMoves[SpecificKing] = genLegalKingMoves<BoardTraitsT>(board, yourAttacks);
+      legalMoves.specificPieceMoves[SpecificKing] = genLegalKingMoves<BoardTraitsT>(board, yourAttacks, allMyKingAttackersBb);
       
       return legalMoves;
     }
@@ -1013,16 +1029,7 @@ namespace Chess {
     template <typename BoardTraitsT>
     inline void perftImplFull(PerftStatsT& stats, const BoardT& board, const int depthToGo, const MoveInfoT moveInfo) {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
-      typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
-      const ColorT Color = BoardTraitsT::Color;
-      const ColorT OtherColor = BoardTraitsT::OtherColor;
       
-      const ColorStateT& myState = board.pieces[Color];
-      const ColorStateT& yourState = board.pieces[OtherColor];
-      const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
-      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
-      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
-
       // Generate (legal) moves
       const LegalMovesT legalMoves = genLegalMoves<BoardTraitsT>(board);
 
@@ -1047,7 +1054,8 @@ namespace Chess {
 
 	// Pawns
 	
-	perftImplPawnMoves<BoardTraitsT>(stats, board, depthToGo, myAttacks, yourState.epSquare, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	//perftImplPawnMoves<BoardTraitsT>(stats, board, depthToGo, myAttacks, yourState.epSquare, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	perftImplPawnMoves<BoardTraitsT>(stats, board, depthToGo, legalMoves.pawnMoves);
 	
 	// Knights
 
