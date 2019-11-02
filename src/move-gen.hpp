@@ -2,6 +2,7 @@
 #define MOVE_GEN_HPP
 
 #include "types.hpp"
+#include "bits.hpp"
 #include "board.hpp"
 
 namespace Chess {
@@ -10,56 +11,207 @@ namespace Chess {
   
   namespace MoveGen {
 
-    //
-    // Pawn move rules are specialised for White and Black respectively.
-    //
-    
-    template <ColorT> BitBoardT pawnsLeftAttacks(const BitBoardT pawns);
-    template <ColorT> BitBoardT pawnsRightAttacks(const BitBoardT pawns);
-    template <ColorT> BitBoardT pawnsPushOne(const BitBoardT pawns, const BitBoardT allPiecesBb);
-    template <ColorT> BitBoardT pawnsPushTwo(const BitBoardT pawnOneMoves, const BitBoardT allPiecesBb);
+    struct PieceAttacksT {
+      // Pawn attacks (and moves) - single bit board for all pawns for each move type.
+      BitBoardT pawnsLeftAttacks;
+      BitBoardT pawnsRightAttacks;
+      BitBoardT pawnsPushOne;
+      BitBoardT pawnsPushTwo;
 
-    template <> inline BitBoardT pawnsLeftAttacks<White>(const BitBoardT pawns) {
-      // Pawns on file A can't take left.
-      return (pawns & ~FileA) << 7;
-    }
-    
-    template <> inline BitBoardT pawnsRightAttacks<White>(const BitBoardT pawns) {
-      // Pawns on file H can't take right.
-      return (pawns & ~FileH) << 9;
-    }
-    
-    template <> inline BitBoardT pawnsPushOne<White>(const BitBoardT pawns, const BitBoardT allPiecesBb) {
-      // White pieces move up the board but are blocked by pieces of either color.
-      return (pawns << 8) & ~allPiecesBb;
-    }
-    
-    template <> inline BitBoardT pawnsPushTwo<White>(const BitBoardT pawnOneMoves, const BitBoardT allPiecesBb) {
-      // Pawns that can reach the 3rd rank after a single move can move to the 4th rank too,
-      //   unless blocked by pieces of either color.
-      return ((pawnOneMoves & Rank3) << 8) & ~allPiecesBb;
-    }
+      // Piece moves
+      BitBoardT pieceAttacks[NSpecificPieceTypes];
+      
+      // Uncommon promo piece moves - one for each pawn - one for each promo piece except 2nd queen.
+      BitBoardT promoPieceMoves[NPawns];
+      
+      BitBoardT allAttacks;
+    };
 
-    template <> inline BitBoardT pawnsLeftAttacks<Black>(const BitBoardT pawns) {
-      // Pawns on file A can't take left.
-      return (pawns & ~FileA) >> 9;
+    struct SquareAttackersT {
+      // Attacks on a particular square for each piece type (of a particular color).
+      BitBoardT pieceAttackers[NPieceTypes];
+    };
+
+    struct PiecePinMasksT {
+      // Pawn pin masks - single bit board for all pawns for each move type.
+      BitBoardT pawnsLeftPinMask;
+      BitBoardT pawnsRightPinMask;
+      BitBoardT pawnsPushOnePinMask;
+      BitBoardT pawnsPushTwoPinMask;
+
+      // Per-piece pin masks
+      BitBoardT piecePinMasks[NSpecificPieceTypes];
+      
+      // Uncommon promo piece moves - one for each pawn - one for each promo piece except 2nd queen.
+      // BitBoardT promoPiecePinMasks[NPawns];
+      
+      // BitBoardT allPinMasks;
+    };
+
+    struct PushesAndCapturesT {
+      BitBoardT pushesBb;
+      BitBoardT capturesBb;
+
+      PushesAndCapturesT():
+	pushesBb(BbNone), capturesBb(BbNone) {}
+      
+      PushesAndCapturesT(const BitBoardT pushesBb, const BitBoardT capturesBb):
+	pushesBb(pushesBb), capturesBb(capturesBb) {}
+    };
+
+    struct EpPawnCapturesT {
+      BitBoardT epLeftCaptureBb;
+      BitBoardT epRightCaptureBb;
+
+      EpPawnCapturesT():
+	epLeftCaptureBb(BbNone), epRightCaptureBb(BbNone) {}
+
+      EpPawnCapturesT(const BitBoardT epLeftCaptureBb, const BitBoardT epRightCaptureBb):
+	epLeftCaptureBb(epLeftCaptureBb), epRightCaptureBb(epRightCaptureBb) {}
+    };
+
+    struct PawnPushesAndCapturesT {
+      BitBoardT pushesOneBb;
+      BitBoardT pushesTwoBb;
+      BitBoardT capturesLeftBb;
+      BitBoardT capturesRightBb;
+      EpPawnCapturesT epCaptures;
+
+      PawnPushesAndCapturesT():
+	pushesOneBb(0), pushesTwoBb(0), capturesLeftBb(0), capturesRightBb(0), epCaptures() {}
+      
+      PawnPushesAndCapturesT(const BitBoardT pushesOneBb, const BitBoardT pushesTwoBb, const BitBoardT capturesLeftBb, const BitBoardT capturesRightBb, const EpPawnCapturesT epCaptures):
+	pushesOneBb(pushesOneBb), pushesTwoBb(pushesTwoBb), capturesLeftBb(capturesLeftBb), capturesRightBb(capturesRightBb), epCaptures(epCaptures) {}
+    };
+
+    struct LegalMovesT {
+      bool isIllegalPos; // true iff opposition king is (already) in check
+      int nChecks; // side-channel info - if nChecks >= 2 then there are only king moves
+      CastlingRightsT canCastleFlags; // note not actually 'rights' per se but actually legal moves
+      PawnPushesAndCapturesT pawnMoves;
+      PushesAndCapturesT specificPieceMoves[NSpecificPieceTypes];
+
+      LegalMovesT():
+	isIllegalPos(false), nChecks(0), canCastleFlags(NoCastlingRights), pawnMoves()/*, specificPieceMoves???*/ {}
+    };
+
+#include <boost/preprocessor/iteration/local.hpp>
+    const u8 QueensideCastleSpaceBits = 0x07;
+    const u8 KingsideCastleSpaceBits = 0x30;
+
+    // Fast lookup for castling potential.
+    // Lookup is on castling rights bitmap and on backrank occupancy from B to G files.
+    // Result is bitmap of castling rights that have space between king and rook.
+    const CastlingRightsT CastlingRightsWithSpace[4][64] = {
+      // castlingRights == NoCastlingRights
+      {
+#define BOOST_PP_LOCAL_MACRO(n) \
+	NoCastlingRights,
+#define BOOST_PP_LOCAL_LIMITS (0, 63)
+#include BOOST_PP_LOCAL_ITERATE()
+      },
+      // castlingRights == CanCastleQueenside
+      {
+#define BOOST_PP_LOCAL_MACRO(n) \
+	((n) & QueensideCastleSpaceBits) == 0x0 ? CanCastleQueenside : NoCastlingRights,
+#define BOOST_PP_LOCAL_LIMITS (0, 63)
+#include BOOST_PP_LOCAL_ITERATE()
+      },
+      // castlingRights == CanCastleKingside
+      {
+#define BOOST_PP_LOCAL_MACRO(n) \
+	((n) & KingsideCastleSpaceBits) == 0x0 ? CanCastleKingside : NoCastlingRights,
+#define BOOST_PP_LOCAL_LIMITS (0, 63)
+#include BOOST_PP_LOCAL_ITERATE()
+      },
+      // castlingRights == CanCastleQueenside | CanCastleKingside
+      {
+#define BOOST_PP_LOCAL_MACRO(n) \
+	(CastlingRightsT)((((n) & QueensideCastleSpaceBits) == 0x0 ? CanCastleQueenside : NoCastlingRights) | (((n) & KingsideCastleSpaceBits) == 0x0 ? CanCastleKingside : NoCastlingRights)),
+#define BOOST_PP_LOCAL_LIMITS (0, 63)
+#include BOOST_PP_LOCAL_ITERATE()
+      },
+    };
+
+    template <ColorT Color> struct CastlingSpaceTraitsT;
+
+    template <> struct CastlingSpaceTraitsT<White> {
+      static const SquareT backrankShift = B1;
+    };
+    
+    template <> struct CastlingSpaceTraitsT<Black> {
+      static const SquareT backrankShift = B8;
+    };
+
+    template <ColorT Color> inline CastlingRightsT castlingRightsWithSpace(CastlingRightsT castlingRights, BitBoardT allPieces) {
+      return CastlingRightsWithSpace[castlingRights][(allPieces >> CastlingSpaceTraitsT<Color>::backrankShift) & 0x3f];
     }
     
-    template <> inline BitBoardT pawnsRightAttacks<Black>(const BitBoardT pawns) {
-      // Pawns on file H can't take right.
-      return (pawns & ~FileH) >> 7;
-    }
-    
-    template <> inline BitBoardT pawnsPushOne<Black>(const BitBoardT pawns, const BitBoardT allPiecesBb) {
-      // Black pieces move downp the board but are blocked by pieces of any color.
-      return (pawns >> 8) & ~allPiecesBb;
-    }
-    
-    template <> inline BitBoardT pawnsPushTwo<Black>(const BitBoardT pawnOneMoves, const BitBoardT allPiecesBb) {
-      // Pawns that can reach the 6rd rank after a single move can move to the 5th rank too,
-      //   unless blocked by pieces of either color.
-      return ((pawnOneMoves & Rank6) >> 8) & ~allPiecesBb;
-    }
+    template <ColorT Color, CastlingRightsT CastlingRights> struct CastlingTraitsT;
+
+    template <> struct CastlingTraitsT<White, CanCastleQueenside> {
+      // B1, C1 and D1 must be open to castle queenside
+      static const BitBoardT CastlingOpenBbMask = (BbOne << B1) | (BbOne << C1) | (BbOne << D1);
+      // C1, D1, E1 must not be under attack in order to castle queenside
+      static const BitBoardT CastlingThruCheckBbMask = (BbOne << C1) | (BbOne << D1) | (BbOne << E1);
+
+      // King move
+      static const SquareT KingFrom = E1;
+      static const SquareT KingTo = C1;
+
+      // Rook move
+      static const SpecificPieceT SpecificRook = QueenRook;
+      static const SquareT RookFrom = A1;
+      static const SquareT RookTo = D1;
+    };
+
+    template <> struct CastlingTraitsT<White, CanCastleKingside> {
+      // F1 and G1 must be open to castle kingside
+      static const BitBoardT CastlingOpenBbMask = (BbOne << F1) | (BbOne << G1);
+      // E1, F1 and G1 must not be under attack in order to castle kingside
+      static const BitBoardT CastlingThruCheckBbMask = (BbOne << E1) | (BbOne << F1) | (BbOne << G1);
+
+      // King move
+      static const SquareT KingFrom = E1;
+      static const SquareT KingTo = G1;
+
+      // Rook move
+      static const SpecificPieceT SpecificRook = KingRook;
+      static const SquareT RookFrom = H1;
+      static const SquareT RookTo = F1;
+    };
+
+    template <> struct CastlingTraitsT<Black, CanCastleQueenside> {
+      // B8, C8 and D8 must be open to castle queenside
+      static const BitBoardT CastlingOpenBbMask = (BbOne << B8) | (BbOne << C8) | (BbOne << D8);
+      // C8, D8, E8 must not be under attack in order to castle queenside
+      static const BitBoardT CastlingThruCheckBbMask = (BbOne << C8) | (BbOne << D8) | (BbOne << E8);
+
+      // King move
+      static const SquareT KingFrom = E8;
+      static const SquareT KingTo = C8;
+
+      // Rook move
+      static const SpecificPieceT SpecificRook = QueenRook;
+      static const SquareT RookFrom = A8;
+      static const SquareT RookTo = D8;
+    };
+
+    template <> struct CastlingTraitsT<Black, CanCastleKingside> {
+      // F8 and G8 must be open to castle kingside
+      static const BitBoardT CastlingOpenBbMask = (BbOne << F8) | (BbOne << G8);
+      // E8, F8 and G8 must not be under attack in order to castle kingside
+      static const BitBoardT CastlingThruCheckBbMask = (BbOne << E8) | (BbOne << F8) | (BbOne << G8);
+
+      // King move
+      static const SquareT KingFrom = E8;
+      static const SquareT KingTo = G8;
+
+      // Rook move
+      static const SpecificPieceT SpecificRook = KingRook;
+      static const SquareT RookFrom = H8;
+      static const SquareT RookTo = F8;
+    };
 
     //
     // Static attack tables for pawn, knight and king attacks
@@ -312,21 +464,139 @@ namespace Chess {
       return RookMagicBbTable[square][magicBbKey];
     }
 
-    struct PieceAttacksT {
-      // Pawn attacks (and moves) - single bit board for all pawns for each move type.
-      BitBoardT pawnsLeftAttacks;
-      BitBoardT pawnsRightAttacks;
-      BitBoardT pawnsPushOne;
-      BitBoardT pawnsPushTwo;
+    // Generate a legal move mask for non-king moves - only valid for no check or single check.
+    //   If we're not in check then all moves are legal.
+    //   If we're in check then we must capture or block the checking piece.
+    inline BitBoardT genLegalMoveMaskBb(const BoardT& board, const int nChecks, const BitBoardT allMyKingAttackersBb, const SquareT myKingSq, const BitBoardT allPiecesBb, const PieceAttacksT& yourAttacks) {
+	BitBoardT legalMoveMaskBb = BbAll;
+	
+	// When in check, limit moves to captures of the checking piece, and blockers of the checking piece
+	if(nChecks != 0) {
+	  // We can evade check by capturing the checking piece
+	  legalMoveMaskBb = allMyKingAttackersBb;
+	  
+	  // There can be only one piece delivering check in this path (nChecks < 2)
+	  // If it is a contact check (including knight check) then only a capture (or king move) will evade check.
+	  if(((KingAttacks[myKingSq] | KnightAttacks[myKingSq]) & allMyKingAttackersBb) == BbNone) {
+	    // Distant check by a slider - we can also block the check.
+	    // So here we want to generate all (open) squares between your checking piece and the king.
+	    // Work backwards from the king
+	    // Compute the check-blocking squares as the intersection of my king's slider 'view' and the checking piece's attack squares.
+	    // Note for queens we need to restrict to the slider direction otherwise we get bogus 'blocking' squares in the other queen direction.
+	    const SquareT checkingPieceSq = Bits::lsb(allMyKingAttackersBb);
+	    const SpecificPieceT checkingSpecificPiece = squarePieceSpecificPiece(board.board[checkingPieceSq]);
+	    const BitBoardT diagAttacksFromMyKingBb = bishopAttacks(myKingSq, allPiecesBb);
+	    if(allMyKingAttackersBb & diagAttacksFromMyKingBb) {
+	      legalMoveMaskBb |= diagAttacksFromMyKingBb & yourAttacks.pieceAttacks[checkingSpecificPiece] & BishopRays[checkingPieceSq];
+	    }
+	    const BitBoardT orthogAttacksFromMyKingBb = rookAttacks(myKingSq, allPiecesBb);
+	    if(allMyKingAttackersBb & orthogAttacksFromMyKingBb) {
+	      legalMoveMaskBb |= orthogAttacksFromMyKingBb & yourAttacks.pieceAttacks[checkingSpecificPiece] & RookRays[checkingPieceSq];
+	    }
+	  }
+	}
 
-      // Piece moves
-      BitBoardT pieceAttacks[NSpecificPieceTypes];
+	return legalMoveMaskBb;
+    }
+
+    template <SliderDirectionT SliderDirection>
+    inline BitBoardT genSliderAttacksBb(const SquareT square, const BitBoardT allPiecesBb) {
+      return SliderDirection == Diagonal ? bishopAttacks(square, allPiecesBb) : rookAttacks(square, allPiecesBb);
+    }
+
+    template <SliderDirectionT SliderDirection> inline BitBoardT genPinnedPiecesBb(const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allMyPiecesBb, const ColorStateT& yourState) {
+      const BitBoardT myKingSliderAttackersBb = genSliderAttacksBb<SliderDirection>(myKingSq, allPiecesBb);
+      // Potentially pinned pieces are my pieces that are on an open ray from my king
+      const BitBoardT myCandidateSliderPinnedPiecesBb = myKingSliderAttackersBb & allMyPiecesBb;
+      // Your pinning pieces are those that attack my king once my candidate pinned pieces are removed from the board
+      const BitBoardT myKingSliderXrayAttackersBb = genSliderAttacksBb<SliderDirection>(myKingSq, (allPiecesBb & ~myCandidateSliderPinnedPiecesBb));
+      // Your sliders of the required slider direction
+      const BitBoardT yourSlidersBb = yourState.bbs[SliderDirection == Diagonal ? Bishop : Rook] | yourState.bbs[Queen];
+      // We don't want direct attackers of the king, but only attackers that were exposed by removing our candidate pins.
+      const BitBoardT yourSliderPinnersBb = myKingSliderXrayAttackersBb & ~myKingSliderAttackersBb & yourSlidersBb;
+      // Then my pinned pieces are those candidate pinned pieces that lie on one of your pinners' rays
+      BitBoardT pinnerRaysBb = BbNone;
+      for(BitBoardT bb = yourSliderPinnersBb; bb;) {
+	const SquareT pinnerSq = Bits::popLsb(bb);
+	pinnerRaysBb |= genSliderAttacksBb<SliderDirection>(pinnerSq, allPiecesBb);
+      }
+      const BitBoardT mySliderPinnedPiecesBb = myCandidateSliderPinnedPiecesBb & pinnerRaysBb;
       
-      // Uncommon promo piece moves - one for each pawn - one for each promo piece except 2nd queen.
-      BitBoardT promoPieceMoves[NPawns];
-      
-      BitBoardT allAttacks;
+      return mySliderPinnedPiecesBb;
+    }
+
+    template <ColorT Color>
+    inline SquareT pawnPushOneTo2From(const SquareT square);
+    template <> inline SquareT pawnPushOneTo2From<White>(const SquareT square) { return square - 8; }
+    template <> inline SquareT pawnPushOneTo2From<Black>(const SquareT square) { return square + 8; }
+
+    template <ColorT Color>
+    struct PawnPushOneTo2FromFn {
+      static SquareT fn(const SquareT from) { return pawnPushOneTo2From<Color>(from); }
     };
+
+    template <ColorT Color>
+    inline SquareT pawnPushTwoTo2From(const SquareT square);
+    template <> inline SquareT pawnPushTwoTo2From<White>(const SquareT square) { return square - 16; }
+    template <> inline SquareT pawnPushTwoTo2From<Black>(const SquareT square) { return square + 16; }
+
+    template <ColorT Color>
+    struct PawnPushTwoTo2FromFn {
+      static SquareT fn(const SquareT from) { return pawnPushTwoTo2From<Color>(from); }
+    };
+
+    //
+    // Pawn move rules are specialised for White and Black respectively.
+    //
+    
+    template <ColorT> BitBoardT pawnsLeftAttacks(const BitBoardT pawns);
+    template <ColorT> BitBoardT pawnsRightAttacks(const BitBoardT pawns);
+    template <ColorT> BitBoardT pawnsPushOne(const BitBoardT pawns, const BitBoardT allPiecesBb);
+    template <ColorT> BitBoardT pawnsPushTwo(const BitBoardT pawnOneMoves, const BitBoardT allPiecesBb);
+
+    template <> inline BitBoardT pawnsLeftAttacks<White>(const BitBoardT pawns) {
+      // Pawns on file A can't take left.
+      return (pawns & ~FileA) << 7;
+    }
+    
+    template <> inline BitBoardT pawnsRightAttacks<White>(const BitBoardT pawns) {
+      // Pawns on file H can't take right.
+      return (pawns & ~FileH) << 9;
+    }
+    
+    template <> inline BitBoardT pawnsPushOne<White>(const BitBoardT pawns, const BitBoardT allPiecesBb) {
+      // White pieces move up the board but are blocked by pieces of either color.
+      return (pawns << 8) & ~allPiecesBb;
+    }
+    
+    template <> inline BitBoardT pawnsPushTwo<White>(const BitBoardT pawnOneMoves, const BitBoardT allPiecesBb) {
+      // Pawns that can reach the 3rd rank after a single move can move to the 4th rank too,
+      //   unless blocked by pieces of either color.
+      return ((pawnOneMoves & Rank3) << 8) & ~allPiecesBb;
+    }
+
+    template <> inline BitBoardT pawnsLeftAttacks<Black>(const BitBoardT pawns) {
+      // Pawns on file A can't take left.
+      return (pawns & ~FileA) >> 9;
+    }
+    
+    template <> inline BitBoardT pawnsRightAttacks<Black>(const BitBoardT pawns) {
+      // Pawns on file H can't take right.
+      return (pawns & ~FileH) >> 7;
+    }
+    
+    template <> inline BitBoardT pawnsPushOne<Black>(const BitBoardT pawns, const BitBoardT allPiecesBb) {
+      // Black pieces move downp the board but are blocked by pieces of any color.
+      return (pawns >> 8) & ~allPiecesBb;
+    }
+    
+    template <> inline BitBoardT pawnsPushTwo<Black>(const BitBoardT pawnOneMoves, const BitBoardT allPiecesBb) {
+      // Pawns that can reach the 6rd rank after a single move can move to the 5th rank too,
+      //   unless blocked by pieces of either color.
+      return ((pawnOneMoves & Rank6) >> 8) & ~allPiecesBb;
+    }
+
+    // Attack generation
 
     // Generate attacks/defenses for all pieces.
     // Note that move gen for a piece on InvalidSquare MUST always generate BbNone (and not SIGSEGV :P).
@@ -418,11 +688,6 @@ namespace Chess {
       return attacks;
     }
 
-    struct SquareAttackersT {
-      // Attacks on a particular square for each piece type (of a particular color).
-      BitBoardT pieceAttackers[NPieceTypes];
-    };
-
     // Generate attackers/defenders of a particular square.
     // Useful for check detection.
     template <typename ColorTraitsT>
@@ -475,6 +740,386 @@ namespace Chess {
       attackers.pieceAttackers[AllPieces] |= kingAttackers;
 
       return attackers;
+    }
+
+    // Pinned move mask generation
+    
+    template <PieceT Piece>
+    inline BitBoardT genPinnedMoveMask(const SquareT pieceSq, const SquareT myKingSq, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb);
+    
+    // Knights
+    //  - pinned knights can never move
+    template <> inline BitBoardT genPinnedMoveMask<Knight>(const SquareT knightSq, const SquareT myKingSq, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
+      const BitBoardT knightBb = bbForSquare(knightSq);
+      return (knightBb & (myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb)) == BbNone ? BbAll : BbNone;
+    }
+    
+    // Bishops
+    //   - diagonally pinned bishops can only move along the king's bishop rays
+    //   - orthogonally pinned bishops cannot move
+    template <> inline BitBoardT genPinnedMoveMask<Bishop>(const SquareT bishopSq, const SquareT myKingSq, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
+      const BitBoardT bishopBb = bbForSquare(bishopSq);
+      const BitBoardT diagPinnedMoveMask = (bishopBb & myDiagPinnedPiecesBb) == BbNone ? BbAll : BishopRays[myKingSq];
+      const BitBoardT orthogPinnedMoveMaskBb = (bishopBb & myOrthogPinnedPiecesBb) == BbNone ? BbAll : BbNone;
+      return diagPinnedMoveMask & orthogPinnedMoveMaskBb;
+    }
+    
+    // Rooks
+    //   - diagonally pinned rooks cannot move
+    //   - orthogonally pinned rooks can only move along the king's rook rays
+    template <> inline BitBoardT genPinnedMoveMask<Rook>(const SquareT rookSq, const SquareT myKingSq, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
+      const BitBoardT rookBb = bbForSquare(rookSq);
+      const BitBoardT diagPinnedMoveMask = (rookBb & myDiagPinnedPiecesBb) == BbNone ? BbAll : BbNone;
+      const BitBoardT orthogPinnedMoveMaskBb = (rookBb & myOrthogPinnedPiecesBb) == BbNone ? BbAll : RookRays[myKingSq];
+      return diagPinnedMoveMask & orthogPinnedMoveMaskBb;
+    }
+    
+    // Queen Moves
+    //   - diagonally pinned queens can only move along the king's bishop rays
+    //   - orthogonally pinned queens can only move along the king's rook rays
+    template <> inline BitBoardT genPinnedMoveMask<Queen>(const SquareT queenSq, const SquareT myKingSq, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
+      const BitBoardT queenBb = bbForSquare(queenSq);
+      const BitBoardT diagPinnedMoveMask = (queenBb & myDiagPinnedPiecesBb) == BbNone ? BbAll : BishopRays[myKingSq] & ~RookRays[queenSq];
+      const BitBoardT orthogPinnedMoveMaskBb = (queenBb & myOrthogPinnedPiecesBb) == BbNone ? BbAll : RookRays[myKingSq] & ~BishopRays[queenSq];
+      return diagPinnedMoveMask & orthogPinnedMoveMaskBb;
+    }
+    
+    // Fill a pin mask structure with BbAll for all pieces.
+    template <typename MyColorTraitsT>
+    inline void genDefaultPiecePinMasks(PiecePinMasksT& pinMasks) {
+      // Pawns
+      pinMasks.pawnsPushOnePinMask = BbAll;
+      pinMasks.pawnsPushTwoPinMask = BbAll;
+      pinMasks.pawnsLeftPinMask = BbAll;
+      pinMasks.pawnsRightPinMask = BbAll;
+      
+      // Knights
+      pinMasks.piecePinMasks[QueenKnight] = BbAll;
+      pinMasks.piecePinMasks[KingKnight] = BbAll;
+	
+      // Bishops
+      pinMasks.piecePinMasks[BlackBishop] = BbAll;
+      pinMasks.piecePinMasks[WhiteBishop] = BbAll;
+
+      // Rooks
+      pinMasks.piecePinMasks[QueenRook] = BbAll;
+      pinMasks.piecePinMasks[KingRook] = BbAll;
+
+      // Queens
+      //   - diagonally pinned queens can only move along the king's bishop rays
+      //   - orthogonally pinned queens can only move along the king's rook rays
+      pinMasks.piecePinMasks[SpecificQueen] = BbAll;
+
+      // TODO other promo pieces
+      if(MyColorTraitsT::HasPromos) {
+	if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
+	  pinMasks.piecePinMasks[PromoQueen] = BbAll;
+	}
+      }
+    }
+    
+    // Generate the pin masks for all pieces
+    // TODO - pawns too
+    template <typename ColorTraitsT>
+    inline void genPiecePinMasks(PiecePinMasksT& pinMasks, const ColorStateT& myState, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
+      const ColorT Color = ColorTraitsT::Color;
+      
+      const SquareT myKingSq = myState.pieceSquares[SpecificKing];
+      
+      // Pawn pushes - remove pawns with diagonal pins, and pawns with orthogonal pins along the rank of the king
+	
+      const BitBoardT myDiagAndKingRankPinsBb = myDiagPinnedPiecesBb | (myOrthogPinnedPiecesBb & RankBbs[rankOf(myKingSq)]);
+      const BitBoardT myDiagAndKingRankPinsPushOneBb = pawnsPushOne<Color>(myDiagAndKingRankPinsBb, BbNone);
+      pinMasks.pawnsPushOnePinMask = ~myDiagAndKingRankPinsPushOneBb;
+
+      const BitBoardT myDiagAndKingRankPinsPushTwoBb = pawnsPushOne<Color>(myDiagAndKingRankPinsPushOneBb, BbNone);
+      pinMasks.pawnsPushTwoPinMask = ~myDiagAndKingRankPinsPushTwoBb;
+	
+      // Pawn captures - remove pawns with orthogonal pins, and pawns with diagonal pins in the other direction from the capture.
+      // Pawn captures on the king's bishop rays are always safe, so we want to remove diagonal pins that are NOT on the king's bishop rays
+      
+      const BitBoardT myOrthogPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myOrthogPinnedPiecesBb);
+      const BitBoardT myDiagPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myDiagPinnedPiecesBb);
+      const BitBoardT myUnsafeDiagPinsLeftAttacksBb = myDiagPinsLeftAttacksBb & ~BishopRays[myKingSq];
+      pinMasks.pawnsLeftPinMask = ~(myOrthogPinsLeftAttacksBb | myUnsafeDiagPinsLeftAttacksBb);
+      
+      const BitBoardT myOrthogPinsRightAttacksBb = pawnsRightAttacks<Color>(myOrthogPinnedPiecesBb);
+      const BitBoardT myDiagPinsRightAttacksBb = pawnsRightAttacks<Color>(myDiagPinnedPiecesBb);
+      const BitBoardT myUnsafeDiagPinsRightAttacksBb = myDiagPinsRightAttacksBb & ~BishopRays[myKingSq];
+      pinMasks.pawnsRightPinMask = ~(myOrthogPinsRightAttacksBb | myUnsafeDiagPinsRightAttacksBb); 
+      
+      // Knights
+      pinMasks.piecePinMasks[QueenKnight] = genPinnedMoveMask<Knight>(myState.pieceSquares[QueenKnight], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+      pinMasks.piecePinMasks[KingKnight] = genPinnedMoveMask<Knight>(myState.pieceSquares[KingKnight], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	
+      // Bishops
+      pinMasks.piecePinMasks[BlackBishop] = genPinnedMoveMask<Bishop>(myState.pieceSquares[BlackBishop], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+      pinMasks.piecePinMasks[WhiteBishop] = genPinnedMoveMask<Bishop>(myState.pieceSquares[WhiteBishop], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+
+      // Rooks
+      pinMasks.piecePinMasks[QueenRook] = genPinnedMoveMask<Rook>(myState.pieceSquares[QueenRook], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+      pinMasks.piecePinMasks[KingRook] = genPinnedMoveMask<Rook>(myState.pieceSquares[KingRook], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+
+      // Queens
+      //   - diagonally pinned queens can only move along the king's bishop rays
+      //   - orthogonally pinned queens can only move along the king's rook rays
+      pinMasks.piecePinMasks[SpecificQueen] = genPinnedMoveMask<Queen>(myState.pieceSquares[SpecificQueen], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+
+      // TODO other promo pieces
+      if(ColorTraitsT::HasPromos) {
+	if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
+	  pinMasks.piecePinMasks[PromoQueen] = genPinnedMoveMask<Queen>(myState.pieceSquares[PromoQueen], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	}
+      }
+    }
+    
+    template <typename BoardTraitsT>
+    inline PiecePinMasksT genPinMasks(const BoardT& board) {
+      typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
+      const ColorT Color = BoardTraitsT::Color;
+      const ColorT OtherColor = BoardTraitsT::OtherColor;
+      
+      const ColorStateT& myState = board.pieces[(size_t)Color];
+      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+      const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
+      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
+      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
+
+      const SquareT myKingSq = myState.pieceSquares[SpecificKing];
+
+      // Find my pinned pieces - used to mask out invalid moves due to discovered check on my king
+      const BitBoardT myDiagPinnedPiecesBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourState);
+      const BitBoardT myOrthogPinnedPiecesBb = genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourState);
+      
+      // Generate pinned piece move masks for each piece
+      PiecePinMasksT pinMasks = {0};
+      // Majority of positions have no pins
+      if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) == BbNone) {
+	genDefaultPiecePinMasks<MyColorTraitsT>(pinMasks);
+      } else {
+	genPiecePinMasks<MyColorTraitsT>(pinMasks, myState, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+      }
+      
+      return pinMasks;
+    }
+
+    template <SpecificPieceT SpecificPiece>
+    inline PushesAndCapturesT genSpecificPieceLegalMoves(const PieceAttacksT myAttacks, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT pinMasks) {
+      const BitBoardT legalAttacksBb = myAttacks.pieceAttacks[SpecificPiece] & legalMoveMaskBb & pinMasks.piecePinMasks[SpecificPiece];
+      const BitBoardT legalPushesBb = legalAttacksBb & ~allPiecesBb;
+      const BitBoardT legalCapturesBb = legalAttacksBb & allYourPiecesBb;
+
+      return PushesAndCapturesT(legalPushesBb, legalCapturesBb);
+    }
+
+    template <typename BoardTraitsT>
+    inline EpPawnCapturesT genLegalPawnEpCaptures(const BoardT& board, const PieceAttacksT myAttacks, const SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalPawnsLeftBb, const BitBoardT legalPawnsRightBb) {
+      const BitBoardT epSquareBb = bbForSquare(epSquare);
+
+      const BitBoardT semiLegalEpCaptureLeftBb = legalPawnsLeftBb & epSquareBb;
+      const BitBoardT semiLegalEpCaptureRightBb = legalPawnsRightBb & epSquareBb;
+
+      BitBoardT legalEpCaptureLeftBb = BbNone;
+      BitBoardT legalEpCaptureRightBb = BbNone;
+
+      // Only do the heavy lifting of detecting discovered check through the captured pawn if there really is an en-passant opportunity
+      // En-passant is tricky because the captured pawn is not on the same square as the capturing piece, and might expose a discovered check itself.
+      if((semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone) {
+	const ColorStateT& yourState = board.pieces[(size_t)BoardTraitsT::OtherColor];
+	const ColorStateT& myState = board.pieces[(size_t)BoardTraitsT::Color];
+	const SquareT myKingSq = myState.pieceSquares[SpecificKing];
+	  
+	const SquareT to = Bits::lsb(semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb);
+	const SquareT captureSq = pawnPushOneTo2From<BoardTraitsT::Color>(to);
+	const BitBoardT captureSquareBb = bbForSquare(captureSq);
+
+	// Note that a discovered check can only be diagonal or horizontal, because the capturing pawn ends up on the same file as the captured pawn.
+	const BitBoardT diagPinnedEpPawnBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
+	// Horizontal is really tricky because it involves both capturing and captured pawn.
+	// We detect it by removing them both and looking for a king attack - could optimise this... TODO anyhow
+	const BitBoardT orthogPinnedEpPawnBb = BbNone; //genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
+
+	if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) != BbNone) {
+	  static bool done = false;
+	  if(!done) {
+	    printf("\n============================================== EP avoidance EP square is %d ===================================\n\n", epSquare);
+	    printBoard(board);
+	    printf("\n");
+	    done = true;
+	  }
+	}
+
+	if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) == BbNone) {
+	  legalEpCaptureLeftBb = semiLegalEpCaptureLeftBb;
+	  legalEpCaptureRightBb = semiLegalEpCaptureRightBb;
+	}
+      }
+
+      return EpPawnCapturesT(legalEpCaptureLeftBb, legalEpCaptureRightBb);
+    }
+    
+    template <typename BoardTraitsT>
+      inline PawnPushesAndCapturesT genLegalPawnMoves(const BoardT& board, const PieceAttacksT myAttacks, const SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT pinMasks) {
+      const BitBoardT legalPawnsPushOneBb = myAttacks.pawnsPushOne & legalMoveMaskBb & pinMasks.pawnsPushOnePinMask;
+      const BitBoardT legalPawnsPushTwoBb = myAttacks.pawnsPushTwo & legalMoveMaskBb & pinMasks.pawnsPushTwoPinMask;
+	
+      // Pawn captures
+
+      const BitBoardT legalPawnsLeftBb = myAttacks.pawnsLeftAttacks & legalMoveMaskBb & pinMasks.pawnsLeftPinMask;
+      const BitBoardT legalPawnsRightBb = myAttacks.pawnsRightAttacks & legalMoveMaskBb & pinMasks.pawnsRightPinMask;
+
+      // Pawn en-passant captures
+      const EpPawnCapturesT legalEpPawnCaptures = (epSquare == InvalidSquare) ? EpPawnCapturesT() : genLegalPawnEpCaptures<BoardTraitsT>(board, myAttacks, epSquare, allYourPiecesBb, allPiecesBb, legalPawnsLeftBb, legalPawnsRightBb);
+      
+      return PawnPushesAndCapturesT(legalPawnsPushOneBb, legalPawnsPushTwoBb, legalPawnsLeftBb & allYourPiecesBb, legalPawnsRightBb & allYourPiecesBb, legalEpPawnCaptures);
+    }
+    
+    template <typename BoardTraitsT> 
+    inline void genLegalNonKingMoves(LegalMovesT& legalMoves, const BoardT& board, const PieceAttacksT& myAttacks, const BitBoardT legalMoveMaskBb, const PiecePinMasksT pinMasks) {
+      typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
+      const ColorT Color = BoardTraitsT::Color;
+      const ColorT OtherColor = BoardTraitsT::OtherColor;
+      
+      const ColorStateT& myState = board.pieces[(size_t)Color];
+      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+      const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
+      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
+      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
+
+      legalMoves.pawnMoves = genLegalPawnMoves<BoardTraitsT>(board, myAttacks, yourState.epSquare, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+      
+      legalMoves.specificPieceMoves[QueenKnight] = genSpecificPieceLegalMoves<QueenKnight>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+      legalMoves.specificPieceMoves[KingKnight] = genSpecificPieceLegalMoves<KingKnight>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+
+      legalMoves.specificPieceMoves[BlackBishop] = genSpecificPieceLegalMoves<BlackBishop>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+      legalMoves.specificPieceMoves[WhiteBishop] = genSpecificPieceLegalMoves<WhiteBishop>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+      
+      legalMoves.specificPieceMoves[QueenRook] = genSpecificPieceLegalMoves<QueenRook>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+      legalMoves.specificPieceMoves[KingRook] = genSpecificPieceLegalMoves<KingRook>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+
+      legalMoves.specificPieceMoves[SpecificQueen] = genSpecificPieceLegalMoves<SpecificQueen>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+      
+      // TODO other promo pieces
+      if(MyColorTraitsT::HasPromos) {
+	if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
+	  legalMoves.specificPieceMoves[PromoQueen] = genSpecificPieceLegalMoves<PromoQueen>(myAttacks, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+	}
+      }
+    }
+
+    template <typename BoardTraitsT>
+    inline CastlingRightsT genLegalCastlingFlags(const BoardT& board, const PieceAttacksT& yourAttacks, const BitBoardT allPiecesBb) {
+      const ColorT Color = BoardTraitsT::Color;
+      const ColorStateT& myState = board.pieces[(size_t)Color];
+
+      CastlingRightsT canCastleFlags = NoCastlingRights;
+      
+      CastlingRightsT castlingRights = castlingRightsWithSpace<Color>(myState.castlingRights, allPiecesBb);
+      if(castlingRights) {
+	
+	if((castlingRights & CanCastleQueenside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleQueenside>::CastlingThruCheckBbMask) == BbNone) {
+	  canCastleFlags = (CastlingRightsT)(canCastleFlags | CanCastleQueenside);
+	}
+	
+	if((castlingRights & CanCastleKingside) && (yourAttacks.allAttacks & CastlingTraitsT<Color, CanCastleKingside>::CastlingThruCheckBbMask) == BbNone) {
+	  canCastleFlags = (CastlingRightsT)(canCastleFlags | CanCastleKingside);
+	}	
+      }
+      
+      return canCastleFlags;
+    }
+    
+    template <typename BoardTraitsT>
+    inline PushesAndCapturesT genLegalKingMoves(const BoardT& board, const PieceAttacksT& yourAttacks, const BitBoardT allMyKingAttackersBb) {
+      const ColorT Color = BoardTraitsT::Color;
+      const ColorT OtherColor = BoardTraitsT::OtherColor;
+      
+      const ColorStateT& myState = board.pieces[(size_t)Color];
+      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+      const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
+      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
+      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
+      
+      // King cannot move into check
+      // King also cannot move away from a checking slider cos it's still in check.
+      BitBoardT illegalKingSquaresBb = BbNone;
+      const BitBoardT myKingBb = myState.bbs[King];
+      BitBoardT diagSliderCheckersBb = allMyKingAttackersBb & (yourState.bbs[Bishop] | yourState.bbs[Queen]);
+      while(diagSliderCheckersBb) {
+	const SquareT sliderSq = Bits::popLsb(diagSliderCheckersBb);
+	illegalKingSquaresBb |= bishopAttacks(sliderSq, allPiecesBb & ~myKingBb);
+      }
+      BitBoardT orthogSliderCheckersBb = allMyKingAttackersBb & (yourState.bbs[Rook] | yourState.bbs[Queen]);
+      while(orthogSliderCheckersBb) {
+	const SquareT sliderSq = Bits::popLsb(orthogSliderCheckersBb);
+	illegalKingSquaresBb |= rookAttacks(sliderSq, allPiecesBb & ~myKingBb);
+      }
+
+      const SquareT kingSq = myState.pieceSquares[SpecificKing];
+      const BitBoardT legalKingMovesBb = KingAttacks[kingSq] & ~yourAttacks.allAttacks & ~illegalKingSquaresBb;
+
+      const BitBoardT legalPushesBb = legalKingMovesBb & ~allPiecesBb;
+      const BitBoardT legalCapturesBb = legalKingMovesBb & allYourPiecesBb;
+
+      return PushesAndCapturesT(legalPushesBb, legalCapturesBb);
+    }
+    
+    template <typename BoardTraitsT>
+    inline LegalMovesT genLegalMoves(const BoardT& board) {
+      typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
+      typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
+      const ColorT Color = BoardTraitsT::Color;
+      const ColorT OtherColor = BoardTraitsT::OtherColor;
+      
+      const ColorStateT& myState = board.pieces[(size_t)Color];
+      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+      const BitBoardT allMyPiecesBb = myState.bbs[AllPieces];
+      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieces];
+      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
+      
+      LegalMovesT legalMoves;
+      
+      // Generate moves
+      const PieceAttacksT myAttacks = genPieceAttacks<MyColorTraitsT>(myState, allPiecesBb);
+
+      // Is your king in check? If so we got here via an illegal move of the move-generator
+      if((myAttacks.allAttacks & yourState.bbs[King]) != 0) {
+	// Illegal position - doesn't count
+	legalMoves.isIllegalPos = true;
+      }
+
+      // This is now a legal position.
+
+      // Evaluate check - eventually do this in the parent
+
+      const SquareT myKingSq = myState.pieceSquares[SpecificKing];
+      const SquareAttackersT myKingAttackers = genSquareAttackers<YourColorTraitsT>(myKingSq, yourState, allPiecesBb);
+      const BitBoardT allMyKingAttackersBb = myKingAttackers.pieceAttackers[AllPieces];
+
+      const int nChecks = Bits::count(allMyKingAttackersBb);
+
+      // Needed for castling and for king moves so evaluate this here.
+      const PieceAttacksT yourAttacks = genPieceAttacks<YourColorTraitsT>(yourState, allPiecesBb);
+
+      // Double check can only be evaded by moving the king so only bother with other pieces if nChecks < 2
+      if(nChecks < 2) {
+
+	// If we're in check then the only legal moves are capture or blocking of the checking piece.
+	const BitBoardT legalMoveMaskBb = genLegalMoveMaskBb(board, nChecks, allMyKingAttackersBb, myKingSq, allPiecesBb, yourAttacks);
+	  
+	// Calculate pinned piece move restrictions.
+	const PiecePinMasksT pinMasks = genPinMasks<BoardTraitsT>(board);
+
+	// Filter legal non-king moves
+	genLegalNonKingMoves<BoardTraitsT>(legalMoves, board, myAttacks, legalMoveMaskBb, pinMasks);
+
+	// Castling
+	legalMoves.canCastleFlags = genLegalCastlingFlags<BoardTraitsT>(board, yourAttacks, allPiecesBb);
+      }
+
+      legalMoves.specificPieceMoves[SpecificKing] = genLegalKingMoves<BoardTraitsT>(board, yourAttacks, allMyKingAttackersBb);
+      
+      return legalMoves;
     }
 
     extern int countAttacks(const PieceAttacksT& pieceAttacks, const BitBoardT filterOut = BbNone, const BitBoardT filterInPawnTakes = BbAll);
