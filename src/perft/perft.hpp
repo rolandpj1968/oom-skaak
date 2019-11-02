@@ -129,72 +129,6 @@ namespace Chess {
       perftImplPawnEpCapture<BoardTraitsT, PawnAttackRightTo2FromFn<BoardTraitsT::Color>>(stats, board, depthToGo, pawnsCaptureRight);
     }
 
-    // template <typename BoardTraitsT>
-    // inline void perftImplPawnEpMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, SquareT epSquare, const BitBoardT allPiecesBb, const BitBoardT legalPawnsLeftBb, const BitBoardT legalPawnsRightBb) {
-    //   const BitBoardT epSquareBb = bbForSquare(epSquare);
-
-    //   const BitBoardT semiLegalEpCaptureLeftBb = legalPawnsLeftBb & epSquareBb;
-    //   const BitBoardT semiLegalEpCaptureRightBb = legalPawnsRightBb & epSquareBb;
-
-    //   // Only do the heavy lifting of detecting discovered check through the captured pawn if there really is an en-passant opportunity
-    //   if((semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone) {
-    // 	const ColorStateT& yourState = board.pieces[BoardTraitsT::OtherColor];
-    // 	const ColorStateT& myState = board.pieces[BoardTraitsT::Color];
-    // 	const SquareT myKingSq = myState.pieceSquares[SpecificKing];
-	  
-    // 	const SquareT to = Bits::lsb(semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb);
-    // 	const SquareT captureSq = pawnPushOneTo2From<BoardTraitsT::Color>(to);
-    // 	const BitBoardT captureSquareBb = bbForSquare(captureSq);
-
-    // 	// Note that a discovered check can only be diagonal or horizontal, because the capturing pawn ends up on the same file as the captured pawn.
-    // 	const BitBoardT diagPinnedEpPawnBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
-    // 	// Horizontal is really tricky because it involves both capturing and captured pawn.
-    // 	// We detect it by removing them both and looking for a king attack - could optimise this... TODO anyhow
-    // 	const BitBoardT orthogPinnedEpPawnBb = BbNone; //genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
-
-    // 	if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) != BbNone) {
-    // 	  static bool done = false;
-    // 	  if(!done) {
-    // 	    printf("\n============================================== EP avoidance EP square is %d ===================================\n\n", epSquare);
-    // 	    printBoard(board);
-    // 	    printf("\n");
-    // 	    done = true;
-    // 	  }
-    // 	}
-	
-    // 	if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) == BbNone) {
-    // 	  perftImplPawnEpCaptureLeft<BoardTraitsT>(stats, board, depthToGo, semiLegalEpCaptureLeftBb);
-    // 	  perftImplPawnEpCaptureRight<BoardTraitsT>(stats, board, depthToGo, semiLegalEpCaptureRightBb);
-    // 	}
-    //   }
-    // }
-    
-    // template <typename BoardTraitsT>
-    // inline void perftImplPawnMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
-
-    //   // Pawn pushes
-	
-    //   const BitBoardT legalPawnsPushOneBb = myAttacks.pawnsPushOne & legalMoveMaskBb & pinMasks.pawnsPushOnePinMask;
-    //   perftImplPawnsPushOne<BoardTraitsT>(stats, board, depthToGo, legalPawnsPushOneBb);
-
-    //   const BitBoardT legalPawnsPushTwoBb = myAttacks.pawnsPushTwo & legalMoveMaskBb & pinMasks.pawnsPushTwoPinMask;
-    //   perftImplPawnsPushTwo<BoardTraitsT>(stats, board, depthToGo, legalPawnsPushTwoBb);
-	
-    //   // Pawn captures
-
-    //   const BitBoardT legalPawnsLeftBb = myAttacks.pawnsLeftAttacks & legalMoveMaskBb & pinMasks.pawnsLeftPinMask;
-    //   perftImplPawnsCaptureLeft<BoardTraitsT>(stats, board, depthToGo, legalPawnsLeftBb & allYourPiecesBb);
-      
-    //   const BitBoardT legalPawnsRightBb = myAttacks.pawnsRightAttacks & legalMoveMaskBb & pinMasks.pawnsRightPinMask;
-    //   perftImplPawnsCaptureRight<BoardTraitsT>(stats, board, depthToGo, legalPawnsRightBb & allYourPiecesBb);
-      
-    //   // Pawn en-passant captures
-    //   // En-passant is tricky because the captured pawn is not on the same square as the capturing piece, and might expose a discovered check itself.
-    //   if(epSquare != InvalidSquare) {
-    // 	perftImplPawnEpMoves<BoardTraitsT>(stats, board, depthToGo, epSquare, allPiecesBb, legalPawnsLeftBb, legalPawnsRightBb);
-    //   }
-    // }
-    
     template <typename BoardTraitsT>
     inline void perftImplPawnMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PawnPushesAndCapturesT& pawnMoves) {
 
@@ -329,8 +263,8 @@ namespace Chess {
 
 	if(DoCheckMateStats) {
 	  bool isPossibleCheckmate = true;
-	  // If it's a non-discovery and we can take the checker then it's not checkmate
-	  if(isPossibleCheckmate && !isDiscovery && !isDoubleCheck) {
+	  // If it's a non-discovery and we can take the checker then it's not checkmate - BROKKEN; not sure why? Maybe cos of discovered check through the taker!
+	  if(false && isPossibleCheckmate && !isDiscovery && !isDoubleCheck) {
 	    // See if the checking piece can be taken
 	    stats.l0nondiscoveries++;
 	    const SquareAttackersT checkerAttackers = genSquareAttackers<MyColorTraitsT>(moveInfo.to, myState, allPiecesBb);
@@ -352,6 +286,7 @@ namespace Chess {
 	      isPossibleCheckmate = false;
 	    }
 	  }
+	  // TODO - or king can take checking piece - actually not - king could still be in check!
 	  // It's checkmate if there are no valid child nodes.
 	  if(isPossibleCheckmate) {
 	    PerftStatsT childStats = perft<BoardTraitsT>(board, 1);
@@ -390,30 +325,21 @@ namespace Chess {
 	// Evaluate moves
 
 	// Pawns
-	
-	//perftImplPawnMoves<BoardTraitsT>(stats, board, depthToGo, myAttacks, yourState.epSquare, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
 	perftImplPawnMoves<BoardTraitsT>(stats, board, depthToGo, legalMoves.pawnMoves);
 	
 	// Knights
-
 	perftImplSpecificPieceMoves<BoardTraitsT, QueenKnight>(stats, board, depthToGo, legalMoves.specificPieceMoves[QueenKnight]);
-
 	perftImplSpecificPieceMoves<BoardTraitsT, KingKnight>(stats, board, depthToGo, legalMoves.specificPieceMoves[KingKnight]);
 	
 	// Bishops
-      
 	perftImplSpecificPieceMoves<BoardTraitsT, BlackBishop>(stats, board, depthToGo, legalMoves.specificPieceMoves[BlackBishop]); 
-
 	perftImplSpecificPieceMoves<BoardTraitsT, WhiteBishop>(stats, board, depthToGo, legalMoves.specificPieceMoves[WhiteBishop]); 
 
 	// Rooks
-
 	perftImplSpecificPieceMoves<BoardTraitsT, QueenRook>(stats, board, depthToGo, legalMoves.specificPieceMoves[QueenRook]); 
-
 	perftImplSpecificPieceMoves<BoardTraitsT, KingRook>(stats, board, depthToGo, legalMoves.specificPieceMoves[KingRook]); 
 
-	// Queens
-
+	// Queen
 	perftImplSpecificPieceMoves<BoardTraitsT, SpecificQueen>(stats, board, depthToGo, legalMoves.specificPieceMoves[SpecificQueen]); 
 
 	// TODO other promo pieces
