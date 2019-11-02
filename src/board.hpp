@@ -12,7 +12,7 @@ namespace Chess {
     const SquarePieceT EmptySquare = SpecificNoPiece;
 
     inline SquarePieceT makeSquarePiece(const ColorT color, const SpecificPieceT specificPiece) {
-      return (color << 7) | specificPiece;
+      return ((int)color << 7) | specificPiece;
     }
 
     inline ColorT squarePieceColor(const SquarePieceT squarePiece) {
@@ -20,7 +20,7 @@ namespace Chess {
     }
 
     inline SpecificPieceT squarePieceSpecificPiece(const SquarePieceT squarePiece) {
-      return (SpecificPieceT) (squarePiece & ~(Black << 7));
+      return (SpecificPieceT) (squarePiece & ~((int)Black << 7));
     }
 
     struct ColorStateT {
@@ -90,7 +90,7 @@ namespace Chess {
       board.board[square] = EmptySquare;
       
       // TODO handle non-standard promos
-      ColorStateT &pieces = board.pieces[Color];
+      ColorStateT &pieces = board.pieces[(size_t)Color];
 
       pieces.pieceSquares[specificPiece] = InvalidSquare;
 
@@ -118,7 +118,7 @@ namespace Chess {
       board.board[square] = EmptySquare;
       
       // TODO handle non-standard promos
-      ColorStateT &pieces = board.pieces[Color];
+      ColorStateT &pieces = board.pieces[(size_t)Color];
 
       pieces.pieceSquares[SpecificPiece] = InvalidSquare;
 
@@ -144,7 +144,7 @@ namespace Chess {
       board.board[square] = makeSquarePiece(Color, specificPiece);
 
       // TODO handle non-standard promos
-      ColorStateT &pieces = board.pieces[Color];
+      ColorStateT &pieces = board.pieces[(size_t)Color];
 
       pieces.pieceSquares[specificPiece] = square;
 
@@ -161,7 +161,7 @@ namespace Chess {
       board.board[square] = makeSquarePiece(Color, SpecificPiece);
 
       // TODO handle non-standard promos
-      ColorStateT &pieces = board.pieces[Color];
+      ColorStateT &pieces = board.pieces[(size_t)Color];
 
       pieces.pieceSquares[SpecificPiece] = square;
 
@@ -186,9 +186,9 @@ namespace Chess {
 
       // Set en-passant square
       if(IsPawnPushTwo) {
-    	board.pieces[Color].epSquare = (SquareT)((from+to)/2);
+    	board.pieces[(size_t)Color].epSquare = (SquareT)((from+to)/2);
       } else {
-	board.pieces[Color].epSquare = InvalidSquare;
+	board.pieces[(size_t)Color].epSquare = InvalidSquare;
       }
       
       return board;
@@ -208,9 +208,9 @@ namespace Chess {
 
       // Set en-passant square
       if(IsPawnPushTwo) {
-	board.pieces[Color].epSquare = (SquareT)((from+to)/2);
+	board.pieces[(size_t)Color].epSquare = (SquareT)((from+to)/2);
       } else {
-	board.pieces[Color].epSquare = InvalidSquare;
+	board.pieces[(size_t)Color].epSquare = InvalidSquare;
       }	
       
       return board;
@@ -227,7 +227,7 @@ namespace Chess {
       placeSpecificPiece<Color, SpecificPiece>(board, to);
 
       // Clear en-passant square
-      board.pieces[Color].epSquare = InvalidSquare;
+      board.pieces[(size_t)Color].epSquare = InvalidSquare;
       
       return board;
     }
