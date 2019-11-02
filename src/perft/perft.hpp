@@ -129,71 +129,71 @@ namespace Chess {
       perftImplPawnEpCapture<BoardTraitsT, PawnAttackRightTo2FromFn<BoardTraitsT::Color>>(stats, board, depthToGo, pawnsCaptureRight);
     }
 
-    template <typename BoardTraitsT>
-    inline void perftImplPawnEpMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, SquareT epSquare, const BitBoardT allPiecesBb, const BitBoardT legalPawnsLeftBb, const BitBoardT legalPawnsRightBb) {
-      const BitBoardT epSquareBb = bbForSquare(epSquare);
+    // template <typename BoardTraitsT>
+    // inline void perftImplPawnEpMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, SquareT epSquare, const BitBoardT allPiecesBb, const BitBoardT legalPawnsLeftBb, const BitBoardT legalPawnsRightBb) {
+    //   const BitBoardT epSquareBb = bbForSquare(epSquare);
 
-      const BitBoardT semiLegalEpCaptureLeftBb = legalPawnsLeftBb & epSquareBb;
-      const BitBoardT semiLegalEpCaptureRightBb = legalPawnsRightBb & epSquareBb;
+    //   const BitBoardT semiLegalEpCaptureLeftBb = legalPawnsLeftBb & epSquareBb;
+    //   const BitBoardT semiLegalEpCaptureRightBb = legalPawnsRightBb & epSquareBb;
 
-      // Only do the heavy lifting of detecting discovered check through the captured pawn if there really is an en-passant opportunity
-      if((semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone) {
-	const ColorStateT& yourState = board.pieces[BoardTraitsT::OtherColor];
-	const ColorStateT& myState = board.pieces[BoardTraitsT::Color];
-	const SquareT myKingSq = myState.pieceSquares[SpecificKing];
+    //   // Only do the heavy lifting of detecting discovered check through the captured pawn if there really is an en-passant opportunity
+    //   if((semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone) {
+    // 	const ColorStateT& yourState = board.pieces[BoardTraitsT::OtherColor];
+    // 	const ColorStateT& myState = board.pieces[BoardTraitsT::Color];
+    // 	const SquareT myKingSq = myState.pieceSquares[SpecificKing];
 	  
-	const SquareT to = Bits::lsb(semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb);
-	const SquareT captureSq = pawnPushOneTo2From<BoardTraitsT::Color>(to);
-	const BitBoardT captureSquareBb = bbForSquare(captureSq);
+    // 	const SquareT to = Bits::lsb(semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb);
+    // 	const SquareT captureSq = pawnPushOneTo2From<BoardTraitsT::Color>(to);
+    // 	const BitBoardT captureSquareBb = bbForSquare(captureSq);
 
-	// Note that a discovered check can only be diagonal or horizontal, because the capturing pawn ends up on the same file as the captured pawn.
-	const BitBoardT diagPinnedEpPawnBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
-	// Horizontal is really tricky because it involves both capturing and captured pawn.
-	// We detect it by removing them both and looking for a king attack - could optimise this... TODO anyhow
-	const BitBoardT orthogPinnedEpPawnBb = BbNone; //genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
+    // 	// Note that a discovered check can only be diagonal or horizontal, because the capturing pawn ends up on the same file as the captured pawn.
+    // 	const BitBoardT diagPinnedEpPawnBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
+    // 	// Horizontal is really tricky because it involves both capturing and captured pawn.
+    // 	// We detect it by removing them both and looking for a king attack - could optimise this... TODO anyhow
+    // 	const BitBoardT orthogPinnedEpPawnBb = BbNone; //genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, captureSquareBb, yourState);
 
-	if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) != BbNone) {
-	  static bool done = false;
-	  if(!done) {
-	    printf("\n============================================== EP avoidance EP square is %d ===================================\n\n", epSquare);
-	    printBoard(board);
-	    printf("\n");
-	    done = true;
-	  }
-	}
+    // 	if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) != BbNone) {
+    // 	  static bool done = false;
+    // 	  if(!done) {
+    // 	    printf("\n============================================== EP avoidance EP square is %d ===================================\n\n", epSquare);
+    // 	    printBoard(board);
+    // 	    printf("\n");
+    // 	    done = true;
+    // 	  }
+    // 	}
 	
-	if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) == BbNone) {
-	  perftImplPawnEpCaptureLeft<BoardTraitsT>(stats, board, depthToGo, semiLegalEpCaptureLeftBb);
-	  perftImplPawnEpCaptureRight<BoardTraitsT>(stats, board, depthToGo, semiLegalEpCaptureRightBb);
-	}
-      }
-    }
+    // 	if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) == BbNone) {
+    // 	  perftImplPawnEpCaptureLeft<BoardTraitsT>(stats, board, depthToGo, semiLegalEpCaptureLeftBb);
+    // 	  perftImplPawnEpCaptureRight<BoardTraitsT>(stats, board, depthToGo, semiLegalEpCaptureRightBb);
+    // 	}
+    //   }
+    // }
     
-    template <typename BoardTraitsT>
-    inline void perftImplPawnMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
+    // template <typename BoardTraitsT>
+    // inline void perftImplPawnMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
 
-      // Pawn pushes
+    //   // Pawn pushes
 	
-      const BitBoardT legalPawnsPushOneBb = myAttacks.pawnsPushOne & legalMoveMaskBb & pinMasks.pawnsPushOnePinMask;
-      perftImplPawnsPushOne<BoardTraitsT>(stats, board, depthToGo, legalPawnsPushOneBb);
+    //   const BitBoardT legalPawnsPushOneBb = myAttacks.pawnsPushOne & legalMoveMaskBb & pinMasks.pawnsPushOnePinMask;
+    //   perftImplPawnsPushOne<BoardTraitsT>(stats, board, depthToGo, legalPawnsPushOneBb);
 
-      const BitBoardT legalPawnsPushTwoBb = myAttacks.pawnsPushTwo & legalMoveMaskBb & pinMasks.pawnsPushTwoPinMask;
-      perftImplPawnsPushTwo<BoardTraitsT>(stats, board, depthToGo, legalPawnsPushTwoBb);
+    //   const BitBoardT legalPawnsPushTwoBb = myAttacks.pawnsPushTwo & legalMoveMaskBb & pinMasks.pawnsPushTwoPinMask;
+    //   perftImplPawnsPushTwo<BoardTraitsT>(stats, board, depthToGo, legalPawnsPushTwoBb);
 	
-      // Pawn captures
+    //   // Pawn captures
 
-      const BitBoardT legalPawnsLeftBb = myAttacks.pawnsLeftAttacks & legalMoveMaskBb & pinMasks.pawnsLeftPinMask;
-      perftImplPawnsCaptureLeft<BoardTraitsT>(stats, board, depthToGo, legalPawnsLeftBb & allYourPiecesBb);
+    //   const BitBoardT legalPawnsLeftBb = myAttacks.pawnsLeftAttacks & legalMoveMaskBb & pinMasks.pawnsLeftPinMask;
+    //   perftImplPawnsCaptureLeft<BoardTraitsT>(stats, board, depthToGo, legalPawnsLeftBb & allYourPiecesBb);
       
-      const BitBoardT legalPawnsRightBb = myAttacks.pawnsRightAttacks & legalMoveMaskBb & pinMasks.pawnsRightPinMask;
-      perftImplPawnsCaptureRight<BoardTraitsT>(stats, board, depthToGo, legalPawnsRightBb & allYourPiecesBb);
+    //   const BitBoardT legalPawnsRightBb = myAttacks.pawnsRightAttacks & legalMoveMaskBb & pinMasks.pawnsRightPinMask;
+    //   perftImplPawnsCaptureRight<BoardTraitsT>(stats, board, depthToGo, legalPawnsRightBb & allYourPiecesBb);
       
-      // Pawn en-passant captures
-      // En-passant is tricky because the captured pawn is not on the same square as the capturing piece, and might expose a discovered check itself.
-      if(epSquare != InvalidSquare) {
-	perftImplPawnEpMoves<BoardTraitsT>(stats, board, depthToGo, epSquare, allPiecesBb, legalPawnsLeftBb, legalPawnsRightBb);
-      }
-    }
+    //   // Pawn en-passant captures
+    //   // En-passant is tricky because the captured pawn is not on the same square as the capturing piece, and might expose a discovered check itself.
+    //   if(epSquare != InvalidSquare) {
+    // 	perftImplPawnEpMoves<BoardTraitsT>(stats, board, depthToGo, epSquare, allPiecesBb, legalPawnsLeftBb, legalPawnsRightBb);
+    //   }
+    // }
     
     template <typename BoardTraitsT>
     inline void perftImplPawnMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PawnPushesAndCapturesT& pawnMoves) {
@@ -242,27 +242,6 @@ namespace Chess {
       perftImplSpecificPieceCaptures<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, pushesAndCaptures.capturesBb);
     }
     
-    // template <typename BoardTraitsT, SpecificPieceT SpecificPiece>
-    // inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const PieceAttacksT& myAttacks, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
-
-    //   const ColorStateT& myState = board.pieces[BoardTraitsT::Color];
-    //   const SquareT from = myState.pieceSquares[SpecificPiece];
-
-    //   const BitBoardT legalAttacksBb = myAttacks.pieceAttacks[SpecificPiece] & legalMoveMaskBb & pinMasks.piecePinMasks[SpecificPiece];
-      
-    //   perftImplSpecificPiecePushes<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, legalAttacksBb & ~allPiecesBb);
-      
-    //   perftImplSpecificPieceCaptures<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, legalAttacksBb & allYourPiecesBb);
-    // }
-    
-    // // Ugh - king still uses this - TODO!
-    // template <typename BoardTraitsT, SpecificPieceT SpecificPiece>
-    // inline void perftImplSpecificPieceMoves(PerftStatsT& stats, const BoardT& board, const int depthToGo, const SquareT from, const BitBoardT attacksBb, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const BitBoardT pinnedMoveMaskBb) {
-    //   const BitBoardT legalAttacksBb = attacksBb & legalMoveMaskBb & pinnedMoveMaskBb;
-    //   perftImplSpecificPiecePushes<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, legalAttacksBb & ~allPiecesBb);
-    //   perftImplSpecificPieceCaptures<BoardTraitsT, SpecificPiece>(stats, board, depthToGo, from, legalAttacksBb & allYourPiecesBb);
-    // }
-
     template <typename BoardTraitsT, CastlingRightsT CastlingRight>
     inline void perftImplCastlingMove(PerftStatsT& stats, const BoardT& board, const int depthToGo) {
       const ColorT Color = BoardTraitsT::Color;
