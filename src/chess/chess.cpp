@@ -27,9 +27,9 @@ static void dumpAttacks(const PieceAttacksT& pieceAttacks) {
   printf("q rook attacks:      %016lx\n", pieceAttacks.pieceAttacks[QueenRook]);
   printf("q knight attacks:    %016lx\n", pieceAttacks.pieceAttacks[QueenKnight]);
   printf("b bishop attacks:    %016lx\n", pieceAttacks.pieceAttacks[BlackBishop]);
-  printf("queen attacks:       %016lx\n", pieceAttacks.pieceAttacks[SpecificQueen]);
+  printf("queen attacks:       %016lx\n", pieceAttacks.pieceAttacks[TheQueen]);
   printf("promo queen attacks: %016lx\n", pieceAttacks.pieceAttacks[PromoQueen]);
-  printf("king attacks:        %016lx\n", pieceAttacks.pieceAttacks[SpecificKing]);
+  printf("king attacks:        %016lx\n", pieceAttacks.pieceAttacks[TheKing]);
   printf("w bishop attacks:    %016lx\n", pieceAttacks.pieceAttacks[WhiteBishop]);
   printf("k knight attacks:    %016lx\n", pieceAttacks.pieceAttacks[KingKnight]);
   printf("k rook attacks:      %016lx\n", pieceAttacks.pieceAttacks[KingRook]);
@@ -58,19 +58,19 @@ int main(int argc, char* argv[]) {
   ColorStateT& w = startingBoard.pieces[(size_t)White];
   ColorStateT& b = startingBoard.pieces[(size_t)Black];
   
-  auto whiteAttacks = genPieceAttacks<WhiteStartingColorTraitsT>(w, w.bbs[AllPieces] | b.bbs[AllPieces]);
+  auto whiteAttacks = genPieceAttacks<WhiteStartingColorTraitsT>(w, w.bbs[AllPieceTypes] | b.bbs[AllPieceTypes]);
 
   printf("\nWhite:\n");
   dumpAttacks(whiteAttacks);
 
-  printf("\n%d attacks, %d valid moves, all white pieces %016lx\n", countAttacks(whiteAttacks), countAttacks(whiteAttacks, w.bbs[AllPieces], b.bbs[AllPieces]), w.bbs[AllPieces]);
+  printf("\n%d attacks, %d valid moves, all white pieces %016lx\n", countAttacks(whiteAttacks), countAttacks(whiteAttacks, w.bbs[AllPieceTypes], b.bbs[AllPieceTypes]), w.bbs[AllPieceTypes]);
   
-  auto blackAttacks = genPieceAttacks<BlackStartingColorTraitsT>(b, w.bbs[AllPieces] | b.bbs[AllPieces]);
+  auto blackAttacks = genPieceAttacks<BlackStartingColorTraitsT>(b, w.bbs[AllPieceTypes] | b.bbs[AllPieceTypes]);
 
   printf("\nBlack:\n");
   dumpAttacks(blackAttacks);
 
-  printf("\n%d attacks, %d valid moves, all black pieces %016lx\n\n", countAttacks(blackAttacks), countAttacks(blackAttacks, b.bbs[AllPieces], w.bbs[AllPieces]), b.bbs[AllPieces]);
+  printf("\n%d attacks, %d valid moves, all black pieces %016lx\n\n", countAttacks(blackAttacks), countAttacks(blackAttacks, b.bbs[AllPieceTypes], w.bbs[AllPieceTypes]), b.bbs[AllPieceTypes]);
   
   return 0;
 }

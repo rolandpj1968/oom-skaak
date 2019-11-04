@@ -5,19 +5,18 @@ namespace Chess {
   
   namespace Board {
 
-    // TODO - PieceT should be inferred from SpecificPieceT
     // TODO - unusual promos
-    static void addPiece(BoardT& board, const ColorT color, const SquareT square, const SpecificPieceT specificPiece) {
+    static void addPiece(BoardT& board, const ColorT color, const SquareT square, const PieceT piece) {
       ColorStateT& c = board.pieces[(size_t)color];
       
       const BitBoardT pieceBb = bbForSquare(square);
 
-      c.bbs[PieceForSpecificPiece[specificPiece]] |= pieceBb;
-      c.bbs[AllPieces] |= pieceBb;
+      c.bbs[PieceTypeForPiece[piece]] |= pieceBb;
+      c.bbs[AllPieceTypes] |= pieceBb;
 
-      c.pieceSquares[specificPiece] = square;
+      c.pieceSquares[piece] = square;
 
-      board.board[square] = makeSquarePiece(color, specificPiece);
+      board.board[square] = makeSquarePiece(color, piece);
     }
 
     static void addStartingPieces(BoardT& board, const ColorT color, const SquareT firstPieceSquare, const SquareT firstPawnSquare) {
@@ -25,15 +24,15 @@ namespace Chess {
       addPiece(board, color, firstPieceSquare,       QueenRook);
       addPiece(board, color, firstPieceSquare+B1-A1, QueenKnight);
       addPiece(board, color, firstPieceSquare+C1-A1, BlackBishop);
-      addPiece(board, color, firstPieceSquare+D1-A1, SpecificQueen);
-      addPiece(board, color, firstPieceSquare+E1-A1, SpecificKing);
+      addPiece(board, color, firstPieceSquare+D1-A1, TheQueen);
+      addPiece(board, color, firstPieceSquare+E1-A1, TheKing);
       addPiece(board, color, firstPieceSquare+F1-A1, WhiteBishop);
       addPiece(board, color, firstPieceSquare+G1-A1, KingKnight);
       addPiece(board, color, firstPieceSquare+H1-A1, KingRook);
       
       // Pawns
       for(SquareT square = firstPawnSquare; square <= firstPawnSquare+H2-A2; square += (B2-A2)) {
-	addPiece(board, color, square, SpecificPawn);
+	addPiece(board, color, square, SomePawns);
       }
 
       // Castling rights
@@ -62,9 +61,9 @@ namespace Chess {
 	SquareT square = (SquareT)((rank << 3) + file);
 	SquarePieceT squarePiece = board.board[square];
 	ColorT color = squarePieceColor(squarePiece);
-	SpecificPieceT specificPiece = squarePieceSpecificPiece(squarePiece);
-	PieceT piece = PieceForSpecificPiece[specificPiece];
-	printf("%c ", PieceChar[(size_t)color][piece]);
+	PieceT piece = squarePiecePiece(squarePiece);
+	PieceTypeT pieceType = PieceTypeForPiece[piece];
+	printf("%c ", PieceChar[(size_t)color][pieceType]);
       }
       printf(" | %d\n", rank+1);
     }

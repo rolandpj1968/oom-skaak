@@ -109,8 +109,8 @@ namespace Chess {
     NDirs
   };
 
-  enum PieceT {
-    NoPiece,
+  enum PieceTypeT {
+    NoPieceType,
     Pawn,
     Knight,
     Bishop,
@@ -118,54 +118,54 @@ namespace Chess {
     Queen,
     King,
     NPieceTypes,
-    AllPieces = NoPiece,
+    AllPieceTypes = NoPieceType,
   };
 
-  enum SpecificPieceT {
-    SpecificNoPiece,
-    SpecificPawn,
+  enum PieceT {
+    NoPiece,
+    SomePawns,
     QueenKnight,
     KingKnight,
     BlackBishop,
     WhiteBishop,
     QueenRook,
     KingRook,
-    SpecificQueen,
+    TheQueen,
     PromoQueen,      // First queen promo piece - this captures the majority of actual promo's in real play.
-    SpecificKing,
+    TheKing,
     OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
                      //   We have to look at the (simple) piece type bb's (for example) to see what kind of piece it is.
                      // TODO - fix this!
-    NSpecificPieceTypes,
+    NPieces,
   };
 
-  const PieceT PieceForSpecificPiece[NSpecificPieceTypes] = {
-    NoPiece,       // SpecificNoPiece,
-    Pawn,          // SpecificPawn,
+  const PieceTypeT PieceTypeForPiece[NPieces] = {
+    NoPieceType,       // NoPiece,
+    Pawn,          // Pawn,
     Knight,        // QueenKnight,
     Knight,        // KingKnight,
     Bishop,        // BlackBishop,
     Bishop,        // WhiteBishop,
     Rook,          // QueenRook,
     Rook,          // KingRook,
-    Queen,         // SpecificQueen,
+    Queen,         // Queen,
     Queen,         // PromoQueen,
-    King,          // SpecificKing,
-    NoPiece,       // TODO - OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
+    King,          // King,
+    NoPieceType,       // TODO - OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
   };
 
-  template <SpecificPieceT SpecificPiece> struct PieceForSpecificPieceT { static const PieceT value; };
-  template <> struct PieceForSpecificPieceT<SpecificNoPiece> { static const PieceT value = NoPiece; };
-  template <> struct PieceForSpecificPieceT<SpecificPawn> { static const PieceT value = Pawn; };
-  template <> struct PieceForSpecificPieceT<QueenKnight> { static const PieceT value = Knight; };
-  template <> struct PieceForSpecificPieceT<KingKnight> { static const PieceT value = Knight; };
-  template <> struct PieceForSpecificPieceT<BlackBishop> { static const PieceT value = Bishop; };
-  template <> struct PieceForSpecificPieceT<WhiteBishop> { static const PieceT value = Bishop; };
-  template <> struct PieceForSpecificPieceT<QueenRook> { static const PieceT value = Rook; };
-  template <> struct PieceForSpecificPieceT<KingRook> { static const PieceT value = Rook; };
-  template <> struct PieceForSpecificPieceT<SpecificQueen> { static const PieceT value = Queen; };
-  template <> struct PieceForSpecificPieceT<PromoQueen> { static const PieceT value = Queen; };
-  template <> struct PieceForSpecificPieceT<SpecificKing> { static const PieceT value = King; };
+  template <PieceT Piece> struct PieceTypeForPieceT { static const PieceTypeT value; };
+  template <> struct PieceTypeForPieceT<NoPiece> { static const PieceTypeT value = NoPieceType; };
+  template <> struct PieceTypeForPieceT<SomePawns> { static const PieceTypeT value = Pawn; };
+  template <> struct PieceTypeForPieceT<QueenKnight> { static const PieceTypeT value = Knight; };
+  template <> struct PieceTypeForPieceT<KingKnight> { static const PieceTypeT value = Knight; };
+  template <> struct PieceTypeForPieceT<BlackBishop> { static const PieceTypeT value = Bishop; };
+  template <> struct PieceTypeForPieceT<WhiteBishop> { static const PieceTypeT value = Bishop; };
+  template <> struct PieceTypeForPieceT<QueenRook> { static const PieceTypeT value = Rook; };
+  template <> struct PieceTypeForPieceT<KingRook> { static const PieceTypeT value = Rook; };
+  template <> struct PieceTypeForPieceT<TheQueen> { static const PieceTypeT value = Queen; };
+  template <> struct PieceTypeForPieceT<PromoQueen> { static const PieceTypeT value = Queen; };
+  template <> struct PieceTypeForPieceT<TheKing> { static const PieceTypeT value = King; };
   // TODO - OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
 
   enum PiecePresentShiftsT {
@@ -208,8 +208,8 @@ namespace Chess {
     SquareT from;
     // For castling this is the king 'to' square;
     SquareT to;
-    // SpecificNoPiece if not a capture.
-    SpecificPieceT capturedSpecificPiece;
+    // NoPiece if not a capture.
+    PieceT capturedPiece;
     // Generally same as 'to' for a capture except for en-passent.
     // InvalidSquare is this is not a capture.
     SquareT captureSq;
@@ -221,18 +221,18 @@ namespace Chess {
     SquareT discoveredCheckerSq;
 
     // Generic ctor
-    MoveInfoT(MoveTypeT moveType, SquareT from, SquareT to, SpecificPieceT capturedSpecificPiece, SquareT captureSq, bool isDirectCheck, SquareT discoveredCheckerSq):
-      moveType(moveType), from(from), to(to), capturedSpecificPiece(capturedSpecificPiece), captureSq(captureSq), isDirectCheck(isDirectCheck), discoveredCheckerSq(discoveredCheckerSq)
+    MoveInfoT(MoveTypeT moveType, SquareT from, SquareT to, PieceT capturedPiece, SquareT captureSq, bool isDirectCheck, SquareT discoveredCheckerSq):
+      moveType(moveType), from(from), to(to), capturedPiece(capturedPiece), captureSq(captureSq), isDirectCheck(isDirectCheck), discoveredCheckerSq(discoveredCheckerSq)
     {}
 
     // Push move ctor
     MoveInfoT(SquareT from, SquareT to, bool isDirectCheck = false, SquareT discoveredCheckSq = InvalidSquare) :
-      MoveInfoT(PushMove, from, to, SpecificNoPiece, InvalidSquare, isDirectCheck, discoveredCheckSq)
+      MoveInfoT(PushMove, from, to, NoPiece, InvalidSquare, isDirectCheck, discoveredCheckSq)
     {}
 
     // Capture move ctor
-    MoveInfoT(SquareT from, SquareT to, SpecificPieceT capturedSpecificPiece, bool isDirectCheck = false, SquareT discoveredCheckSq = InvalidSquare) :
-      MoveInfoT(CaptureMove, from, to, capturedSpecificPiece, to, isDirectCheck, discoveredCheckSq)
+    MoveInfoT(SquareT from, SquareT to, PieceT capturedPiece, bool isDirectCheck = false, SquareT discoveredCheckSq = InvalidSquare) :
+      MoveInfoT(CaptureMove, from, to, capturedPiece, to, isDirectCheck, discoveredCheckSq)
     {}
 
     // Temporary working ctor

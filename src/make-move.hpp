@@ -20,7 +20,7 @@ namespace Chess {
 	const SquareT to = Bits::popLsb(pawnsPush);
 	const SquareT from = To2FromFn::fn(to);
 
-	const BoardT newBoard = moveSpecificPiece<BoardTraitsT::Color, SpecificPawn, Push, IsPushTwo>(board, from, to);
+	const BoardT newBoard = movePiece<BoardTraitsT::Color, SomePawns, Push, IsPushTwo>(board, from, to);
 
 	PosHandlerT::handlePos(state, newBoard, MoveInfoT(PushMove, to));
       }
@@ -62,7 +62,7 @@ namespace Chess {
 	const SquareT to = Bits::popLsb(pawnsCapture);
 	const SquareT from = To2FromFn::fn(to);
 
-	const BoardT newBoard = moveSpecificPiece<BoardTraitsT::Color, SpecificPawn, Capture>(board, from, to);
+	const BoardT newBoard = movePiece<BoardTraitsT::Color, SomePawns, Capture>(board, from, to);
 
 	PosHandlerT::handlePos(state, newBoard, MoveInfoT(CaptureMove, to));
       }
@@ -118,43 +118,43 @@ namespace Chess {
       handlePawnEpCaptureRight<StateT, PosHandlerT, BoardTraitsT>(state, board, pawnMoves.epCaptures.epRightCaptureBb);
     }
     
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, SpecificPieceT SpecificPiece, PushOrCaptureT PushOrCapture>
-    inline void handleSpecificPieceMoves(StateT state, const BoardT& board, const SquareT from, BitBoardT toBb, const MoveTypeT moveType) {
+    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece, PushOrCaptureT PushOrCapture>
+    inline void handlePieceMoves(StateT state, const BoardT& board, const SquareT from, BitBoardT toBb, const MoveTypeT moveType) {
       while(toBb) {
 	const SquareT to = Bits::popLsb(toBb);
 
-	const BoardT newBoard = moveSpecificPiece<BoardTraitsT::Color, SpecificPiece, PushOrCapture>(board, from, to);
+	const BoardT newBoard = movePiece<BoardTraitsT::Color, Piece, PushOrCapture>(board, from, to);
 
 	PosHandlerT::handlePos(state, newBoard, MoveInfoT(moveType, to));
       }
     }
     
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, SpecificPieceT SpecificPiece>
-    inline void handleSpecificPiecePushes(StateT state, const BoardT& board, const SquareT from, const BitBoardT pushesBb) {
-      handleSpecificPieceMoves<StateT, PosHandlerT, BoardTraitsT, SpecificPiece, Push>(state, board, from, pushesBb, PushMove);
+    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece>
+    inline void handlePiecePushes(StateT state, const BoardT& board, const SquareT from, const BitBoardT pushesBb) {
+      handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, Piece, Push>(state, board, from, pushesBb, PushMove);
     }
     
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, SpecificPieceT SpecificPiece>
-    inline void handleSpecificPieceCaptures(StateT state, const BoardT& board, const SquareT from, const BitBoardT capturesBb) {
-      handleSpecificPieceMoves<StateT, PosHandlerT, BoardTraitsT, SpecificPiece, Capture>(state, board, from, capturesBb, CaptureMove);
+    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece>
+    inline void handlePieceCaptures(StateT state, const BoardT& board, const SquareT from, const BitBoardT capturesBb) {
+      handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, Piece, Capture>(state, board, from, capturesBb, CaptureMove);
     }
 
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, SpecificPieceT SpecificPiece>
-    inline void handleSpecificPieceMoves(StateT state, const BoardT& board, const PushesAndCapturesT pushesAndCaptures) {
+    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece>
+    inline void handlePieceMoves(StateT state, const BoardT& board, const PushesAndCapturesT pushesAndCaptures) {
       const ColorStateT& myState = board.pieces[(size_t)BoardTraitsT::Color];
-      const SquareT from = myState.pieceSquares[SpecificPiece];
+      const SquareT from = myState.pieceSquares[Piece];
 
-      handleSpecificPiecePushes<StateT, PosHandlerT, BoardTraitsT, SpecificPiece>(state, board, from, pushesAndCaptures.pushesBb);
+      handlePiecePushes<StateT, PosHandlerT, BoardTraitsT, Piece>(state, board, from, pushesAndCaptures.pushesBb);
       
-      handleSpecificPieceCaptures<StateT, PosHandlerT, BoardTraitsT, SpecificPiece>(state, board, from, pushesAndCaptures.capturesBb);
+      handlePieceCaptures<StateT, PosHandlerT, BoardTraitsT, Piece>(state, board, from, pushesAndCaptures.capturesBb);
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, CastlingRightsT CastlingRight>
     inline void handleCastlingMove(StateT state, const BoardT& board) {
       const ColorT Color = BoardTraitsT::Color;
       
-      const BoardT newBoard1 = moveSpecificPiece<Color, SpecificKing, Push>(board, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo);
-      const BoardT newBoard = moveSpecificPiece<Color, CastlingTraitsT<Color, CastlingRight>::SpecificRook, Push>(newBoard1, CastlingTraitsT<Color, CastlingRight>::RookFrom, CastlingTraitsT<Color, CastlingRight>::RookTo);
+      const BoardT newBoard1 = movePiece<Color, TheKing, Push>(board, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo);
+      const BoardT newBoard = movePiece<Color, CastlingTraitsT<Color, CastlingRight>::TheRook, Push>(newBoard1, CastlingTraitsT<Color, CastlingRight>::RookFrom, CastlingTraitsT<Color, CastlingRight>::RookTo);
 
       // We use the king (from and) to square by convention
       PosHandlerT::handlePos(state, newBoard, MoveInfoT(CastlingMove, CastlingTraitsT<Color, CastlingRight>::KingTo));
@@ -189,24 +189,24 @@ namespace Chess {
 	handlePawnMoves<StateT, PosHandlerT, BoardTraitsT>(state, board, legalMoves.pawnMoves);
 	
 	// Knights
-	handleSpecificPieceMoves<StateT, PosHandlerT, BoardTraitsT, QueenKnight>(state, board, legalMoves.specificPieceMoves[QueenKnight]);
-	handleSpecificPieceMoves<StateT, PosHandlerT, BoardTraitsT, KingKnight>(state, board, legalMoves.specificPieceMoves[KingKnight]);
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, QueenKnight>(state, board, legalMoves.pieceMoves[QueenKnight]);
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, KingKnight>(state, board, legalMoves.pieceMoves[KingKnight]);
 	
 	// Bishops
-	handleSpecificPieceMoves<StateT, PosHandlerT, BoardTraitsT, BlackBishop>(state, board, legalMoves.specificPieceMoves[BlackBishop]); 
-	handleSpecificPieceMoves<StateT, PosHandlerT, BoardTraitsT, WhiteBishop>(state, board, legalMoves.specificPieceMoves[WhiteBishop]); 
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, BlackBishop>(state, board, legalMoves.pieceMoves[BlackBishop]); 
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, WhiteBishop>(state, board, legalMoves.pieceMoves[WhiteBishop]); 
 
 	// Rooks
-	handleSpecificPieceMoves<StateT, PosHandlerT, BoardTraitsT, QueenRook>(state, board, legalMoves.specificPieceMoves[QueenRook]); 
-	handleSpecificPieceMoves<StateT, PosHandlerT, BoardTraitsT, KingRook>(state, board, legalMoves.specificPieceMoves[KingRook]); 
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, QueenRook>(state, board, legalMoves.pieceMoves[QueenRook]); 
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, KingRook>(state, board, legalMoves.pieceMoves[KingRook]); 
 
 	// Queen
-	handleSpecificPieceMoves<StateT, PosHandlerT, BoardTraitsT, SpecificQueen>(state, board, legalMoves.specificPieceMoves[SpecificQueen]); 
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, TheQueen>(state, board, legalMoves.pieceMoves[TheQueen]); 
 
 	// TODO other promo pieces
 	if(MyColorTraitsT::HasPromos) {
 	  if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
-	    handleSpecificPieceMoves<StateT, PosHandlerT, BoardTraitsT, PromoQueen>(state, board, legalMoves.specificPieceMoves[PromoQueen]);  
+	    handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, PromoQueen>(state, board, legalMoves.pieceMoves[PromoQueen]);  
 	  }
 	}
 
@@ -226,7 +226,7 @@ namespace Chess {
       } // nChecks < 2
       
       // King
-      handleSpecificPieceMoves<StateT, PosHandlerT, BoardTraitsT, SpecificKing>(state, board, legalMoves.specificPieceMoves[SpecificKing]); 
+      handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, TheKing>(state, board, legalMoves.pieceMoves[TheKing]); 
 
     }
      
