@@ -69,18 +69,18 @@ namespace Chess {
 	legalMoves.pawnMoves.capturesLeftBb | legalMoves.pawnMoves.capturesRightBb |
 	legalMoves.pawnMoves.epCaptures.epLeftCaptureBb | legalMoves.pawnMoves.epCaptures.epRightCaptureBb |
 
-	legalMoves.pieceMoves[QueenKnight].pushesBb | legalMoves.pieceMoves[QueenKnight].capturesBb |
-	legalMoves.pieceMoves[KingKnight].pushesBb | legalMoves.pieceMoves[KingKnight].capturesBb |
+	legalMoves.pieceMoves[QueenKnight] |
+	legalMoves.pieceMoves[KingKnight] |
 	  
-	legalMoves.pieceMoves[BlackBishop].pushesBb | legalMoves.pieceMoves[BlackBishop].capturesBb |
-	legalMoves.pieceMoves[WhiteBishop].pushesBb | legalMoves.pieceMoves[WhiteBishop].capturesBb |
+	legalMoves.pieceMoves[BlackBishop] |
+	legalMoves.pieceMoves[WhiteBishop] |
 	  
-	legalMoves.pieceMoves[QueenRook].pushesBb | legalMoves.pieceMoves[QueenRook].capturesBb |
-	legalMoves.pieceMoves[KingRook].pushesBb | legalMoves.pieceMoves[KingRook].capturesBb |
+	legalMoves.pieceMoves[QueenRook] |
+	legalMoves.pieceMoves[KingRook] |
 	  
-	legalMoves.pieceMoves[TheQueen].pushesBb | legalMoves.pieceMoves[TheQueen].capturesBb |
+	legalMoves.pieceMoves[TheQueen] |
 
-	legalMoves.pieceMoves[TheKing].pushesBb | legalMoves.pieceMoves[TheKing].capturesBb |
+	legalMoves.pieceMoves[TheKing] |
 
 	(BitBoardT)legalMoves.canCastleFlags;
 
@@ -149,16 +149,12 @@ namespace Chess {
 	stats.checks++;
 
 	// If the moved piece is not attacking the king then this is a discovered check
-	//bool isDiscovery = false;
 	if((bbForSquare(moveInfo.to) & allMyKingAttackers) == 0) {
-	  //isDiscovery = true;
 	  stats.discoverychecks++;
 	}
 	  
 	// If there are multiple king attackers then we have a double check
-	//bool isDoubleCheck = false;
 	if(Bits::count(allMyKingAttackers) != 1) {
-	  //isDoubleCheck = true;
 	  stats.doublechecks++;
 	}
 
