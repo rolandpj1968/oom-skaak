@@ -58,6 +58,38 @@ namespace Chess {
     };
 
     template <typename BoardTraitsT>
+    inline bool hasLegalMoves(const BoardT& board, const MoveInfoT moveInfo) {
+      // Generate (legal) moves
+      const LegalMovesT legalMoves = genLegalMoves<BoardTraitsT>(board);
+
+      // Are there any?
+      const BitBoardT anyLegalMovesBb =
+	  
+	legalMoves.pawnMoves.pushesOneBb | legalMoves.pawnMoves.pushesTwoBb |
+	legalMoves.pawnMoves.capturesLeftBb | legalMoves.pawnMoves.capturesRightBb |
+	legalMoves.pawnMoves.epCaptures.epLeftCaptureBb | legalMoves.pawnMoves.epCaptures.epRightCaptureBb |
+
+	legalMoves.pieceMoves[QueenKnight].pushesBb | legalMoves.pieceMoves[QueenKnight].capturesBb |
+	legalMoves.pieceMoves[KingKnight].pushesBb | legalMoves.pieceMoves[KingKnight].capturesBb |
+	  
+	legalMoves.pieceMoves[BlackBishop].pushesBb | legalMoves.pieceMoves[BlackBishop].capturesBb |
+	legalMoves.pieceMoves[WhiteBishop].pushesBb | legalMoves.pieceMoves[WhiteBishop].capturesBb |
+	  
+	legalMoves.pieceMoves[QueenRook].pushesBb | legalMoves.pieceMoves[QueenRook].capturesBb |
+	legalMoves.pieceMoves[KingRook].pushesBb | legalMoves.pieceMoves[KingRook].capturesBb |
+	  
+	legalMoves.pieceMoves[TheQueen].pushesBb | legalMoves.pieceMoves[TheQueen].capturesBb |
+
+	legalMoves.pieceMoves[TheKing].pushesBb | legalMoves.pieceMoves[TheKing].capturesBb |
+
+	(BitBoardT)legalMoves.canCastleFlags;
+
+      // TODO - promos
+	
+      return anyLegalMovesBb != BbNone;
+    }
+
+    template <typename BoardTraitsT>
     inline void perft0Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
       typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
@@ -117,51 +149,23 @@ namespace Chess {
 	stats.checks++;
 
 	// If the moved piece is not attacking the king then this is a discovered check
-	bool isDiscovery = false;
+	//bool isDiscovery = false;
 	if((bbForSquare(moveInfo.to) & allMyKingAttackers) == 0) {
-	  isDiscovery = true;
+	  //isDiscovery = true;
 	  stats.discoverychecks++;
 	}
 	  
 	// If there are multiple king attackers then we have a double check
-	bool isDoubleCheck = false;
+	//bool isDoubleCheck = false;
 	if(Bits::count(allMyKingAttackers) != 1) {
-	  isDoubleCheck = true;
+	  //isDoubleCheck = true;
 	  stats.doublechecks++;
 	}
 
 	if(DoCheckMateStats) {
-	  bool isPossibleCheckmate = true;
-	  // If it's a non-discovery and we can take the checker then it's not checkmate - BROKKEN; not sure why? Maybe cos of discovered check through the taker!
-	  if(false && isPossibleCheckmate && !isDiscovery && !isDoubleCheck) {
-	    // See if the checking piece can be taken
-	    stats.l0nondiscoveries++;
-	    const SquareAttackersT checkerAttackers = genSquareAttackers<MyColorTraitsT>(moveInfo.to, myState, allPiecesBb);
-	    // It's not safe for the king to capture cos he might still be in check
-	    if(checkerAttackers.pieceAttackers[AllPieceTypes] &~ checkerAttackers.pieceAttackers[King]) {
-	      stats.l0checkertakable++;
-	      isPossibleCheckmate = false;
-	    }
-	  }
-	  // It's not checkmate if the king can move to safety
-	  if(isPossibleCheckmate) {
-	    // Remove my king to expose moving away from a slider checker
-	    const PieceAttacksT yourAttacks = genPieceAttacks<YourColorTraitsT>(yourState, allPiecesBb & ~myState.bbs[King]);
-	    const SquareT myKingSq = myState.pieceSquares[TheKing];
-	    const BitBoardT myKingAttacksBb = KingAttacks[myKingSq];
-	    const BitBoardT myKingMovesBb = myKingAttacksBb & ~allMyPiecesBb;
-	    if(myKingMovesBb & ~yourAttacks.allAttacks) {
-	      stats.l0checkkingcanmove++;
-	      isPossibleCheckmate = false;
-	    }
-	  }
-	  // TODO - or king can take checking piece - actually not - king could still be in check!
-	  // It's checkmate if there are no valid child nodes.
-	  if(isPossibleCheckmate) {
-	    PerftStatsT childStats = perft<BoardTraitsT>(board, 1);
-	    if(childStats.nodes == 0) {
-	      stats.checkmates++;
-	    }
+	  // It's checkmate if there are no legal moves
+	  if(!hasLegalMoves<BoardTraitsT>(board, moveInfo)) {
+	    stats.checkmates++;
 	  }
 	}
       }
