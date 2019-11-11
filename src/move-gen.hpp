@@ -48,6 +48,27 @@ namespace Chess {
       // BitBoardT allPinMasks;
     };
 
+    struct DirectCheckMasksT {
+      // Pawn (direct) check squares
+      BitBoardT pawnChecksBb;
+      // Knight (direct) check squares
+      BitBoardT knightChecksBb;
+      // Bishop (direct) check squares
+      BitBoardT bishopChecksBb;
+      // Rook (direct) check squares
+      BitBoardT rookChecksBb;
+
+      DirectCheckMasksT():
+	pawnChecksBb(BbNone), knightChecksBb(BbNone), bishopChecksBb(BbNone), rookChecksBb(BbNone) {}
+
+      DirectCheckMasksT(const BitBoardT pawnChecksBb, const BitBoardT knightChecksBb, const BitBoardT bishopChecksBb, const BitBoardT rookChecksBb):
+	pawnChecksBb(pawnChecksBb), knightChecksBb(knightChecksBb), bishopChecksBb(bishopChecksBb), rookChecksBb(rookChecksBb) {}
+    };
+
+    struct DiscoveredCheckMasksT {
+      
+    };
+
     struct EpPawnCapturesT {
       BitBoardT epLeftCaptureBb;
       BitBoardT epRightCaptureBb;
@@ -80,6 +101,9 @@ namespace Chess {
       PawnPushesAndCapturesT pawnMoves;
       BitBoardT pieceMoves[NPieces];
 
+      DirectCheckMasksT directChecks;
+      
+      // TODO - construct properly
       LegalMovesT():
 	isIllegalPos(false), nChecks(0), canCastleFlags(NoCastlingRights), pawnMoves()/*, PieceMoves???*/ {}
     };
@@ -1045,6 +1069,18 @@ namespace Chess {
 
       return legalKingMovesBb & ~allMyPiecesBb;
     }
+
+    template <ColorT OtherColor>
+    inline DirectCheckMasksT genDirectCheckMasks(const ColorStateT& yourState, const BitBoardT allPiecesBb) {
+      const SquareT yourKingSq = yourState.pieceSquares[TheKing];
+
+      const BitBoardT pawnChecksBb = PawnAttackers[(size_t)OtherColor][yourKingSq];
+      const BitBoardT knightChecksBb = KnightAttacks[yourKingSq];
+      const BitBoardT bishopChecksBb = bishopAttacks(yourKingSq, allPiecesBb);
+      const BitBoardT rookChecksBb = rookAttacks(yourKingSq, allPiecesBb);
+
+      return DirectCheckMasksT(pawnChecksBb, knightChecksBb, bishopChecksBb, rookChecksBb);
+    }
     
     template <typename BoardTraitsT>
     inline LegalMovesT genLegalMoves(const BoardT& board) {
@@ -1100,6 +1136,8 @@ namespace Chess {
       }
 
       legalMoves.pieceMoves[TheKing] = genLegalKingMoves<BoardTraitsT>(board, yourAttacks, allMyKingAttackersBb);
+
+      legalMoves.directChecks = genDirectCheckMasks<OtherColor>(yourState, allPiecesBb);
       
       return legalMoves;
     }

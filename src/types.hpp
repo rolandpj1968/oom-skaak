@@ -202,6 +202,7 @@ namespace Chess {
     CastlingMove
   };
 
+  // TODO consts
   struct MoveInfoT {
     MoveTypeT moveType;
     // For castling this is the king 'from' square.
@@ -220,23 +221,24 @@ namespace Chess {
     // For castling giving check this is the rook 'to' square.
     SquareT discoveredCheckerSq;
 
-    // Generic ctor
-    MoveInfoT(MoveTypeT moveType, SquareT from, SquareT to, PieceT capturedPiece, SquareT captureSq, bool isDirectCheck, SquareT discoveredCheckerSq):
-      moveType(moveType), from(from), to(to), capturedPiece(capturedPiece), captureSq(captureSq), isDirectCheck(isDirectCheck), discoveredCheckerSq(discoveredCheckerSq)
-    {}
+    // // Generic ctor
+    // MoveInfoT(MoveTypeT moveType, SquareT from, SquareT to, PieceT capturedPiece, SquareT captureSq, bool isDirectCheck, SquareT discoveredCheckerSq):
+    //   moveType(moveType), from(from), to(to), capturedPiece(capturedPiece), captureSq(captureSq), isDirectCheck(isDirectCheck), discoveredCheckerSq(discoveredCheckerSq)
+    // {}
 
-    // Push move ctor
-    MoveInfoT(SquareT from, SquareT to, bool isDirectCheck = false, SquareT discoveredCheckSq = InvalidSquare) :
-      MoveInfoT(PushMove, from, to, NoPiece, InvalidSquare, isDirectCheck, discoveredCheckSq)
-    {}
+    // // Push move ctor
+    // MoveInfoT(SquareT from, SquareT to, bool isDirectCheck = false, SquareT discoveredCheckSq = InvalidSquare) :
+    //   MoveInfoT(PushMove, from, to, NoPiece, InvalidSquare, isDirectCheck, discoveredCheckSq)
+    // {}
 
-    // Capture move ctor
-    MoveInfoT(SquareT from, SquareT to, PieceT capturedPiece, bool isDirectCheck = false, SquareT discoveredCheckSq = InvalidSquare) :
-      MoveInfoT(CaptureMove, from, to, capturedPiece, to, isDirectCheck, discoveredCheckSq)
-    {}
+    // // Capture move ctor
+    // MoveInfoT(SquareT from, SquareT to, PieceT capturedPiece, bool isDirectCheck = false, SquareT discoveredCheckSq = InvalidSquare) :
+    //   MoveInfoT(CaptureMove, from, to, capturedPiece, to, isDirectCheck, discoveredCheckSq)
+    // {}
 
     // Temporary working ctor
-    MoveInfoT(MoveTypeT moveType, SquareT to): moveType(moveType), to(to) {}
+    MoveInfoT(double tag, MoveTypeT moveType, SquareT from, SquareT to, bool isDirectCheck):
+      moveType(moveType), from(from), to(to), isDirectCheck(isDirectCheck) {}
   };
 
   enum SliderDirectionT {
