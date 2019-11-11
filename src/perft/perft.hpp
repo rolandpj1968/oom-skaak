@@ -34,7 +34,9 @@ namespace Chess {
       u64 l0nondiscoveries;
       u64 l0checkertakable;
       u64 l0checkkingcanmove;
-      u64 directchecks;
+      u64 directchecks1;
+      u64 discoverychecks1;
+      u64 doublechecks1;
     };
 
     struct PerftStateT {
@@ -113,7 +115,7 @@ namespace Chess {
 	  stats.invalids++;
 	  static bool done = false;
 	  if(!done) {
-	    printf("\n============================================== Invalid Depth 0 - last move to %d! ===================================\n\n", moveInfo.to);
+	    printf("\n============================================== Invalid Depth 0 - last move to %s! ===================================\n\n", SquareStr[moveInfo.to]);
 	    printBoard(board);
 	    printf("\n");
 	    done = true;
@@ -144,7 +146,13 @@ namespace Chess {
       }
 
       if(moveInfo.isDirectCheck) {
-	stats.directchecks++;
+	stats.directchecks1++;
+      }
+      if(moveInfo.isDiscoveredCheck) {
+	stats.discoverychecks1++;
+      }
+      if(moveInfo.isDirectCheck && moveInfo.isDiscoveredCheck) {
+	stats.doublechecks1++;
       }
 
       // Is my king in check?
@@ -156,11 +164,18 @@ namespace Chess {
 	// If the moved piece is not attacking the king then this is a discovered check
 	if((bbForSquare(moveInfo.to) & allMyKingAttackers) == 0) {
 	  stats.discoverychecks++;
+	  static bool done = false;
+	  if(!moveInfo.isDiscoveredCheck && !done) {
+	    done = true;
+	    printf("\n============================================== Discovered Check missed - last move to %s! ===================================\n\n", SquareStr[moveInfo.to]);
+	    printBoard(board);
+	    printf("\n");
+	  }
 	} else {
 	  static bool done = false;
 	  if(!moveInfo.isDirectCheck && !done) {
 	    done = true;
-	    printf("\n============================================== Direct Check missed - last move to %d! ===================================\n\n", moveInfo.to);
+	    printf("\n============================================== Direct Check missed - last move to %s! ===================================\n\n", SquareStr[moveInfo.to]);
 	    printBoard(board);
 	    printf("\n");
 	  }
