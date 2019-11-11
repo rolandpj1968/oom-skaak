@@ -65,8 +65,24 @@ namespace Chess {
 	pawnChecksBb(pawnChecksBb), knightChecksBb(knightChecksBb), bishopChecksBb(bishopChecksBb), rookChecksBb(rookChecksBb) {}
     };
 
+    // Note that dicovered check is relatively easy to detect.
+    // Queens can never move with discovered check, since they would have been checking the other king already, which is an invalid position - king can be captured.
+    // Bishops can never be blocking a diagonal discovered check, and rooks can never be blocking an orthogonal discovered check for the same reason.
+    // If a knight is blocking check then any move is a discovered check.
+    // Pawns and kings are trickier.
     struct DiscoveredCheckMasksT {
+      // From square discovery masks for knights and rooks.
+      BitBoardT diagDiscoveryPiecesBb;
+      // From square discovery masks for knights and bishops.
+      BitBoardT orthogDiscoveryPiecesBb;
+
+      // TODO pawns and king
+
+      DiscoveredCheckMasksT():
+	diagDiscoveryPiecesBb(BbNone), orthogDiscoveryPiecesBb(BbNone) {}
       
+      DiscoveredCheckMasksT(const BitBoardT diagDiscoveryPiecesBb, const BitBoardT orthogDiscoveryPiecesBb):
+	diagDiscoveryPiecesBb(diagDiscoveryPiecesBb), orthogDiscoveryPiecesBb(orthogDiscoveryPiecesBb) {}
     };
 
     struct EpPawnCapturesT {
@@ -102,6 +118,7 @@ namespace Chess {
       BitBoardT pieceMoves[NPieces];
 
       DirectCheckMasksT directChecks;
+      DiscoveredCheckMasksT discoveredChecks;
       
       // TODO - construct properly
       LegalMovesT():
@@ -916,6 +933,26 @@ namespace Chess {
       return pinMasks;
     }
 
+    template <typename BoardTraitsT>
+    inline DiscoveredCheckMasksT genDiscoveryMasks(const BoardT& board) {
+      const ColorT Color = BoardTraitsT::Color;
+      const ColorT OtherColor = BoardTraitsT::OtherColor;
+      
+      const ColorStateT& myState = board.pieces[(size_t)Color];
+      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+      const BitBoardT allMyPiecesBb = myState.bbs[AllPieceTypes];
+      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieceTypes];
+      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
+
+      const SquareT yourKingSq = yourState.pieceSquares[TheKing];
+
+      // Find my pieces that are blocking check - used for discovered check detection.
+      const BitBoardT myDiagDiscoveryPiecesBb = genPinnedPiecesBb<Diagonal>(yourKingSq, allPiecesBb, allMyPiecesBb, myState);
+      const BitBoardT myOrthogDiscoveryPiecesBb = genPinnedPiecesBb<Orthogonal>(yourKingSq, allPiecesBb, allMyPiecesBb, myState);
+
+      return DiscoveredCheckMasksT(myDiagDiscoveryPiecesBb, myOrthogDiscoveryPiecesBb);
+    }
+
     template <PieceT Piece>
     inline BitBoardT genLegalPieceMoves(const PieceAttacksT myAttacks, const BitBoardT legalMoveMaskBb, const PiecePinMasksT pinMasks, BitBoardT allMyPiecesBb) {
       return myAttacks.pieceAttacks[Piece] & legalMoveMaskBb & pinMasks.piecePinMasks[Piece] & ~allMyPiecesBb;
@@ -1138,6 +1175,7 @@ namespace Chess {
       legalMoves.pieceMoves[TheKing] = genLegalKingMoves<BoardTraitsT>(board, yourAttacks, allMyKingAttackersBb);
 
       legalMoves.directChecks = genDirectCheckMasks<Color>(yourState, allPiecesBb);
+      legalMoves.discoveredChecks = genDiscoveryMasks<BoardTraitsT>(board);
       
       return legalMoves;
     }
