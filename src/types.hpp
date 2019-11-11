@@ -216,10 +216,12 @@ namespace Chess {
     SquareT captureSq;
     // True iff the moved piece delivers check from the 'to' square.
     bool isDirectCheck;
-    // The square containing the piece delivering discovered check.
-    // InvalidSquare if not in check.
-    // For castling giving check this is the rook 'to' square.
-    SquareT discoveredCheckerSq;
+    // // The square containing the piece delivering discovered check.
+    // // InvalidSquare if not in check.
+    // // For castling giving check this is the rook 'to' square.
+    // SquareT discoveredCheckerSq;
+    // True iff the moved piece uncovers discovered check.
+    bool isDiscoveredCheck;
 
     // // Generic ctor
     // MoveInfoT(MoveTypeT moveType, SquareT from, SquareT to, PieceT capturedPiece, SquareT captureSq, bool isDirectCheck, SquareT discoveredCheckerSq):
@@ -237,8 +239,8 @@ namespace Chess {
     // {}
 
     // Temporary working ctor
-    MoveInfoT(double tag, MoveTypeT moveType, SquareT from, SquareT to, bool isDirectCheck):
-      moveType(moveType), from(from), to(to), isDirectCheck(isDirectCheck) {}
+    MoveInfoT(const double tag, const MoveTypeT moveType, const SquareT from, const SquareT to, const bool isDirectCheck, const bool isDiscoveredCheck):
+      moveType(moveType), from(from), to(to), isDirectCheck(isDirectCheck), isDiscoveredCheck(isDiscoveredCheck) {}
   };
 
   enum SliderDirectionT {

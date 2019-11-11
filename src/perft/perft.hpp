@@ -203,7 +203,7 @@ namespace Chess {
       PerftStatsT stats = {0};
       const PerftStateT state(stats, depthToGo);
 
-      perftImpl<BoardTraitsT>(state, board, MoveInfoT(0.0, PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/false));
+      perftImpl<BoardTraitsT>(state, board, MoveInfoT(0.0, PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/false, /*isDiscoveredCheck*/false));
 
       return stats;
     }
