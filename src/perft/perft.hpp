@@ -34,6 +34,7 @@ namespace Chess {
       u64 l0nondiscoveries;
       u64 l0checkertakable;
       u64 l0checkkingcanmove;
+      u64 directchecks;
     };
 
     struct PerftStateT {
@@ -142,6 +143,10 @@ namespace Chess {
 	return;
       }
 
+      if(moveInfo.isDirectCheck) {
+	stats.directchecks++;
+      }
+
       // Is my king in check?
       const SquareAttackersT myKingAttackers = genSquareAttackers<YourColorTraitsT>(myState.pieceSquares[TheKing], yourState, allPiecesBb);
       const BitBoardT allMyKingAttackers = myKingAttackers.pieceAttackers[AllPieceTypes];
@@ -151,6 +156,14 @@ namespace Chess {
 	// If the moved piece is not attacking the king then this is a discovered check
 	if((bbForSquare(moveInfo.to) & allMyKingAttackers) == 0) {
 	  stats.discoverychecks++;
+	} else {
+	  static bool done = false;
+	  if(!moveInfo.isDirectCheck && !done) {
+	    done = true;
+	    printf("\n============================================== Direct Check missed - last move to %d! ===================================\n\n", moveInfo.to);
+	    printBoard(board);
+	    printf("\n");
+	  }
 	}
 	  
 	// If there are multiple king attackers then we have a double check
