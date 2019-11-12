@@ -150,6 +150,13 @@ namespace Chess {
       }
       if(moveInfo.isDiscoveredCheck) {
 	stats.discoverychecks1++;
+	static bool done = false;
+	if(!done) {
+	  done = true;
+	  printf("\n============================================== Discovered Check detected - last move to %s! ===================================\n\n", SquareStr[moveInfo.to]);
+	  printBoard(board);
+	  printf("\n");
+	}
       }
       if(moveInfo.isDirectCheck && moveInfo.isDiscoveredCheck) {
 	stats.doublechecks1++;
