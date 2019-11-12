@@ -1032,7 +1032,11 @@ namespace Chess {
 	const SquareT captureSq = pawnPushOneTo2From<BoardTraitsT::Color>(to);
 	const BitBoardT captureSquareBb = bbForSquare(captureSq);
 
-	isEpDiscovery = (myDiagDiscoveryPiecesBb & captureSquareBb) != BbNone;
+	// If your king is exposed to a diagonal slider when we remove the captured pawn, then this is a discovery through the ep-captured pawn
+	if((bishopAttacks(yourKingSq, allPiecesBb & ~captureSquareBb) & (myState.bbs[Bishop] | myState.bbs[Queen])) != BbNone) {
+	  isEpDiscovery = true;
+	}
+	//isEpDiscovery = (myDiagDiscoveryPiecesBb & captureSquareBb) != BbNone; // Gack - it's your damn piece, not mine :P
 	// TODO horizontal discovery
       }
       

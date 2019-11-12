@@ -202,7 +202,6 @@ namespace Chess {
 	// Evaluate moves
 
 	// Pawns
-	//perftImplPawnMoves<BoardTraitsT>(newState, board, legalMoves.pawnMoves);
 	handlePawnMoves<StateT, PosHandlerT, BoardTraitsT>(state, board, legalMoves.pawnMoves, legalMoves.directChecks.pawnChecksBb, legalMoves.discoveredChecks.pawnPushDiscoveryMasksBb, legalMoves.discoveredChecks.pawnLeftDiscoveryMasksBb, legalMoves.discoveredChecks.pawnRightDiscoveryMasksBb, legalMoves.discoveredChecks.isEpDiscovery);
 	
 	// Knights
