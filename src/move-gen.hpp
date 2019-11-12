@@ -81,14 +81,16 @@ namespace Chess {
       // From square discovery masks for pawn captures.
       BitBoardT pawnLeftDiscoveryMasksBb;
       BitBoardT pawnRightDiscoveryMasksBb;
+      // Is EP move a discovery through the capture piece?
+      bool isEpDiscovery;
       
       // TODO and king
 
       DiscoveredCheckMasksT():
-	diagDiscoveryPiecesBb(BbNone), orthogDiscoveryPiecesBb(BbNone), pawnPushDiscoveryMasksBb(BbNone) {}
+	diagDiscoveryPiecesBb(BbNone), orthogDiscoveryPiecesBb(BbNone), pawnPushDiscoveryMasksBb(BbNone), pawnLeftDiscoveryMasksBb(BbNone), pawnRightDiscoveryMasksBb(BbNone), isEpDiscovery(false) {}
       
-      DiscoveredCheckMasksT(const BitBoardT diagDiscoveryPiecesBb, const BitBoardT orthogDiscoveryPiecesBb, const BitBoardT pawnPushDiscoveryMasksBb, const BitBoardT pawnLeftDiscoveryMasksBb, const BitBoardT pawnRightDiscoveryMasksBb):
-	diagDiscoveryPiecesBb(diagDiscoveryPiecesBb), orthogDiscoveryPiecesBb(orthogDiscoveryPiecesBb), pawnPushDiscoveryMasksBb(pawnPushDiscoveryMasksBb), pawnLeftDiscoveryMasksBb(pawnLeftDiscoveryMasksBb), pawnRightDiscoveryMasksBb(pawnRightDiscoveryMasksBb) {}
+      DiscoveredCheckMasksT(const BitBoardT diagDiscoveryPiecesBb, const BitBoardT orthogDiscoveryPiecesBb, const BitBoardT pawnPushDiscoveryMasksBb, const BitBoardT pawnLeftDiscoveryMasksBb, const BitBoardT pawnRightDiscoveryMasksBb, const bool isEpDiscovery):
+	diagDiscoveryPiecesBb(diagDiscoveryPiecesBb), orthogDiscoveryPiecesBb(orthogDiscoveryPiecesBb), pawnPushDiscoveryMasksBb(pawnPushDiscoveryMasksBb), pawnLeftDiscoveryMasksBb(pawnLeftDiscoveryMasksBb), pawnRightDiscoveryMasksBb(pawnRightDiscoveryMasksBb), isEpDiscovery(isEpDiscovery) {}
     };
 
     struct EpPawnCapturesT {
@@ -998,7 +1000,7 @@ namespace Chess {
     }
 
     template <typename BoardTraitsT>
-    inline DiscoveredCheckMasksT genDiscoveryMasks(const BoardT& board) {
+    inline DiscoveredCheckMasksT genDiscoveryMasks(const BoardT& board, const BitBoardT legalEpCaptureLeftBb, const BitBoardT legalEpCaptureRightBb) {
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
@@ -1021,7 +1023,20 @@ namespace Chess {
       const BitBoardT pawnLeftDiscoveryMasksBb = (myDiagDiscoveryPiecesBb & ~bishopUniRay<Color, Left>(yourKingSq)) | myOrthogDiscoveryPiecesBb;
       const BitBoardT pawnRightDiscoveryMasksBb = (myDiagDiscoveryPiecesBb & ~bishopUniRay<Color, Right>(yourKingSq)) | myOrthogDiscoveryPiecesBb;
 
-      return DiscoveredCheckMasksT(myDiagDiscoveryPiecesBb, myOrthogDiscoveryPiecesBb, pawnPushDiscoveryMasksBb, pawnLeftDiscoveryMasksBb, pawnRightDiscoveryMasksBb);
+      bool isEpDiscovery = false;
+      // Only do the heavy lifting of detecting discovered check through the en-passant captured pawn if there really is an en-passant opportunity
+      // En-passant is tricky because the captured pawn is not on the same square as the capturing piece, and might expose a discovered check itself.
+      if((legalEpCaptureLeftBb | legalEpCaptureRightBb) != BbNone) {
+	  
+	const SquareT to = Bits::lsb(legalEpCaptureLeftBb | legalEpCaptureRightBb);
+	const SquareT captureSq = pawnPushOneTo2From<BoardTraitsT::Color>(to);
+	const BitBoardT captureSquareBb = bbForSquare(captureSq);
+
+	isEpDiscovery = (myDiagDiscoveryPiecesBb & captureSquareBb) != BbNone;
+	// TODO horizontal discovery
+      }
+      
+      return DiscoveredCheckMasksT(myDiagDiscoveryPiecesBb, myOrthogDiscoveryPiecesBb, pawnPushDiscoveryMasksBb, pawnLeftDiscoveryMasksBb, pawnRightDiscoveryMasksBb, isEpDiscovery);
     }
 
     template <PieceT Piece>
@@ -1246,7 +1261,7 @@ namespace Chess {
       legalMoves.pieceMoves[TheKing] = genLegalKingMoves<BoardTraitsT>(board, yourAttacks, allMyKingAttackersBb);
 
       legalMoves.directChecks = genDirectCheckMasks<Color>(yourState, allPiecesBb);
-      legalMoves.discoveredChecks = genDiscoveryMasks<BoardTraitsT>(board);
+      legalMoves.discoveredChecks = genDiscoveryMasks<BoardTraitsT>(board, legalMoves.pawnMoves.epCaptures.epLeftCaptureBb, legalMoves.pawnMoves.epCaptures.epRightCaptureBb);
       
       return legalMoves;
     }

@@ -149,17 +149,12 @@ namespace Chess {
 	stats.directchecks1++;
       }
       if(moveInfo.isDiscoveredCheck) {
-	stats.discoverychecks1++;
-	static bool done = false;
-	if(!done) {
-	  done = true;
-	  printf("\n============================================== Discovered Check detected - last move to %s! ===================================\n\n", SquareStr[moveInfo.to]);
-	  printBoard(board);
-	  printf("\n");
+	// Double checks are counted independently of discoveries
+	if(moveInfo.isDirectCheck) {
+	  stats.doublechecks1++;
+	} else {
+	  stats.discoverychecks1++;
 	}
-      }
-      if(moveInfo.isDirectCheck && moveInfo.isDiscoveredCheck) {
-	stats.doublechecks1++;
       }
 
       // Is my king in check?
@@ -174,7 +169,7 @@ namespace Chess {
 	  static bool done = false;
 	  if(!moveInfo.isDiscoveredCheck && !done) {
 	    done = true;
-	    printf("\n============================================== Discovered Check missed - last move to %s! ===================================\n\n", SquareStr[moveInfo.to]);
+	    printf("\n============================================== Discovered Check missed - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
 	    printBoard(board);
 	    printf("\n");
 	  }
@@ -182,7 +177,14 @@ namespace Chess {
 	  static bool done = false;
 	  if(!moveInfo.isDirectCheck && !done) {
 	    done = true;
-	    printf("\n============================================== Direct Check missed - last move to %s! ===================================\n\n", SquareStr[moveInfo.to]);
+	    printf("\n============================================== Direct Check missed - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+	    printBoard(board);
+	    printf("\n");
+	  }
+	  static bool done2 = false;
+	  if(moveInfo.isDiscoveredCheck && !moveInfo.isDirectCheck && !done2) {
+	    done2 = true;
+	    printf("\n============================================== Bogus Discovered Check - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
 	    printBoard(board);
 	    printf("\n");
 	  }
@@ -191,6 +193,13 @@ namespace Chess {
 	// If there are multiple king attackers then we have a double check
 	if(Bits::count(allMyKingAttackers) != 1) {
 	  stats.doublechecks++;
+	  static bool done2 = false;
+	  if(!(moveInfo.isDiscoveredCheck && moveInfo.isDirectCheck) && !done2) {
+	    done2 = true;
+	    printf("\n============================================== Missed Double Check - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+	    printBoard(board);
+	    printf("\n");
+	  }
 	}
 
 	if(DoCheckMateStats) {
