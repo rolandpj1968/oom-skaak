@@ -95,7 +95,7 @@ namespace Chess {
     template <typename BoardTraitsT>
     inline void perft0Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
-      typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
+      //typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
 
@@ -146,63 +146,66 @@ namespace Chess {
       }
 
       if(moveInfo.isDirectCheck) {
-	stats.directchecks1++;
+	stats.checks++;
       }
       if(moveInfo.isDiscoveredCheck) {
 	// Double checks are counted independently of discoveries
 	if(moveInfo.isDirectCheck) {
-	  stats.doublechecks1++;
+	  stats.doublechecks++;
 	} else {
-	  stats.discoverychecks1++;
+	  stats.checks++;
+	  stats.discoverychecks++;
 	}
       }
 
       // Is my king in check?
-      const SquareAttackersT myKingAttackers = genSquareAttackers<YourColorTraitsT>(myState.pieceSquares[TheKing], yourState, allPiecesBb);
-      const BitBoardT allMyKingAttackers = myKingAttackers.pieceAttackers[AllPieceTypes];
-      if(allMyKingAttackers != 0) {
-	stats.checks++;
+      // const SquareAttackersT myKingAttackers = genSquareAttackers<YourColorTraitsT>(myState.pieceSquares[TheKing], yourState, allPiecesBb);
+      // const BitBoardT allMyKingAttackers = myKingAttackers.pieceAttackers[AllPieceTypes];
+      // if(allMyKingAttackers != 0) {
+      // 	stats.checks++;
 
-	// If the moved piece is not attacking the king then this is a discovered check
-	if((bbForSquare(moveInfo.to) & allMyKingAttackers) == 0) {
-	  stats.discoverychecks++;
-	  static bool done = false;
-	  if(!moveInfo.isDiscoveredCheck && !done) {
-	    done = true;
-	    printf("\n============================================== Discovered Check missed - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    printBoard(board);
-	    printf("\n");
-	  }
-	} else {
-	  static bool done = false;
-	  if(!moveInfo.isDirectCheck && !done) {
-	    done = true;
-	    printf("\n============================================== Direct Check missed - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    printBoard(board);
-	    printf("\n");
-	  }
-	  static bool done2 = false;
-	  if(moveInfo.isDiscoveredCheck && !moveInfo.isDirectCheck && !done2) {
-	    done2 = true;
-	    printf("\n============================================== Bogus Discovered Check - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    printBoard(board);
-	    printf("\n");
-	  }
-	}
+      // 	// If the moved piece is not attacking the king then this is a discovered check
+      // 	if((bbForSquare(moveInfo.to) & allMyKingAttackers) == 0) {
+      // 	  stats.discoverychecks++;
+      // 	  static bool done = false;
+      // 	  if(!moveInfo.isDiscoveredCheck && !done) {
+      // 	    done = true;
+      // 	    printf("\n============================================== Discovered Check missed - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+      // 	    printBoard(board);
+      // 	    printf("\n");
+      // 	  }
+      // 	} else {
+      // 	  static bool done = false;
+      // 	  if(!moveInfo.isDirectCheck && !done) {
+      // 	    done = true;
+      // 	    printf("\n============================================== Direct Check missed - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+      // 	    printBoard(board);
+      // 	    printf("\n");
+      // 	  }
+      // 	  static bool done2 = false;
+      // 	  if(moveInfo.isDiscoveredCheck && !moveInfo.isDirectCheck && !done2) {
+      // 	    done2 = true;
+      // 	    printf("\n============================================== Bogus Discovered Check - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+      // 	    printBoard(board);
+      // 	    printf("\n");
+      // 	  }
+      // 	}
 	  
-	// If there are multiple king attackers then we have a double check
-	if(Bits::count(allMyKingAttackers) != 1) {
-	  stats.doublechecks++;
-	  static bool done2 = false;
-	  if(!(moveInfo.isDiscoveredCheck && moveInfo.isDirectCheck) && !done2) {
-	    done2 = true;
-	    printf("\n============================================== Missed Double Check - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    printBoard(board);
-	    printf("\n");
-	  }
-	}
+      // 	// If there are multiple king attackers then we have a double check
+      // 	if(Bits::count(allMyKingAttackers) != 1) {
+      // 	  stats.doublechecks++;
+      // 	  static bool done2 = false;
+      // 	  if(!(moveInfo.isDiscoveredCheck && moveInfo.isDirectCheck) && !done2) {
+      // 	    done2 = true;
+      // 	    printf("\n============================================== Missed Double Check - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+      // 	    printBoard(board);
+      // 	    printf("\n");
+      // 	  }
+      // 	}
 
+      if(moveInfo.isDirectCheck || moveInfo.isDiscoveredCheck) {
 	if(DoCheckMateStats) {
+	  // Only bother if it is check
 	  // It's checkmate if there are no legal moves
 	  if(!hasLegalMoves<BoardTraitsT>(board, moveInfo)) {
 	    stats.checkmates++;
