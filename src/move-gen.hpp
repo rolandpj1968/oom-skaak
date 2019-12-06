@@ -11,6 +11,20 @@ namespace Chess {
   
   namespace MoveGen {
 
+    // Aggregated piece bitboards
+    struct PieceBbsT {
+      // All pieces including promos.
+      BitBoardT bbs[NPieceTypes];
+
+      // Aggregated bitboards of diagonal/orthogonal sliders
+      BitBoardT sliderBbs[NSliderDirections];
+    };
+    
+    // Aggregated piece bitboards
+    struct BothColorPieceBbsT {
+      PieceBbsT pieceBbs[NColors];
+    };
+    
     struct PieceAttacksT {
       // Pawn attacks (and moves) - single bit board for all pawns for each move type.
       BitBoardT pawnsLeftAttacks;
@@ -1209,6 +1223,45 @@ namespace Chess {
       return DirectCheckMasksT(pawnChecksBb, knightChecksBb, bishopChecksBb, rookChecksBb);
     }
     
+    template <typename ColorTraitsT>
+    inline PieceBbsT genPieceBbs(const ColorStateT& state) {
+      PieceBbsT pieceBbs = {0};
+
+      pieceBbs.bbs[Pawn] = state.bbs[Pawn];
+
+      // TODO promos
+      pieceBbs.bbs[Knight] = bbForSquare(state.pieceSquares[QueenKnight]) | bbForSquare(state.pieceSquares[KingKnight]);
+      pieceBbs.bbs[Bishop] = bbForSquare(state.pieceSquares[BlackBishop]) | bbForSquare(state.pieceSquares[WhiteBishop]);
+      pieceBbs.bbs[Rook] = bbForSquare(state.pieceSquares[QueenRook]) | bbForSquare(state.pieceSquares[KingRook]);
+      pieceBbs.bbs[Queen] = bbForSquare(state.pieceSquares[TheQueen]);
+      pieceBbs.bbs[King] = bbForSquare(state.pieceSquares[TheKing]);
+
+      pieceBbs.sliderBbs[Diagonal] = pieceBbs.bbs[Bishop] | pieceBbs.bbs[Queen];
+      pieceBbs.sliderBbs[Orthogonal] = pieceBbs.bbs[Rook] | pieceBbs.bbs[Queen];
+
+      pieceBbs.bbs[AllPieceTypes] = pieceBbs.bbs[Pawn] | pieceBbs.bbs[Knight] | pieceBbs.bbs[Bishop] | pieceBbs.bbs[Rook] | pieceBbs.bbs[Queen] | pieceBbs.bbs[King];
+
+      return pieceBbs;
+    }
+    
+    template <typename BoardTraitsT>
+    inline BothColorPieceBbsT genBothColorPieceBbs(const BoardT& board) {
+      typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
+      typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
+      const ColorT Color = BoardTraitsT::Color;
+      const ColorT OtherColor = BoardTraitsT::OtherColor;
+      
+      const ColorStateT& myState = board.pieces[(size_t)Color];
+      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+      
+      BothColorPieceBbsT bothColorPieceBbs = {0};
+
+      bothColorPieceBbs.pieceBbs[(size_t)Color] = genPieceBbs<MyColorTraitsT>(myState);
+      bothColorPieceBbs.pieceBbs[(size_t)OtherColor] = genPieceBbs<YourColorTraitsT>(yourState);
+
+      return bothColorPieceBbs;
+    }
+    
     template <typename BoardTraitsT>
     inline LegalMovesT genLegalMoves(const BoardT& board) {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
@@ -1218,8 +1271,16 @@ namespace Chess {
       
       const ColorStateT& myState = board.pieces[(size_t)Color];
       const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
-      const BitBoardT allMyPiecesBb = myState.bbs[AllPieceTypes];
-      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieceTypes];
+
+      const BothColorPieceBbsT bothColorPieceBbs = genBothColorPieceBbs<BoardTraitsT>(board);
+
+      const PieceBbsT& myPieceBbs = bothColorPieceBbs.pieceBbs[(size_t)Color];
+      const PieceBbsT& yourPieceBbs = bothColorPieceBbs.pieceBbs[(size_t)OtherColor];
+      
+      // const BitBoardT allMyPiecesBb = myState.bbs[AllPieceTypes];
+      // const BitBoardT allYourPiecesBb = yourState.bbs[AllPieceTypes];
+      const BitBoardT allMyPiecesBb = myPieceBbs.bbs[AllPieceTypes];
+      const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
       
       LegalMovesT legalMoves;

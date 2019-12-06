@@ -257,7 +257,8 @@ namespace Chess {
 
   enum SliderDirectionT {
     Diagonal,
-    Orthogonal
+    Orthogonal,
+    NSliderDirections
   };
 }
 
