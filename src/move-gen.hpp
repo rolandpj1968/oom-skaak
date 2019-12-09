@@ -619,7 +619,7 @@ namespace Chess {
     template <SliderDirectionT SliderDirection> inline BitBoardT genPinnedPiecesBb(const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allMyPiecesBb/*, const ColorStateT& yourState*/, const ColorPieceBbsT yourPieceBbs) {
       const BitBoardT myKingSliderAttackersBb = genSliderAttacksBb<SliderDirection>(myKingSq, allPiecesBb);
       // Potentially pinned pieces are my pieces that are on an open ray from my king
-      const BitBoardT myCandidateSliderPinnedPiecesBb = myKingSliderAttackersBb & /*allMyPiecesBb*/yourPieceBbs.bbs[AllPieceTypes];
+      const BitBoardT myCandidateSliderPinnedPiecesBb = myKingSliderAttackersBb & allMyPiecesBb;
       // Your pinning pieces are those that attack my king once my candidate pinned pieces are removed from the board
       const BitBoardT myKingSliderXrayAttackersBb = genSliderAttacksBb<SliderDirection>(myKingSq, (allPiecesBb & ~myCandidateSliderPinnedPiecesBb));
       // Your sliders of the required slider direction
@@ -994,20 +994,21 @@ namespace Chess {
       const ColorStateT& myState = board.pieces[(size_t)Color];
       // const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
       
+      const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
+      const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
+      
       // const BitBoardT allMyPiecesBb = myState.bbs[AllPieceTypes];
       // const BitBoardT allYourPiecesBb = yourState.bbs[AllPieceTypes];
-      const BitBoardT allMyPiecesBb = pieceBbs.colorPieceBbs[(size_t)Color].bbs[AllPieceTypes];
-      const BitBoardT allYourPiecesBb = pieceBbs.colorPieceBbs[(size_t)OtherColor].bbs[AllPieceTypes];
-
+      const BitBoardT allMyPiecesBb = myPieceBbs.bbs[AllPieceTypes];
+      const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
+      
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 
       const SquareT myKingSq = myState.pieceSquares[TheKing];
 
-      const ColorPieceBbsT& yourColorPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
-
       // Find my pinned pieces - used to mask out invalid moves due to discovered check on my king
-      const BitBoardT myDiagPinnedPiecesBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, allMyPiecesBb/*, yourState*/, yourColorPieceBbs);
-      const BitBoardT myOrthogPinnedPiecesBb = genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, allMyPiecesBb/*, yourState*/, yourColorPieceBbs);
+      const BitBoardT myDiagPinnedPiecesBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, allMyPiecesBb/*, yourState*/, yourPieceBbs);
+      const BitBoardT myOrthogPinnedPiecesBb = genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, allMyPiecesBb/*, yourState*/, yourPieceBbs);
       
       // Generate pinned piece move masks for each piece
       PiecePinMasksT pinMasks = {0};
