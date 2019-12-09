@@ -178,11 +178,12 @@ namespace Chess {
 
       const ColorT OtherColor = BoardTraitsT::OtherColor;
 
-      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
-      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieceTypes];
-
       // Generate (legal) moves
       const LegalMovesT legalMoves = genLegalMoves<BoardTraitsT>(board);
+
+      const ColorPieceBbsT& yourPieceBbs = legalMoves.pieceBbs.colorPieceBbs[(size_t)OtherColor];
+      
+      const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
 
       // Is this an illegal pos - note this should never happen(tm) - but we will notice quickly
       if(legalMoves.isIllegalPos) {

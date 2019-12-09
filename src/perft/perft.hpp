@@ -99,17 +99,23 @@ namespace Chess {
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
 
-      const ColorStateT& myState = board.pieces[(size_t)Color];
+      // const ColorStateT& myState = board.pieces[(size_t)Color];
       const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
-      const BitBoardT allMyPiecesBb = myState.bbs[AllPieceTypes];
-      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieceTypes];
-      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
+      // const BitBoardT allMyPiecesBb = myState.bbs[AllPieceTypes];
+      // const BitBoardT allYourPiecesBb = yourState.bbs[AllPieceTypes];
+      // const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 
       // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
       const bool CheckForInvalid = false;
       if(CheckForInvalid) {
+	// Pretty expensive, but...
+	const PieceBbsT1 pieceBbs = genPieceBbs<BoardTraitsT>(board);
+	const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
+	const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
+	const BitBoardT allPiecesBb = myPieceBbs.bbs[AllPieceTypes] | yourPieceBbs.bbs[AllPieceTypes];
+	
 	// Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
-	const SquareAttackersT yourKingAttackers = genSquareAttackers<MyColorTraitsT>(yourState.pieceSquares[TheKing], myState, allPiecesBb);
+	const SquareAttackersT yourKingAttackers = genSquareAttackers<MyColorTraitsT>(yourState.pieceSquares[TheKing], myPieceBbs, allPiecesBb);
 	if(yourKingAttackers.pieceAttackers[AllPieceTypes] != 0) {
 	  // Illegal position - doesn't count
 	  stats.invalids++;

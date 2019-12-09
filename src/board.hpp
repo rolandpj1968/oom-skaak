@@ -25,7 +25,7 @@ namespace Chess {
 
     struct ColorStateT {
       // All pieces including strange promos.
-      BitBoardT bbs[NPieceTypes];
+      BitBoardT bbsOld[NPieceTypes];
 
       // All pieces except pawns and strange promos.
       // MUST be InvalidSquare if a piece is not present
@@ -97,8 +97,8 @@ namespace Chess {
       const BitBoardT squareBb = bbForSquare(square);
 
       const PieceTypeT pieceType = PieceTypeForPiece[piece];
-      pieces.bbs[pieceType] &= ~squareBb;
-      pieces.bbs[AllPieceTypes] &= ~squareBb;
+      pieces.bbsOld[pieceType] &= ~squareBb;
+      pieces.bbsOld[AllPieceTypes] &= ~squareBb;
 
       if(piece == QueenRook) {
 	pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleQueenside);
@@ -125,8 +125,8 @@ namespace Chess {
       const BitBoardT squareBb = bbForSquare(square);
 
       const PieceTypeT pieceType = PieceTypeForPieceT<Piece>::value;
-      pieces.bbs[pieceType] &= ~squareBb;
-      pieces.bbs[AllPieceTypes] &= ~squareBb;
+      pieces.bbsOld[pieceType] &= ~squareBb;
+      pieces.bbsOld[AllPieceTypes] &= ~squareBb;
 
       if(Piece == QueenRook) {
 	pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleQueenside);
@@ -151,8 +151,8 @@ namespace Chess {
       const BitBoardT squareBb = bbForSquare(square);
 
       const PieceTypeT pieceType = PieceTypeForPiece[piece];
-      pieces.bbs[pieceType] |= squareBb;
-      pieces.bbs[AllPieceTypes] |= squareBb;
+      pieces.bbsOld[pieceType] |= squareBb;
+      pieces.bbsOld[AllPieceTypes] |= squareBb;
     }
 
     // TODO - non-standard promos
@@ -168,8 +168,8 @@ namespace Chess {
       const BitBoardT squareBb = bbForSquare(square);
 
       const PieceTypeT pieceType = PieceTypeForPieceT<Piece>::value;
-      pieces.bbs[pieceType] |= squareBb;
-      pieces.bbs[AllPieceTypes] |= squareBb;
+      pieces.bbsOld[pieceType] |= squareBb;
+      pieces.bbsOld[AllPieceTypes] |= squareBb;
     }
 
     template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false>
