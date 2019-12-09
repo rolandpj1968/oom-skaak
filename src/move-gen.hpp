@@ -11,7 +11,7 @@ namespace Chess {
   
   namespace MoveGen {
 
-    // Aggregated piece bitboards
+    // Aggregated piece bitboards for one color.
     struct ColorPieceBbsT {
       // All pieces including promos.
       BitBoardT bbs[NPieceTypes];
@@ -20,8 +20,8 @@ namespace Chess {
       BitBoardT sliderBbs[NSliderDirections];
     };
     
-    // Aggregated piece bitboards
-    struct PieceBbsT1 {
+    // Aggregated piece bitboards for both colors.
+    struct PieceBbsT {
       ColorPieceBbsT colorPieceBbs[NColors];
     };
     
@@ -135,7 +135,7 @@ namespace Chess {
     struct LegalMovesT {
       bool isIllegalPos; // true iff opposition king is (already) in check
       int nChecks; // side-channel info - if nChecks >= 2 then there are only king moves
-      PieceBbsT1 pieceBbs; // side-channel info
+      PieceBbsT pieceBbs; // side-channel info
       
       CastlingRightsT canCastleFlags; // note not actually 'rights' per se but actually legal castling moves
       PawnPushesAndCapturesT pawnMoves;
@@ -616,14 +616,14 @@ namespace Chess {
       return SliderDirection == Diagonal ? bishopAttacks(square, allPiecesBb) : rookAttacks(square, allPiecesBb);
     }
 
-    template <SliderDirectionT SliderDirection> inline BitBoardT genPinnedPiecesBb(const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allMyPiecesBb/*, const ColorStateT& yourState*/, const ColorPieceBbsT yourPieceBbs) {
+    template <SliderDirectionT SliderDirection> inline BitBoardT genPinnedPiecesBb(const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allMyPiecesBb, const ColorPieceBbsT yourPieceBbs) {
       const BitBoardT myKingSliderAttackersBb = genSliderAttacksBb<SliderDirection>(myKingSq, allPiecesBb);
       // Potentially pinned pieces are my pieces that are on an open ray from my king
       const BitBoardT myCandidateSliderPinnedPiecesBb = myKingSliderAttackersBb & allMyPiecesBb;
       // Your pinning pieces are those that attack my king once my candidate pinned pieces are removed from the board
       const BitBoardT myKingSliderXrayAttackersBb = genSliderAttacksBb<SliderDirection>(myKingSq, (allPiecesBb & ~myCandidateSliderPinnedPiecesBb));
       // Your sliders of the required slider direction
-      const BitBoardT yourSlidersBb = /*yourState.bbs[SliderDirection == Diagonal ? Bishop : Rook] | yourState.bbs[Queen];*/yourPieceBbs.sliderBbs[SliderDirection];
+      const BitBoardT yourSlidersBb = yourPieceBbs.sliderBbs[SliderDirection];
       // We don't want direct attackers of the king, but only attackers that were exposed by removing our candidate pins.
       const BitBoardT yourSliderPinnersBb = myKingSliderXrayAttackersBb & ~myKingSliderAttackersBb & yourSlidersBb;
       // Then my pinned pieces are those candidate pinned pieces that lie on one of your pinners' rays
@@ -803,7 +803,7 @@ namespace Chess {
     // Generate attackers/defenders of a particular square.
     // Useful for check detection.
     template <typename ColorTraitsT>
-    inline SquareAttackersT genSquareAttackers(const SquareT square/*, const ColorStateT& colorState*/, const ColorPieceBbsT& colorPieceBbs, const BitBoardT allPiecesBb) {
+    inline SquareAttackersT genSquareAttackers(const SquareT square, const ColorPieceBbsT& colorPieceBbs, const BitBoardT allPiecesBb) {
       const ColorT Color = ColorTraitsT::Color;
       
       SquareAttackersT attackers = {0};
@@ -986,19 +986,16 @@ namespace Chess {
     }
     
     template <typename BoardTraitsT>
-    inline PiecePinMasksT genPinMasks(const BoardT& board, const PieceBbsT1& pieceBbs) {
+    inline PiecePinMasksT genPinMasks(const BoardT& board, const PieceBbsT& pieceBbs) {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
       const ColorStateT& myState = board.pieces[(size_t)Color];
-      // const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
       
       const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
       const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
       
-      // const BitBoardT allMyPiecesBb = myState.bbs[AllPieceTypes];
-      // const BitBoardT allYourPiecesBb = yourState.bbs[AllPieceTypes];
       const BitBoardT allMyPiecesBb = myPieceBbs.bbs[AllPieceTypes];
       const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
       
@@ -1007,8 +1004,8 @@ namespace Chess {
       const SquareT myKingSq = myState.pieceSquares[TheKing];
 
       // Find my pinned pieces - used to mask out invalid moves due to discovered check on my king
-      const BitBoardT myDiagPinnedPiecesBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, allMyPiecesBb/*, yourState*/, yourPieceBbs);
-      const BitBoardT myOrthogPinnedPiecesBb = genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, allMyPiecesBb/*, yourState*/, yourPieceBbs);
+      const BitBoardT myDiagPinnedPiecesBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourPieceBbs);
+      const BitBoardT myOrthogPinnedPiecesBb = genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourPieceBbs);
       
       // Generate pinned piece move masks for each piece
       PiecePinMasksT pinMasks = {0};
@@ -1023,15 +1020,12 @@ namespace Chess {
     }
 
     template <typename BoardTraitsT>
-    inline DiscoveredCheckMasksT genDiscoveryMasks(const BoardT& board, const PieceBbsT1& pieceBbs, const BitBoardT legalEpCaptureLeftBb, const BitBoardT legalEpCaptureRightBb) {
+    inline DiscoveredCheckMasksT genDiscoveryMasks(const BoardT& board, const PieceBbsT& pieceBbs, const BitBoardT legalEpCaptureLeftBb, const BitBoardT legalEpCaptureRightBb) {
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
-      // const ColorStateT& myState = board.pieces[(size_t)Color];
       const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
       
-      // const BitBoardT allMyPiecesBb = myState.bbs[AllPieceTypes];
-      // const BitBoardT allYourPiecesBb = yourState.bbs[AllPieceTypes];
       const BitBoardT allMyPiecesBb = pieceBbs.colorPieceBbs[(size_t)Color].bbs[AllPieceTypes];
       const BitBoardT allYourPiecesBb = pieceBbs.colorPieceBbs[(size_t)OtherColor].bbs[AllPieceTypes];
       
@@ -1042,8 +1036,8 @@ namespace Chess {
       const SquareT yourKingSq = yourState.pieceSquares[TheKing];
 
       // Find my pieces that are blocking check - used for discovered check detection.
-      const BitBoardT myDiagDiscoveryPiecesBb = genPinnedPiecesBb<Diagonal>(yourKingSq, allPiecesBb, allMyPiecesBb/*, myState*/, myPieceBbs);
-      const BitBoardT myOrthogDiscoveryPiecesBb = genPinnedPiecesBb<Orthogonal>(yourKingSq, allPiecesBb, allMyPiecesBb/*, myState*/, myPieceBbs);
+      const BitBoardT myDiagDiscoveryPiecesBb = genPinnedPiecesBb<Diagonal>(yourKingSq, allPiecesBb, allMyPiecesBb, myPieceBbs);
+      const BitBoardT myOrthogDiscoveryPiecesBb = genPinnedPiecesBb<Orthogonal>(yourKingSq, allPiecesBb, allMyPiecesBb, myPieceBbs);
 
       // Pawn push discovery pieces are all (pawn) diag discovery pieces AND all (pawn) orthog discovery pieces on the rank of the king.
       const BitBoardT pawnPushDiscoveryMasksBb = myDiagDiscoveryPiecesBb | (myOrthogDiscoveryPiecesBb & RankBbs[rankOf(yourKingSq)]);
@@ -1090,7 +1084,6 @@ namespace Chess {
       // Only do the heavy lifting of detecting discovered check through the captured pawn if there really is an en-passant opportunity
       // En-passant is tricky because the captured pawn is not on the same square as the capturing piece, and might expose a discovered check itself.
       if((semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone) {
-	// const ColorStateT& yourState = board.pieces[(size_t)BoardTraitsT::OtherColor];
 	const ColorStateT& myState = board.pieces[(size_t)BoardTraitsT::Color];
 	const SquareT myKingSq = myState.pieceSquares[TheKing];
 	  
@@ -1099,10 +1092,10 @@ namespace Chess {
 	const BitBoardT captureSquareBb = bbForSquare(captureSq);
 
 	// Note that a discovered check can only be diagonal or horizontal, because the capturing pawn ends up on the same file as the captured pawn.
-	const BitBoardT diagPinnedEpPawnBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, captureSquareBb/*, yourState*/, yourPieceBbs);
+	const BitBoardT diagPinnedEpPawnBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, captureSquareBb, yourPieceBbs);
 	// Horizontal is really tricky because it involves both capturing and captured pawn.
 	// We detect it by removing them both and looking for a king attack - could optimise this... TODO anyhow
-	const BitBoardT orthogPinnedEpPawnBb = BbNone; //genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, captureSquareBb/*, yourState*/, yourPieceBbs);
+	const BitBoardT orthogPinnedEpPawnBb = BbNone; //genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, captureSquareBb, yourPieceBbs);
 
 	if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) != BbNone) {
 	  static bool done = false;
@@ -1140,19 +1133,16 @@ namespace Chess {
     }
     
     template <typename BoardTraitsT> 
-    inline void genLegalNonKingMoves(LegalMovesT& legalMoves, const BoardT& board, const PieceBbsT1& pieceBbs, const PieceAttacksT& myAttacks, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
+    inline void genLegalNonKingMoves(LegalMovesT& legalMoves, const BoardT& board, const PieceBbsT& pieceBbs, const PieceAttacksT& myAttacks, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
-      // const ColorStateT& myState = board.pieces[(size_t)Color];
       const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
       
       const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
       const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
       
-      // const BitBoardT allMyPiecesBb = myState.bbs[AllPieceTypes];
-      // const BitBoardT allYourPiecesBb = yourState.bbs[AllPieceTypes];
       const BitBoardT allMyPiecesBb = myPieceBbs.bbs[AllPieceTypes];
       const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
       
@@ -1202,18 +1192,15 @@ namespace Chess {
     }
     
     template <typename BoardTraitsT>
-    inline BitBoardT genLegalKingMoves(const BoardT& board, const PieceBbsT1& pieceBbs, const PieceAttacksT& yourAttacks, const BitBoardT allMyKingAttackersBb) {
+    inline BitBoardT genLegalKingMoves(const BoardT& board, const PieceBbsT& pieceBbs, const PieceAttacksT& yourAttacks, const BitBoardT allMyKingAttackersBb) {
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
       const ColorStateT& myState = board.pieces[(size_t)Color];
-      // const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
 
       const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
       const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
       
-      // const BitBoardT allMyPiecesBb = myState.bbs[AllPieceTypes];
-      // const BitBoardT allYourPiecesBb = yourState.bbs[AllPieceTypes];
       const BitBoardT allMyPiecesBb = myPieceBbs.bbs[AllPieceTypes];
       const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
       
@@ -1274,7 +1261,7 @@ namespace Chess {
     }
     
     template <typename BoardTraitsT>
-    inline PieceBbsT1 genPieceBbs(const BoardT& board) {
+    inline PieceBbsT genPieceBbs(const BoardT& board) {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
       typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
       const ColorT Color = BoardTraitsT::Color;
@@ -1283,7 +1270,7 @@ namespace Chess {
       const ColorStateT& myState = board.pieces[(size_t)Color];
       const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
       
-      PieceBbsT1 pieceBbs = {0};
+      PieceBbsT pieceBbs = {0};
 
       pieceBbs.colorPieceBbs[(size_t)Color] = genColorPieceBbs<MyColorTraitsT>(myState);
       pieceBbs.colorPieceBbs[(size_t)OtherColor] = genColorPieceBbs<YourColorTraitsT>(yourState);
@@ -1304,13 +1291,11 @@ namespace Chess {
       LegalMovesT legalMoves;
       
       legalMoves.pieceBbs = genPieceBbs<BoardTraitsT>(board);
-      const PieceBbsT1& pieceBbs = legalMoves.pieceBbs;
+      const PieceBbsT& pieceBbs = legalMoves.pieceBbs;
 
       const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
       const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
       
-      // const BitBoardT allMyPiecesBb = myState.bbs[AllPieceTypes];
-      // const BitBoardT allYourPiecesBb = yourState.bbs[AllPieceTypes];
       const BitBoardT allMyPiecesBb = myPieceBbs.bbs[AllPieceTypes];
       const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;

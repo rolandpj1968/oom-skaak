@@ -95,21 +95,16 @@ namespace Chess {
     template <typename BoardTraitsT>
     inline void perft0Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
-      //typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
+
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
 
-      // const ColorStateT& myState = board.pieces[(size_t)Color];
       const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
-      // const BitBoardT allMyPiecesBb = myState.bbs[AllPieceTypes];
-      // const BitBoardT allYourPiecesBb = yourState.bbs[AllPieceTypes];
-      // const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 
       // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
       const bool CheckForInvalid = false;
       if(CheckForInvalid) {
-	// Pretty expensive, but...
-	const PieceBbsT1 pieceBbs = genPieceBbs<BoardTraitsT>(board);
+	const PieceBbsT pieceBbs = genPieceBbs<BoardTraitsT>(board);
 	const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
 	const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
 	const BitBoardT allPiecesBb = myPieceBbs.bbs[AllPieceTypes] | yourPieceBbs.bbs[AllPieceTypes];
