@@ -111,6 +111,22 @@ namespace Chess {
     }
     
     template <ColorT Color>
+    inline void removePawn(BoardT& board, const SquareT square) {
+      board.board[square] = EmptySquare;
+      
+      // TODO handle non-standard promos
+      ColorStateT &pieces = board.pieces[(size_t)Color];
+
+      //pieces.pieceSquares[SomePawns] = InvalidSquare;
+
+      const BitBoardT squareBb = bbForSquare(square);
+
+      const PieceTypeT pieceType = Pawn;
+      pieces.bbsOld[pieceType] &= ~squareBb;
+      pieces.bbsOld[AllPieceTypes] &= ~squareBb;
+    }
+    
+    template <ColorT Color>
     inline PieceT removePiece(BoardT& board, const SquareT square) {
       const SquarePieceT squarePiece = board.board[square];
       const PieceT piece = squarePiecePiece(squarePiece);
@@ -140,61 +156,35 @@ namespace Chess {
       pieces.bbsOld[AllPieceTypes] |= squareBb;
     }
 
+    template <ColorT Color>
+    inline void placePawn(BoardT& board, const SquareT square) {
+      board.board[square] = makeSquarePiece(Color, SomePawns);
+
+      // TODO handle non-standard promos
+      ColorStateT &pieces = board.pieces[(size_t)Color];
+
+      //pieces.pieceSquares[SomePawns] = square;
+
+      const BitBoardT squareBb = bbForSquare(square);
+
+      const PieceTypeT pieceType = Pawn;
+      pieces.bbsOld[pieceType] |= squareBb;
+      pieces.bbsOld[AllPieceTypes] |= squareBb;
+    }
+
     // TODO - non-standard promos
     template <ColorT Color, PieceT Piece>
     inline void placePiece(BoardT& board, const SquareT square) {
       placePiece<Color>(board, square, Piece);
     }
     
-    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false>
-    inline BoardT move(const BoardT& oldBoard, const SquareT from, const SquareT to, const SquareT captureSquare) {
-      BoardT board = oldBoard;
-
-      if(PushOrCapture == Capture) {
-    	removePiece<OtherColorT<Color>::value>(board, captureSquare);
-      }
-
-      PieceT piece = removePiece<Color>(board, from);
-
-      placePiece<Color>(board, to, piece);
-
-      // Set en-passant square
-      if(IsPawnPushTwo) {
-    	board.pieces[(size_t)Color].epSquare = (SquareT)((from+to)/2);
-      } else {
-	board.pieces[(size_t)Color].epSquare = InvalidSquare;
-      }
-      
-      return board;
-    }
-    
-    template <ColorT Color, PieceT Piece, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false>
+    template <ColorT Color, PieceT Piece, PushOrCaptureT PushOrCapture>
     inline BoardT movePiece(const BoardT& oldBoard, const SquareT from, const SquareT to, const SquareT captureSquare) {
       BoardT board = oldBoard;
 
       if(PushOrCapture == Capture) {
       	removePiece<OtherColorT<Color>::value>(board, captureSquare);
       }
-
-      removePiece<Color, Piece>(board, from);
-
-      placePiece<Color, Piece>(board, to);
-
-      // Set en-passant square
-      if(IsPawnPushTwo) {
-      	board.pieces[(size_t)Color].epSquare = (SquareT)((from+to)/2);
-      } else {
-      	board.pieces[(size_t)Color].epSquare = InvalidSquare;
-      }	
-      
-      return board;
-    }
-    
-    template <ColorT Color, PieceT Piece, PieceT PieceCaptured>
-    inline BoardT capturePiece(const BoardT& oldBoard, const SquareT from, const SquareT to, const SquareT captureSquare) {
-      BoardT board = oldBoard;
-
-      removePiece<OtherColorT<Color>::value, PieceCaptured>(board, captureSquare);
 
       removePiece<Color, Piece>(board, from);
 
@@ -207,18 +197,51 @@ namespace Chess {
     }
     
     template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false>
-    inline BoardT move(const BoardT& oldBoard, const SquareT from, const SquareT to) {
-      return move<Color, PushOrCapture, IsPawnPushTwo>(oldBoard, from, to, /*captureSquare = */to);
+    inline BoardT movePawn(const BoardT& oldBoard, const SquareT from, const SquareT to, const SquareT captureSquare) {
+      BoardT board = oldBoard;
+
+      if(PushOrCapture == Capture) {
+      	removePiece<OtherColorT<Color>::value>(board, captureSquare);
+      }
+
+      removePawn<Color>(board, from);
+
+      placePawn<Color>(board, to);
+
+      // Set en-passant square
+      if(IsPawnPushTwo) {
+      	board.pieces[(size_t)Color].epSquare = (SquareT)((from+to)/2);
+      } else {
+      	board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      }	
+      
+      return board;
+    }
+    
+    template <ColorT Color, PieceT Piece, PushOrCaptureT PushOrCapture>
+    inline BoardT movePiece(const BoardT& oldBoard, const SquareT from, const SquareT to) {
+      return movePiece<Color, Piece, PushOrCapture>(oldBoard, from, to, /*captureSquare = */to);
     }
 
-    template <ColorT Color, PieceT Piece, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false>
-    inline BoardT movePiece(const BoardT& oldBoard, const SquareT from, const SquareT to) {
-      return movePiece<Color, Piece, PushOrCapture, IsPawnPushTwo>(oldBoard, from, to, /*captureSquare = */to);
+    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false>
+    inline BoardT movePawn(const BoardT& oldBoard, const SquareT from, const SquareT to) {
+      return movePawn<Color, PushOrCapture, IsPawnPushTwo>(oldBoard, from, to, /*captureSquare = */to);
     }
 
     template <ColorT Color>
     inline BoardT captureEp(const BoardT& oldBoard, const SquareT from, const SquareT to, const SquareT captureSquare) {
-      return capturePiece<Color, SomePawns, SomePawns>(oldBoard, from, to, captureSquare);
+      BoardT board = oldBoard;
+
+      removePawn<OtherColorT<Color>::value>(board, captureSquare);
+
+      removePawn<Color>(board, from);
+
+      placePawn<Color>(board, to);
+
+      // Clear en-passant square
+      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      
+      return board;
     }
     
     extern BoardT startingPosition();
