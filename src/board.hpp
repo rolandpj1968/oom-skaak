@@ -134,6 +134,20 @@ namespace Chess {
       return removePiece<Color>(board, square, piece);
     }
 
+    template <ColorT Color>
+    inline void removePieceOrPawn(BoardT& board, const SquareT square) {
+      const ColorStateT &yourPieces = board.pieces[(size_t)OtherColorT<Color>::value];
+      const BitBoardT yourPawnsBb = yourPieces.bbsOld[Pawn];
+      
+      const BitBoardT captureBb = bbForSquare(square);
+
+      if((yourPawnsBb & captureBb) == BbNone) {
+	removePiece<Color>(board, square);
+      } else {
+	removePawn<Color>(board, square);
+      }
+    }
+
     template <ColorT Color, PieceT Piece>
     inline void removePiece(BoardT& board, const SquareT square) {
       removePiece<Color>(board, square, Piece);
@@ -183,7 +197,7 @@ namespace Chess {
       BoardT board = oldBoard;
 
       if(PushOrCapture == Capture) {
-      	removePiece<OtherColorT<Color>::value>(board, captureSquare);
+      	removePieceOrPawn<OtherColorT<Color>::value>(board, captureSquare);
       }
 
       removePiece<Color, Piece>(board, from);
@@ -201,7 +215,7 @@ namespace Chess {
       BoardT board = oldBoard;
 
       if(PushOrCapture == Capture) {
-      	removePiece<OtherColorT<Color>::value>(board, captureSquare);
+      	removePieceOrPawn<OtherColorT<Color>::value>(board, captureSquare);
       }
 
       removePawn<Color>(board, from);
