@@ -720,7 +720,7 @@ namespace Chess {
       PieceAttacksT attacks = {0};
 
       // Pawns
-      BitBoardT pawns = colorState.bbsOld[Pawn];
+      BitBoardT pawns = colorState.pawnsBb; //bbsOld[Pawn];
       attacks.pawnsLeftAttacks = pawnsLeftAttacks<Color>(pawns);
       attacks.pawnsRightAttacks = pawnsRightAttacks<Color>(pawns);
       
@@ -1243,7 +1243,7 @@ namespace Chess {
     inline ColorPieceBbsT genColorPieceBbs(const ColorStateT& state) {
       ColorPieceBbsT pieceBbs = {0};
 
-      pieceBbs.bbs[Pawn] = state.bbsOld[Pawn];
+      pieceBbs.bbs[Pawn] = state.pawnsBb; //bbsOld[Pawn];
 
       // TODO promos
       pieceBbs.bbs[Knight] = bbForSquare(state.pieceSquares[QueenKnight]) | bbForSquare(state.pieceSquares[KingKnight]);

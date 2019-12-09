@@ -9,16 +9,29 @@ namespace Chess {
     static void addPiece(BoardT& board, const ColorT color, const SquareT square, const PieceT piece) {
       ColorStateT& c = board.pieces[(size_t)color];
       
-      const BitBoardT pieceBb = bbForSquare(square);
+      // const BitBoardT pieceBb = bbForSquare(square);
 
-      c.bbsOld[PieceTypeForPiece[piece]] |= pieceBb;
-      c.bbsOld[AllPieceTypes] |= pieceBb;
+      // c.bbsOld[PieceTypeForPiece[piece]] |= pieceBb;
+      // c.bbsOld[AllPieceTypes] |= pieceBb;
 
       c.pieceSquares[piece] = square;
 
       board.board[square] = makeSquarePiece(color, piece);
     }
 
+    static void addPawn(BoardT& board, const ColorT color, const SquareT square) {
+      ColorStateT& c = board.pieces[(size_t)color];
+      
+      const BitBoardT pieceBb = bbForSquare(square);
+
+      c.pawnsBb/*bbsOld[PieceTypeForPiece[piece]]*/ |= pieceBb;
+      // c.bbsOld[AllPieceTypes] |= pieceBb;
+
+      // c.pieceSquares[piece] = square;
+
+      board.board[square] = makeSquarePiece(color, SomePawns);
+    }
+    
     static void addStartingPieces(BoardT& board, const ColorT color, const SquareT firstPieceSquare, const SquareT firstPawnSquare) {
       // Pieces
       addPiece(board, color, firstPieceSquare,       QueenRook);
@@ -32,7 +45,7 @@ namespace Chess {
       
       // Pawns
       for(SquareT square = firstPawnSquare; square <= firstPawnSquare+H2-A2; square += (B2-A2)) {
-	addPiece(board, color, square, SomePawns);
+	addPawn(board, color, square);
       }
 
       // Castling rights

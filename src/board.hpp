@@ -25,7 +25,8 @@ namespace Chess {
 
     struct ColorStateT {
       // All pieces including strange promos.
-      BitBoardT bbsOld[NPieceTypes];
+      //BitBoardT bbsOld[NPieceTypes];
+      BitBoardT pawnsBb;
 
       // All pieces except pawns and strange promos.
       // MUST be InvalidSquare if a piece is not present
@@ -91,11 +92,11 @@ namespace Chess {
 
       pieces.pieceSquares[piece] = InvalidSquare;
 
-      const BitBoardT squareBb = bbForSquare(square);
+      // const BitBoardT squareBb = bbForSquare(square);
 
-      const PieceTypeT pieceType = PieceTypeForPiece[piece];
-      pieces.bbsOld[pieceType] &= ~squareBb;
-      pieces.bbsOld[AllPieceTypes] &= ~squareBb;
+      // const PieceTypeT pieceType = PieceTypeForPiece[piece];
+      // pieces.bbsOld[pieceType] &= ~squareBb;
+      // pieces.bbsOld[AllPieceTypes] &= ~squareBb;
 
       if(piece == QueenRook) {
 	pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleQueenside);
@@ -121,9 +122,10 @@ namespace Chess {
 
       const BitBoardT squareBb = bbForSquare(square);
 
-      const PieceTypeT pieceType = Pawn;
-      pieces.bbsOld[pieceType] &= ~squareBb;
-      pieces.bbsOld[AllPieceTypes] &= ~squareBb;
+      pieces.pawnsBb &= ~squareBb;
+      // const PieceTypeT pieceType = Pawn;
+      // pieces.bbsOld[pieceType] &= ~squareBb;
+      // pieces.bbsOld[AllPieceTypes] &= ~squareBb;
     }
     
     template <ColorT Color>
@@ -137,7 +139,7 @@ namespace Chess {
     template <ColorT Color>
     inline void removePieceOrPawn(BoardT& board, const SquareT square) {
       const ColorStateT &yourPieces = board.pieces[(size_t)OtherColorT<Color>::value];
-      const BitBoardT yourPawnsBb = yourPieces.bbsOld[Pawn];
+      const BitBoardT yourPawnsBb = yourPieces.pawnsBb; //bbsOld[Pawn];
       
       const BitBoardT captureBb = bbForSquare(square);
 
@@ -163,11 +165,11 @@ namespace Chess {
 
       pieces.pieceSquares[piece] = square;
 
-      const BitBoardT squareBb = bbForSquare(square);
+      // const BitBoardT squareBb = bbForSquare(square);
 
-      const PieceTypeT pieceType = PieceTypeForPiece[piece];
-      pieces.bbsOld[pieceType] |= squareBb;
-      pieces.bbsOld[AllPieceTypes] |= squareBb;
+      // const PieceTypeT pieceType = PieceTypeForPiece[piece];
+      // pieces.bbsOld[pieceType] |= squareBb;
+      // pieces.bbsOld[AllPieceTypes] |= squareBb;
     }
 
     template <ColorT Color>
@@ -181,9 +183,9 @@ namespace Chess {
 
       const BitBoardT squareBb = bbForSquare(square);
 
-      const PieceTypeT pieceType = Pawn;
-      pieces.bbsOld[pieceType] |= squareBb;
-      pieces.bbsOld[AllPieceTypes] |= squareBb;
+      // const PieceTypeT pieceType = Pawn;
+      pieces./*bbsOld[pieceType]*/pawnsBb |= squareBb;
+      // pieces.bbsOld[AllPieceTypes] |= squareBb;
     }
 
     // TODO - non-standard promos
