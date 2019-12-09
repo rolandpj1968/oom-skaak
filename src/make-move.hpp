@@ -243,7 +243,7 @@ namespace Chess {
       } // nChecks < 2
       
       // King
-      handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, TheKing>(state, board, legalMoves.pieceMoves[TheKing], /*directChecksBb = */BbNone, allYourPiecesBb, /*discoveredChecksBb*/BbNone); 
+      handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, TheKing>(state, board, legalMoves.pieceMoves[TheKing], /*directChecksBb = */BbNone, /*discoveredChecksBb*/BbNone, allYourPiecesBb); 
     }
      
   } // namespace MakeMove
