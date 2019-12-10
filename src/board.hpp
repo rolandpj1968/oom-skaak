@@ -45,7 +45,7 @@ namespace Chess {
     struct BoardT {
       ColorStateT pieces[NColors];
 
-      SquarePieceT board[64];
+      SquarePieceT board[64]; // TODO - get rid
     };
 
     const bool DoesNotHavePromos = false;

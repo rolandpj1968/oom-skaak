@@ -143,7 +143,7 @@ namespace Chess {
     QueenRook,
     KingRook,
     TheQueen,
-    PromoQueen,      // First queen promo piece - this captures the majority of actual promo's in real play.
+    //PromoQueen,      // First queen promo piece - this captures the majority of actual promo's in real play. TODO get rid? Move to end?
     TheKing,
     OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
                      //   We have to look at the (simple) piece type bb's (for example) to see what kind of piece it is.
@@ -153,7 +153,7 @@ namespace Chess {
 
   const PieceTypeT PieceTypeForPiece[NPieces] = {
     NoPieceType,       // NoPiece,
-    Pawn,          // Pawn,
+    Pawn,          // SomePawns,
     Knight,        // QueenKnight,
     Knight,        // KingKnight,
     Bishop,        // BlackBishop,
@@ -161,7 +161,7 @@ namespace Chess {
     Rook,          // QueenRook,
     Rook,          // KingRook,
     Queen,         // Queen,
-    Queen,         // PromoQueen,
+    //Queen,         // PromoQueen,
     King,          // King,
     NoPieceType,       // TODO - OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
   };
@@ -176,7 +176,7 @@ namespace Chess {
   template <> struct PieceTypeForPieceT<QueenRook> { static const PieceTypeT value = Rook; };
   template <> struct PieceTypeForPieceT<KingRook> { static const PieceTypeT value = Rook; };
   template <> struct PieceTypeForPieceT<TheQueen> { static const PieceTypeT value = Queen; };
-  template <> struct PieceTypeForPieceT<PromoQueen> { static const PieceTypeT value = Queen; };
+  //template <> struct PieceTypeForPieceT<PromoQueen> { static const PieceTypeT value = Queen; };
   template <> struct PieceTypeForPieceT<TheKing> { static const PieceTypeT value = King; };
   // TODO - OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
 

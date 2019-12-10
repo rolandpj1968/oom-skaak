@@ -174,7 +174,7 @@ namespace Chess {
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
     inline void makeAllLegalMoves(StateT state, const BoardT& board) {
-      typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
+      // typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
 
       const ColorT OtherColor = BoardTraitsT::OtherColor;
 
@@ -221,11 +221,11 @@ namespace Chess {
 	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, TheQueen>(state, board, legalMoves.pieceMoves[TheQueen], (legalMoves.directChecks.bishopChecksBb | legalMoves.directChecks.rookChecksBb), /*discoveredChecksBb*/BbNone, allYourPiecesBb); 
 
 	// TODO other promo pieces
-	if(MyColorTraitsT::HasPromos) {
-	  if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
-	    handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, PromoQueen>(state, board, legalMoves.pieceMoves[PromoQueen], (legalMoves.directChecks.bishopChecksBb | legalMoves.directChecks.rookChecksBb), /*discoveredChecksBb*/BbNone, allYourPiecesBb);  
-	  }
-	}
+	// if(MyColorTraitsT::HasPromos) {
+	//   if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
+	//     handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, PromoQueen>(state, board, legalMoves.pieceMoves[PromoQueen], (legalMoves.directChecks.bishopChecksBb | legalMoves.directChecks.rookChecksBb), /*discoveredChecksBb*/BbNone, allYourPiecesBb);  
+	//   }
+	// }
 
 	// Castling
 	CastlingRightsT canCastleFlags = legalMoves.canCastleFlags;
