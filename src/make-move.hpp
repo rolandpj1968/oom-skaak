@@ -67,7 +67,7 @@ namespace Chess {
 	const SquareT to = Bits::popLsb(pawnsCapture);
 	const SquareT from = To2FromFn::fn(to);
 
-	const BoardT newBoard = movePawn<BoardTraitsT::Color, Capture>(board, yourPieceMap, from, to);
+	const BoardT newBoard = captureWithPawn<BoardTraitsT::Color>(board, yourPieceMap, from, to);
 
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;

@@ -236,13 +236,11 @@ namespace Chess {
       return board;
     }
     
-    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false>
-    inline BoardT movePawn(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to, const SquareT captureSquare) {
+    template <ColorT Color, bool IsPawnPushTwo = false>
+    inline BoardT captureWithPawn(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
       BoardT board = oldBoard;
 
-      if(PushOrCapture == Capture) {
-      	removePieceOrPawn<OtherColorT<Color>::value>(board, yourPieceMap, captureSquare);
-      }
+      removePieceOrPawn<OtherColorT<Color>::value>(board, yourPieceMap, to);
 
       removePawn<Color>(board, from);
 
