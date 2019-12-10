@@ -258,6 +258,24 @@ namespace Chess {
       return board;
     }
     
+    template <ColorT Color, bool IsPawnPushTwo = false>
+    inline BoardT pushPawn(const BoardT& oldBoard, const SquareT from, const SquareT to) {
+      BoardT board = oldBoard;
+
+      removePawn<Color>(board, from);
+
+      placePawn<Color>(board, to);
+
+      // Set en-passant square
+      if(IsPawnPushTwo) {
+      	board.pieces[(size_t)Color].epSquare = (SquareT)((from+to)/2);
+      } else {
+      	board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      }	
+      
+      return board;
+    }
+    
     template <ColorT Color, PieceT Piece, PushOrCaptureT PushOrCapture>
     inline BoardT movePiece(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
       return movePiece<Color, Piece, PushOrCapture>(oldBoard, yourPieceMap, from, to, /*captureSquare = */to);
