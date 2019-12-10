@@ -16,7 +16,7 @@ namespace Chess {
 
       c.pieceSquares[piece] = square;
 
-      board.board[square] = makeSquarePiece(color, piece);
+      //board.board[square] = makeSquarePiece(color, piece);
     }
 
     static void addPawn(BoardT& board, const ColorT color, const SquareT square) {
@@ -29,7 +29,7 @@ namespace Chess {
 
       // c.pieceSquares[piece] = square;
 
-      board.board[square] = makeSquarePiece(color, SomePawns);
+      //board.board[square] = makeSquarePiece(color, SomePawns);
     }
     
     static void addStartingPieces(BoardT& board, const ColorT color, const SquareT firstPieceSquare, const SquareT firstPawnSquare) {
@@ -71,8 +71,8 @@ namespace Chess {
     static void printRank(const BoardT& board, int rank) {
       printf("%d | ", rank+1);
       for(int file = 0; file < 8; file++) {
-	SquareT square = (SquareT)((rank << 3) + file);
-	SquarePieceT squarePiece = board.board[square];
+	//SquareT square = (SquareT)((rank << 3) + file);
+	SquarePieceT squarePiece = NoPiece; //board.board[square];
 	ColorT color = squarePieceColor(squarePiece);
 	PieceT piece = squarePiecePiece(squarePiece);
 	PieceTypeT pieceType = PieceTypeForPiece[piece];

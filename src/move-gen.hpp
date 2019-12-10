@@ -25,11 +25,6 @@ namespace Chess {
       ColorPieceBbsT colorPieceBbs[NColors];
     };
 
-    // Piece map container
-    struct ColorPieceMapT {
-      PieceT board[64+1]; // Allow board[InvalidSquare]
-    };
-    
     struct PieceAttacksT {
       // Pawn attacks (and moves) - single bit board for all pawns for each move type.
       BitBoardT pawnsLeftAttacks;
@@ -579,24 +574,6 @@ namespace Chess {
       const BitBoardT blockers = allPiecesBb & RookBlockers[square];
       const auto magicBbKey = (blockers * RookMagicBbMultipliers[square]) >> (64 - RookMagicBbIndexBits[square]);
       return RookMagicBbTable[square][magicBbKey];
-    }
-
-    // Generate the (non-pawn) piece map for a color
-    template <typename ColorTraitsImplT>
-    inline ColorPieceMapT genColorPieceMap(const ColorStateT& state) {
-      ColorPieceMapT pieceMap = {};
-
-      // TODO promos
-      pieceMap.board[state.pieceSquares[QueenKnight]] = QueenKnight;
-      pieceMap.board[state.pieceSquares[KingKnight]] = KingKnight;
-      pieceMap.board[state.pieceSquares[BlackBishop]] = BlackBishop;
-      pieceMap.board[state.pieceSquares[WhiteBishop]] = WhiteBishop;
-      pieceMap.board[state.pieceSquares[QueenRook]] = QueenRook;
-      pieceMap.board[state.pieceSquares[KingRook]] = KingRook;
-      pieceMap.board[state.pieceSquares[TheQueen]] = TheQueen;
-      pieceMap.board[state.pieceSquares[TheKing]] = TheKing;
-      
-      return pieceMap;
     }
 
     // Generate a legal move mask for non-king moves - only valid for no check or single check.
