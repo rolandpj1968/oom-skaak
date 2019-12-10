@@ -134,7 +134,7 @@ namespace Chess {
   };
 
   enum PieceT {
-    NoPiece,
+    //NoPiece,
     SomePawns,
     QueenKnight,
     KingKnight,
@@ -145,14 +145,14 @@ namespace Chess {
     TheQueen,
     //PromoQueen,      // First queen promo piece - this captures the majority of actual promo's in real play. TODO get rid? Move to end?
     TheKing,
-    OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
+    //OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
                      //   We have to look at the (simple) piece type bb's (for example) to see what kind of piece it is.
                      // TODO - fix this!
     NPieces,
   };
 
   const PieceTypeT PieceTypeForPiece[NPieces] = {
-    NoPieceType,       // NoPiece,
+    //NoPieceType,       // NoPiece,
     Pawn,          // SomePawns,
     Knight,        // QueenKnight,
     Knight,        // KingKnight,
@@ -163,11 +163,11 @@ namespace Chess {
     Queen,         // Queen,
     //Queen,         // PromoQueen,
     King,          // King,
-    NoPieceType,       // TODO - OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
+    //NoPieceType,       // TODO - OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
   };
 
   template <PieceT Piece> struct PieceTypeForPieceT { static const PieceTypeT value; };
-  template <> struct PieceTypeForPieceT<NoPiece> { static const PieceTypeT value = NoPieceType; };
+  //template <> struct PieceTypeForPieceT<NoPiece> { static const PieceTypeT value = NoPieceType; };
   template <> struct PieceTypeForPieceT<SomePawns> { static const PieceTypeT value = Pawn; };
   template <> struct PieceTypeForPieceT<QueenKnight> { static const PieceTypeT value = Knight; };
   template <> struct PieceTypeForPieceT<KingKnight> { static const PieceTypeT value = Knight; };

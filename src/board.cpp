@@ -72,10 +72,12 @@ namespace Chess {
       printf("%d | ", rank+1);
       for(int file = 0; file < 8; file++) {
 	//SquareT square = (SquareT)((rank << 3) + file);
-	SquarePieceT squarePiece = NoPiece; //board.board[square];
-	ColorT color = squarePieceColor(squarePiece);
-	PieceT piece = squarePiecePiece(squarePiece);
-	PieceTypeT pieceType = PieceTypeForPiece[piece];
+	//SquarePieceT squarePiece = NoPiece; //board.board[square];
+	// ColorT color = squarePieceColor(squarePiece);
+	// PieceT piece = squarePiecePiece(squarePiece);
+	//PieceTypeT pieceType = PieceTypeForPiece[piece];
+	ColorT color = White;
+	PieceTypeT pieceType = NoPieceType;
 	printf("%c ", PieceChar[(size_t)color][pieceType]);
       }
       printf(" | %d\n", rank+1);

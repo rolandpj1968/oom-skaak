@@ -7,21 +7,21 @@ namespace Chess {
   
   namespace Board {
 
-    typedef u8 SquarePieceT;
+    // typedef u8 SquarePieceT;
 
-    const SquarePieceT EmptySquare = NoPiece;
+    // const SquarePieceT EmptySquare = NoPiece;
 
-    inline SquarePieceT makeSquarePiece(const ColorT color, const PieceT piece) {
-      return ((int)color << 7) | piece;
-    }
+    // inline SquarePieceT makeSquarePiece(const ColorT color, const PieceT piece) {
+    //   return ((int)color << 7) | piece;
+    // }
 
-    inline ColorT squarePieceColor(const SquarePieceT squarePiece) {
-      return (ColorT)(squarePiece >> 7);
-    }
+    // inline ColorT squarePieceColor(const SquarePieceT squarePiece) {
+    //   return (ColorT)(squarePiece >> 7);
+    // }
 
-    inline PieceT squarePiecePiece(const SquarePieceT squarePiece) {
-      return (PieceT) (squarePiece & ~((int)Black << 7));
-    }
+    // inline PieceT squarePiecePiece(const SquarePieceT squarePiece) {
+    //   return (PieceT) (squarePiece & ~((int)Black << 7));
+    // }
 
     struct ColorStateT {
       // All pieces including strange promos.
