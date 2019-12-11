@@ -218,13 +218,25 @@ namespace Chess {
       placePiece<Color>(board, square, Piece);
     }
     
-    template <ColorT Color, PieceT Piece, PushOrCaptureT PushOrCapture>
-    inline BoardT movePiece(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to, const SquareT captureSquare) {
+    template <ColorT Color, PieceT Piece>
+    inline BoardT pushPiece(const BoardT& oldBoard, const SquareT from, const SquareT to) {
       BoardT board = oldBoard;
 
-      if(PushOrCapture == Capture) {
-      	removePieceOrPawn<OtherColorT<Color>::value>(board, yourPieceMap, captureSquare);
-      }
+      removePiece<Color, Piece>(board, from);
+
+      placePiece<Color, Piece>(board, to);
+
+      // Clear en-passant square
+      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      
+      return board;
+    }
+    
+    template <ColorT Color, PieceT Piece>
+    inline BoardT captureWithPiece(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
+      BoardT board = oldBoard;
+
+      removePieceOrPawn<OtherColorT<Color>::value>(board, yourPieceMap, to);
 
       removePiece<Color, Piece>(board, from);
 
@@ -274,15 +286,15 @@ namespace Chess {
       return board;
     }
     
-    template <ColorT Color, PieceT Piece, PushOrCaptureT PushOrCapture>
-    inline BoardT movePiece(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
-      return movePiece<Color, Piece, PushOrCapture>(oldBoard, yourPieceMap, from, to, /*captureSquare = */to);
-    }
+    // template <ColorT Color, PieceT Piece, PushOrCaptureT PushOrCapture>
+    // inline BoardT movePiece(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
+    //   return movePiece<Color, Piece, PushOrCapture>(oldBoard, yourPieceMap, from, to, /*captureSquare = */to);
+    // }
 
-    template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false>
-    inline BoardT movePawn(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
-      return movePawn<Color, PushOrCapture, IsPawnPushTwo>(oldBoard, yourPieceMap, from, to, /*captureSquare = */to);
-    }
+    // template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false>
+    // inline BoardT movePawn(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
+    //   return movePawn<Color, PushOrCapture, IsPawnPushTwo>(oldBoard, yourPieceMap, from, to, /*captureSquare = */to);
+    // }
 
     template <ColorT Color>
     inline BoardT captureEp(const BoardT& oldBoard, const SquareT from, const SquareT to, const SquareT captureSquare) {
