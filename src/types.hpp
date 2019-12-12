@@ -207,6 +207,21 @@ namespace Chess {
     CanCastleKingside = 2,
   };
 
+  const CastlingRightsT CastlingRightsForPiece[NPieces] = {
+    //NoPieceType,           // NoPiece,
+    NoCastlingRights,        // SomePawns,
+    NoCastlingRights,        // QueenKnight,
+    NoCastlingRights,        // KingKnight,
+    NoCastlingRights,        // BlackBishop,
+    NoCastlingRights,        // WhiteBishop,
+    CanCastleQueenside,      // QueenRook,
+    CanCastleKingside,       // KingRook,
+    NoCastlingRights,        // Queen,
+    //Queen,         // PromoQueen,
+    (CastlingRightsT) (CanCastleQueenside | CanCastleKingside),          // King,
+    //NoPieceType,       // TODO - OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
+  };
+
   enum MoveTypeT {
     PushMove = 0,
     CaptureMove,

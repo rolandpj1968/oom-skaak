@@ -121,15 +121,18 @@ namespace Chess {
       // pieces.bbsOld[pieceType] &= ~squareBb;
       // pieces.bbsOld[AllPieceTypes] &= ~squareBb;
 
-      if(piece == QueenRook) {
-	pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleQueenside);
-      }
-      if(piece == KingRook) {
-	pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleKingside);
-      }
-      if(piece == TheKing) {
-	pieces.castlingRights = NoCastlingRights;
-      }
+      //@%@#$%^@#$^ replace with lookup per piece on castling rights impact - then do removePieceOrPawn without branch
+
+      pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CastlingRightsForPiece[piece]);
+      // if(piece == QueenRook) {
+      // 	pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleQueenside);
+      // }
+      // if(piece == KingRook) {
+      // 	pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleKingside);
+      // }
+      // if(piece == TheKing) {
+      // 	pieces.castlingRights = NoCastlingRights;
+      // }
       
       return piece;
     }
