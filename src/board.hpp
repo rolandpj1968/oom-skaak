@@ -165,16 +165,26 @@ namespace Chess {
 
     template <ColorT Color>
     inline void removePieceOrPawn(BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT square) {
-      const ColorStateT &yourPieces = board.pieces[(size_t)OtherColorT<Color>::value];
+      //const ColorStateT &myPieces = board.pieces[(size_t)Color];
+      ColorStateT &yourPieces = board.pieces[(size_t)OtherColorT<Color>::value];
       const BitBoardT yourPawnsBb = yourPieces.pawnsBb; //bbsOld[Pawn];
-      
-      const BitBoardT captureBb = bbForSquare(square);
 
-      if((yourPawnsBb & captureBb) == BbNone) {
-	removePiece<Color>(board, yourPieceMap, square);
-      } else {
-	removePawn<Color>(board, square);
-      }
+      // Remove pawn (or no-op if it's a piece)
+      const BitBoardT squareBb = bbForSquare(square);
+      const BitBoardT pawnBb = yourPawnsBb & squareBb; // BbNone for (non-pawn) pieces
+      yourPieces.pawnsBb &= ~pawnBb;
+
+      // Remove piece (or no-op it it's a pawn)
+      const PieceT piece = yourPieceMap.board[square]; // NoPiece for pawns
+      yourPieces.pieceSquares[piece] = InvalidSquare;
+
+      yourPieces.castlingRights = (CastlingRightsT) (yourPieces.castlingRights & ~CastlingRightsForPiece[piece]);
+      
+      // if((yourPawnsBb & captureBb) == BbNone) {
+      // 	removePiece<Color>(board, yourPieceMap, square);
+      // } else {
+      // 	removePawn<Color>(board, square);
+      // }
     }
 
     template <ColorT Color, PieceT Piece>
@@ -316,6 +326,9 @@ namespace Chess {
     }
     
     extern BoardT startingPosition();
+
+    template <typename BoardTraitsT>
+    extern bool isValid(const BoardT& board);
 
     extern void printBoard(const BoardT& board);
     extern void printBb(BitBoardT bb);

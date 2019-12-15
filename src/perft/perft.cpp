@@ -14,6 +14,8 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
   int depthToGo = atoi(argv[1]);
+
+  printf("sizeof(BoardT) is %lu\n", sizeof(BoardT));
   
   BoardT startingBoard = Board::startingPosition();
 

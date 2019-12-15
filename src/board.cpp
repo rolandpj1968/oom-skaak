@@ -1,9 +1,20 @@
 #include <cstdio>
+
+#include <array>
+#include <utility>
+#include <vector>
+
+using namespace std;
+
+#include "bits.hpp"
 #include "board.hpp"
+#include "move-gen.hpp"
 
 namespace Chess {
   
   namespace Board {
+
+    using namespace MoveGen;
 
     // TODO - unusual promos
     static void addPiece(BoardT& board, const ColorT color, const SquareT square, const PieceT piece) {
@@ -59,6 +70,73 @@ namespace Chess {
       addStartingPieces(board, Black, A8, A7);
       
       return board;
+    }
+
+    static void addPawnsForColor(array<vector<pair<ColorT, PieceT>>, 64>& pieceMap, const ColorT color, BitBoardT pawnsBb) {
+      while(pawnsBb) {
+	const SquareT square = Bits::popLsb(pawnsBb);
+	pieceMap[square].push_back(pair<ColorT, PieceT>(color, SomePawns));
+      }
+    }
+    
+    static void addPiecesForColor(array<vector<pair<ColorT, PieceT>>, 64>& pieceMap, const ColorT color, const ColorStateT& colorState) {
+      addPawnsForColor(pieceMap, color, colorState.pawnsBb);
+
+      for(PieceT piece = QueenKnight; piece < NPieces; piece = (PieceT)(piece+1)) {
+	SquareT square = colorState.pieceSquares[piece];
+	if(square != InvalidSquare) {
+	  pieceMap[square].push_back(pair<ColorT, PieceT>(color, piece));
+	}
+      }
+    }
+
+    static array<vector<pair<ColorT, PieceT>>, 64> genPieceMap(const BoardT& board) {
+      array<vector<pair<ColorT, PieceT>>, 64> pieceMap;
+
+      addPiecesForColor(pieceMap, White, board.pieces[(size_t)White]);
+      addPiecesForColor(pieceMap, Black, board.pieces[(size_t)Black]);
+
+      return pieceMap;
+    }
+
+    // Validate board
+    template <typename BoardTraitsT>
+    bool isValid(const BoardT& board) {
+      array<vector<pair<ColorT, PieceT>>, 64> pieceMap = genPieceMap(board);
+
+      // Are there any squares with multiple pieces on them?
+      for(int i = 0; i < 64; i++) {
+	if(pieceMap[i].size() > 1) {
+	  return false;
+	}
+      }
+
+      // Is the other king in check?
+      typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
+      const ColorT Color = BoardTraitsT::Color;
+      const ColorT OtherColor = BoardTraitsT::OtherColor;
+
+      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+      
+      const PieceBbsT& pieceBbs = genPieceBbs<BoardTraitsT>(board);
+      const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
+      const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
+      
+      const BitBoardT allMyPiecesBb = myPieceBbs.bbs[AllPieceTypes];
+      const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
+      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
+      
+      const SquareT yourKingSq = yourState.pieceSquares[TheKing];
+      const SquareAttackersT yourKingAttackers = genSquareAttackers<YourColorTraitsT>(yourKingSq, myPieceBbs, allPiecesBb);
+      const BitBoardT allYourKingAttackersBb = yourKingAttackers.pieceAttackers[AllPieceTypes];
+
+      if(allYourKingAttackersBb != BbNone) {
+	return false;
+      }
+
+      // TODO castling rights and en-passant square validation
+
+      return true;
     }
 
     static char PieceChar[NColors][NPieceTypes+1] = {

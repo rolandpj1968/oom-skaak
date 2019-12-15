@@ -102,7 +102,7 @@ namespace Chess {
       const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
 
       // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
-      const bool CheckForInvalid = false;
+      const bool CheckForInvalid = true;
       if(CheckForInvalid) {
 	const PieceBbsT pieceBbs = genPieceBbs<BoardTraitsT>(board);
 	const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
@@ -216,7 +216,7 @@ namespace Chess {
     }
 
     template <typename BoardTraitsT>
-    inline void perftImplFull(const PerftStateT state, const BoardT& board, const MoveInfoT moveInfo) {
+    inline void perftImplFull(const PerftStateT state, const BoardT& board) {
       
       const PerftStateT newState(state.stats, state.depthToGo-1);
 
@@ -229,16 +229,17 @@ namespace Chess {
       if(state.depthToGo == 0) {
 	perft0Impl<BoardTraitsT>(state.stats, board, moveInfo);
       } else {
-	perftImplFull<BoardTraitsT>(state, board, moveInfo);
+	perftImplFull<BoardTraitsT>(state, board);
       }
     }
       
     template <typename BoardTraitsT>
     inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
       PerftStatsT stats = {0};
+      MoveInfoT dummyMoveInfo(0.0, PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/false, /*isDiscoveredCheck*/false);
       const PerftStateT state(stats, depthToGo);
 
-      perftImpl<BoardTraitsT>(state, board, MoveInfoT(0.0, PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/false, /*isDiscoveredCheck*/false));
+      perftImpl<BoardTraitsT>(state, board, dummyMoveInfo);
 
       return stats;
     }

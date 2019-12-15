@@ -196,8 +196,6 @@ namespace Chess {
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
     inline void makeAllLegalMoves(StateT state, const BoardT& board) {
-      // typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
-
       const ColorT OtherColor = BoardTraitsT::OtherColor;
 
       // Generate (legal) moves
@@ -215,7 +213,7 @@ namespace Chess {
       if(legalMoves.isIllegalPos) {
 	static bool done = false;
 	if(!done) {
-	  printf("\n============================================== Invalid pos! ===================================\n\n");
+	  printf("\n============================================== Invalid Pos :( ===================================\n\n");
 	  printBoard(board);
 	  printf("\n");
 	  done = true;
