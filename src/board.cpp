@@ -146,26 +146,44 @@ namespace Chess {
       { ".pnbrqk" }
     };
 
-    static void printRank(const BoardT& board, int rank) {
+    static char pieceChar(const vector<pair<ColorT, PieceT>>& squarePieces) {
+      // Pieces clash on the square?
+      if(squarePieces.size() > 1) {
+	return 'X';
+      }
+      
+      ColorT color = White;
+      PieceTypeT pieceType = NoPieceType;
+
+      if(squarePieces.size() == 1) {
+	color = squarePieces[0].first;
+	PieceT piece = squarePieces[0].second;
+	pieceType = PieceTypeForPiece[piece];
+      }
+      
+      return PieceChar[(size_t)color][pieceType];
+    }
+    
+    static void printRank(const array<vector<pair<ColorT, PieceT>>, 64>& pieceMap, int rank) {
       printf("%d | ", rank+1);
       for(int file = 0; file < 8; file++) {
-	//SquareT square = (SquareT)((rank << 3) + file);
+	SquareT square = (SquareT)((rank << 3) + file);
 	//SquarePieceT squarePiece = NoPiece; //board.board[square];
 	// ColorT color = squarePieceColor(squarePiece);
 	// PieceT piece = squarePiecePiece(squarePiece);
 	//PieceTypeT pieceType = PieceTypeForPiece[piece];
-	ColorT color = White;
-	PieceTypeT pieceType = NoPieceType;
-	printf("%c ", PieceChar[(size_t)color][pieceType]);
+	printf("%c ", pieceChar(pieceMap[square]));
       }
       printf(" | %d\n", rank+1);
     }
 
     void printBoard(const BoardT& board) {
+      array<vector<pair<ColorT, PieceT>>, 64> pieceMap = genPieceMap(board);
+      
       printf("    A B C D E F G H\n");
       printf("    ---------------\n");
       for(int rank = 7; rank >= 0; rank--) { 
-	printRank(board, rank);
+	printRank(pieceMap, rank);
       }
       printf("    ---------------\n");
       printf("    A B C D E F G H\n");
