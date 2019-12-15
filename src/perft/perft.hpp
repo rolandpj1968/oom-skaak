@@ -102,7 +102,7 @@ namespace Chess {
       const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
 
       // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
-      const bool CheckForInvalid = true;
+      const bool CheckForInvalid = false;
       if(CheckForInvalid) {
 	const PieceBbsT pieceBbs = genPieceBbs<BoardTraitsT>(board);
 	const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];

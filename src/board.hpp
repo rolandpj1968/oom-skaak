@@ -7,25 +7,8 @@ namespace Chess {
   
   namespace Board {
 
-    // typedef u8 SquarePieceT;
-
-    // const SquarePieceT EmptySquare = NoPiece;
-
-    // inline SquarePieceT makeSquarePiece(const ColorT color, const PieceT piece) {
-    //   return ((int)color << 7) | piece;
-    // }
-
-    // inline ColorT squarePieceColor(const SquarePieceT squarePiece) {
-    //   return (ColorT)(squarePiece >> 7);
-    // }
-
-    // inline PieceT squarePiecePiece(const SquarePieceT squarePiece) {
-    //   return (PieceT) (squarePiece & ~((int)Black << 7));
-    // }
-
     struct ColorStateT {
       // All pieces including strange promos.
-      //BitBoardT bbsOld[NPieceTypes];
       BitBoardT pawnsBb;
 
       // All pieces except pawns and strange promos.
@@ -44,8 +27,6 @@ namespace Chess {
 
     struct BoardT {
       ColorStateT pieces[NColors];
-
-      //SquarePieceT board[64]; // TODO - get rid
     };
 
     const bool DoesNotHavePromos = false;
@@ -108,56 +89,28 @@ namespace Chess {
 
     template <ColorT Color>
     inline PieceT removePiece(BoardT& board, const SquareT square, const PieceT piece) {
-      //board.board[square] = EmptySquare;
-      
       // TODO handle non-standard promos
       ColorStateT &pieces = board.pieces[(size_t)Color];
 
       pieces.pieceSquares[piece] = InvalidSquare;
 
-      // const BitBoardT squareBb = bbForSquare(square);
-
-      // const PieceTypeT pieceType = PieceTypeForPiece[piece];
-      // pieces.bbsOld[pieceType] &= ~squareBb;
-      // pieces.bbsOld[AllPieceTypes] &= ~squareBb;
-
-      //@%@#$%^@#$^ replace with lookup per piece on castling rights impact - then do removePieceOrPawn without branch
-
       pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CastlingRightsForPiece[piece]);
-      // if(piece == QueenRook) {
-      // 	pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleQueenside);
-      // }
-      // if(piece == KingRook) {
-      // 	pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CanCastleKingside);
-      // }
-      // if(piece == TheKing) {
-      // 	pieces.castlingRights = NoCastlingRights;
-      // }
       
       return piece;
     }
     
     template <ColorT Color>
     inline void removePawn(BoardT& board, const SquareT square) {
-      //board.board[square] = EmptySquare;
-      
       // TODO handle non-standard promos
       ColorStateT &pieces = board.pieces[(size_t)Color];
-
-      //pieces.pieceSquares[SomePawns] = InvalidSquare;
 
       const BitBoardT squareBb = bbForSquare(square);
 
       pieces.pawnsBb &= ~squareBb;
-      // const PieceTypeT pieceType = Pawn;
-      // pieces.bbsOld[pieceType] &= ~squareBb;
-      // pieces.bbsOld[AllPieceTypes] &= ~squareBb;
     }
     
     template <ColorT Color>
     inline PieceT removePiece(BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT square) {
-      // const SquarePieceT squarePiece = board.board[square];
-      // const PieceT piece = squarePiecePiece(squarePiece);
       const PieceT piece = yourPieceMap.board[square];
 
       return removePiece<Color>(board, square, piece);
@@ -165,9 +118,8 @@ namespace Chess {
 
     template <ColorT Color>
     inline void removePieceOrPawn(BoardT& board, const ColorPieceMapT& pieceMap, const SquareT square) {
-      //const ColorStateT &myPieces = board.pieces[(size_t)Color];
       ColorStateT &pieces = board.pieces[(size_t)Color];
-      const BitBoardT yourPawnsBb = pieces.pawnsBb; //bbsOld[Pawn];
+      const BitBoardT yourPawnsBb = pieces.pawnsBb;
 
       // Remove pawn (or no-op if it's a piece)
       const BitBoardT squareBb = bbForSquare(square);
@@ -179,12 +131,6 @@ namespace Chess {
       pieces.pieceSquares[piece] = InvalidSquare;
 
       pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CastlingRightsForPiece[piece]);
-      
-      // if((yourPawnsBb & captureBb) == BbNone) {
-      // 	removePiece<Color>(board, yourPieceMap, square);
-      // } else {
-      // 	removePawn<Color>(board, square);
-      // }
     }
 
     template <ColorT Color, PieceT Piece>
@@ -195,34 +141,20 @@ namespace Chess {
     // TODO -  promos
     template <ColorT Color>
     inline void placePiece(BoardT& board, const SquareT square, const PieceT piece) {
-      //board.board[square] = makeSquarePiece(Color, piece);
-
       // TODO handle non-standard promos
       ColorStateT &pieces = board.pieces[(size_t)Color];
 
       pieces.pieceSquares[piece] = square;
-
-      // const BitBoardT squareBb = bbForSquare(square);
-
-      // const PieceTypeT pieceType = PieceTypeForPiece[piece];
-      // pieces.bbsOld[pieceType] |= squareBb;
-      // pieces.bbsOld[AllPieceTypes] |= squareBb;
     }
 
     template <ColorT Color>
     inline void placePawn(BoardT& board, const SquareT square) {
-      //board.board[square] = makeSquarePiece(Color, SomePawns);
-
       // TODO handle non-standard promos
       ColorStateT &pieces = board.pieces[(size_t)Color];
 
-      //pieces.pieceSquares[SomePawns] = square;
-
       const BitBoardT squareBb = bbForSquare(square);
 
-      // const PieceTypeT pieceType = Pawn;
-      pieces./*bbsOld[pieceType]*/pawnsBb |= squareBb;
-      // pieces.bbsOld[AllPieceTypes] |= squareBb;
+      pieces.pawnsBb |= squareBb;
     }
 
     // TODO - non-standard promos
@@ -299,16 +231,6 @@ namespace Chess {
       return board;
     }
     
-    // template <ColorT Color, PieceT Piece, PushOrCaptureT PushOrCapture>
-    // inline BoardT movePiece(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
-    //   return movePiece<Color, Piece, PushOrCapture>(oldBoard, yourPieceMap, from, to, /*captureSquare = */to);
-    // }
-
-    // template <ColorT Color, PushOrCaptureT PushOrCapture, bool IsPawnPushTwo = false>
-    // inline BoardT movePawn(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
-    //   return movePawn<Color, PushOrCapture, IsPawnPushTwo>(oldBoard, yourPieceMap, from, to, /*captureSquare = */to);
-    // }
-
     template <ColorT Color>
     inline BoardT captureEp(const BoardT& oldBoard, const SquareT from, const SquareT to, const SquareT captureSquare) {
       BoardT board = oldBoard;
