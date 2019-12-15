@@ -164,21 +164,21 @@ namespace Chess {
     }
 
     template <ColorT Color>
-    inline void removePieceOrPawn(BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT square) {
+    inline void removePieceOrPawn(BoardT& board, const ColorPieceMapT& pieceMap, const SquareT square) {
       //const ColorStateT &myPieces = board.pieces[(size_t)Color];
-      ColorStateT &yourPieces = board.pieces[(size_t)OtherColorT<Color>::value];
-      const BitBoardT yourPawnsBb = yourPieces.pawnsBb; //bbsOld[Pawn];
+      ColorStateT &pieces = board.pieces[(size_t)Color];
+      const BitBoardT yourPawnsBb = pieces.pawnsBb; //bbsOld[Pawn];
 
       // Remove pawn (or no-op if it's a piece)
       const BitBoardT squareBb = bbForSquare(square);
       const BitBoardT pawnBb = yourPawnsBb & squareBb; // BbNone for (non-pawn) pieces
-      yourPieces.pawnsBb &= ~pawnBb;
+      pieces.pawnsBb &= ~pawnBb;
 
       // Remove piece (or no-op it it's a pawn)
-      const PieceT piece = yourPieceMap.board[square]; // NoPiece for pawns
-      yourPieces.pieceSquares[piece] = InvalidSquare;
+      const PieceT piece = pieceMap.board[square]; // NoPiece for pawns
+      pieces.pieceSquares[piece] = InvalidSquare;
 
-      yourPieces.castlingRights = (CastlingRightsT) (yourPieces.castlingRights & ~CastlingRightsForPiece[piece]);
+      pieces.castlingRights = (CastlingRightsT) (pieces.castlingRights & ~CastlingRightsForPiece[piece]);
       
       // if((yourPawnsBb & captureBb) == BbNone) {
       // 	removePiece<Color>(board, yourPieceMap, square);
