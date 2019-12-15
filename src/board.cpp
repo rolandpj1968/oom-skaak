@@ -177,6 +177,22 @@ namespace Chess {
       printf(" | %d\n", rank+1);
     }
 
+    void printPieceClashes(const array<vector<pair<ColorT, PieceT>>, 64>& pieceMap) {
+      for(int i = 0; i < 64; i++) {
+	const vector<pair<ColorT, PieceT>>& squarePieceMap = pieceMap[i];
+	if(squarePieceMap.size() > 1) {
+	  printf("\nPiece clash on %s:", SquareStr[i]);
+	  for(unsigned j = 0; j < squarePieceMap.size(); j++) {
+	    ColorT color = squarePieceMap[j].first;
+	    PieceT piece = squarePieceMap[j].second;
+	    PieceTypeT pieceType = PieceTypeForPiece[piece];
+	    printf(" %c", PieceChar[(size_t)color][pieceType]);
+	  }
+	  printf("\n");
+	}
+      }
+    }
+    
     void printBoard(const BoardT& board) {
       array<vector<pair<ColorT, PieceT>>, 64> pieceMap = genPieceMap(board);
       
@@ -187,6 +203,8 @@ namespace Chess {
       }
       printf("    ---------------\n");
       printf("    A B C D E F G H\n");
+
+      printPieceClashes(pieceMap);
     }
 
     static void printBbRank(BitBoardT bb, int rank) {
