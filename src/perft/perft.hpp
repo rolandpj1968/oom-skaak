@@ -55,7 +55,7 @@ namespace Chess {
   
     template <typename BoardTraitsT>
     struct PerftPosHandlerT {
-      static const bool ValidatePos = true;
+      static const bool ValidatePos = false;
       
       inline static void validatePos(const BoardT& board, MoveInfoT moveInfo) {
 	static bool done = false;
@@ -249,7 +249,7 @@ namespace Chess {
       
     template <typename BoardTraitsT>
     inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
-      PerftStatsT stats = {0};
+      PerftStatsT stats = {};
       MoveInfoT dummyMoveInfo(0.0, PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/false, /*isDiscoveredCheck*/false);
       const PerftStateT state(stats, depthToGo);
 

@@ -143,10 +143,6 @@ namespace Chess {
 
       DirectCheckMasksT directChecks;
       DiscoveredCheckMasksT discoveredChecks;
-      
-      // TODO - construct properly
-      LegalMovesT():
-	isIllegalPos(false), nChecks(0), canCastleFlags(NoCastlingRights), pawnMoves()/*, PieceMoves???*/ {}
     };
 
 #include <boost/preprocessor/iteration/local.hpp>
@@ -735,7 +731,7 @@ namespace Chess {
     inline PieceAttacksT genPieceAttacks(const ColorStateT& colorState, const BitBoardT allPiecesBb) {
       const ColorT Color = ColorTraitsT::Color;
       
-      PieceAttacksT attacks = {0};
+      PieceAttacksT attacks = {};
 
       // Pawns
       BitBoardT pawns = colorState.pawnsBb; //bbsOld[Pawn];
@@ -824,7 +820,7 @@ namespace Chess {
     inline SquareAttackersT genSquareAttackers(const SquareT square, const ColorPieceBbsT& colorPieceBbs, const BitBoardT allPiecesBb) {
       const ColorT Color = ColorTraitsT::Color;
       
-      SquareAttackersT attackers = {0};
+      SquareAttackersT attackers = {};
 
       // Pawns
       
@@ -1026,7 +1022,7 @@ namespace Chess {
       const BitBoardT myOrthogPinnedPiecesBb = genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, allMyPiecesBb, yourPieceBbs);
       
       // Generate pinned piece move masks for each piece
-      PiecePinMasksT pinMasks = {0};
+      PiecePinMasksT pinMasks = {};
       // Majority of positions have no pins
       if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) == BbNone) {
 	genDefaultPiecePinMasks<MyColorTraitsT>(pinMasks);
@@ -1259,7 +1255,7 @@ namespace Chess {
     
     template <typename ColorTraitsT>
     inline ColorPieceBbsT genColorPieceBbs(const ColorStateT& state) {
-      ColorPieceBbsT pieceBbs = {0};
+      ColorPieceBbsT pieceBbs = {};
 
       pieceBbs.bbs[Pawn] = state.pawnsBb; //bbsOld[Pawn];
 
@@ -1288,7 +1284,7 @@ namespace Chess {
       const ColorStateT& myState = board.pieces[(size_t)Color];
       const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
       
-      PieceBbsT pieceBbs = {0};
+      PieceBbsT pieceBbs = {};
 
       pieceBbs.colorPieceBbs[(size_t)Color] = genColorPieceBbs<MyColorTraitsT>(myState);
       pieceBbs.colorPieceBbs[(size_t)OtherColor] = genColorPieceBbs<YourColorTraitsT>(yourState);
@@ -1306,7 +1302,7 @@ namespace Chess {
       const ColorStateT& myState = board.pieces[(size_t)Color];
       const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
 
-      LegalMovesT legalMoves;
+      LegalMovesT legalMoves = {};
       
       legalMoves.pieceBbs = genPieceBbs<BoardTraitsT>(board);
       const PieceBbsT& pieceBbs = legalMoves.pieceBbs;
