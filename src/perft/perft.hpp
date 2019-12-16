@@ -55,7 +55,21 @@ namespace Chess {
   
     template <typename BoardTraitsT>
     struct PerftPosHandlerT {
+      static const bool ValidatePos = true;
+      
+      inline static void validatePos(const BoardT& board, MoveInfoT moveInfo) {
+	static bool done = false;
+	if(ValidatePos && !done) {
+	  if(!isValid<typename BoardTraitsT::ReverseT>(board)) {
+	    printf("Invalid board - last move from %s to %s\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+	    printBoard(board);
+	    //done = true;
+	  }
+	}
+      }
+      
       inline static void handlePos(const PerftStateT state, const BoardT& board, MoveInfoT moveInfo) {
+	validatePos(board, moveInfo);
 	perftImpl<typename BoardTraitsT::ReverseT>(state, board, moveInfo);
       }
     };

@@ -1365,6 +1365,31 @@ namespace Chess {
     }
 
     extern int countAttacks(const PieceAttacksT& pieceAttacks, const BitBoardT filterOut = BbNone, const BitBoardT filterInPawnTakes = BbAll);
+
+    // TODO - this shouldn't be in this header file but it has awkward dependencies
+    template <typename BoardTraitsT>
+    extern bool isValid(const BoardT& board) {
+      typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
+      //typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
+      const ColorT Color = BoardTraitsT::Color;
+      const ColorT OtherColor = BoardTraitsT::OtherColor;
+
+      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+      
+      const PieceBbsT& pieceBbs = genPieceBbs<BoardTraitsT>(board);
+      const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
+      const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
+      
+      const BitBoardT allMyPiecesBb = myPieceBbs.bbs[AllPieceTypes];
+      const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
+      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
+      
+      const SquareT yourKingSq = yourState.pieceSquares[TheKing];
+      const SquareAttackersT yourKingAttackers = genSquareAttackers<MyColorTraitsT>(yourKingSq, myPieceBbs, allPiecesBb);
+      const BitBoardT allYourKingAttackersBb = yourKingAttackers.pieceAttackers[AllPieceTypes];
+
+      return Board::isValid(board, allYourKingAttackersBb);
+    }
     
   } // namespace MoveGen
 

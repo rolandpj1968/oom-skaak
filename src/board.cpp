@@ -100,8 +100,7 @@ namespace Chess {
     }
 
     // Validate board
-    template <typename BoardTraitsT>
-    bool isValid(const BoardT& board) {
+    bool isValid(const BoardT& board, const BitBoardT allYourKingAttackersBb) {
       array<vector<pair<ColorT, PieceT>>, 64> pieceMap = genPieceMap(board);
 
       // Are there any squares with multiple pieces on them?
@@ -112,24 +111,6 @@ namespace Chess {
       }
 
       // Is the other king in check?
-      typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
-      const ColorT Color = BoardTraitsT::Color;
-      const ColorT OtherColor = BoardTraitsT::OtherColor;
-
-      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
-      
-      const PieceBbsT& pieceBbs = genPieceBbs<BoardTraitsT>(board);
-      const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
-      const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
-      
-      const BitBoardT allMyPiecesBb = myPieceBbs.bbs[AllPieceTypes];
-      const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
-      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
-      
-      const SquareT yourKingSq = yourState.pieceSquares[TheKing];
-      const SquareAttackersT yourKingAttackers = genSquareAttackers<YourColorTraitsT>(yourKingSq, myPieceBbs, allPiecesBb);
-      const BitBoardT allYourKingAttackersBb = yourKingAttackers.pieceAttackers[AllPieceTypes];
-
       if(allYourKingAttackersBb != BbNone) {
 	return false;
       }

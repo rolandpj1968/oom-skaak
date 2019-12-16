@@ -249,9 +249,8 @@ namespace Chess {
     
     extern BoardT startingPosition();
 
-    template <typename BoardTraitsT>
-    extern bool isValid(const BoardT& board);
-
+    extern bool isValid(const BoardT& board, const BitBoardT allYourKingAttackersBb);
+    
     extern void printBoard(const BoardT& board);
     extern void printBb(BitBoardT bb);
   }
