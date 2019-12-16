@@ -1331,16 +1331,16 @@ namespace Chess {
       const SquareAttackersT myKingAttackers = genSquareAttackers<YourColorTraitsT>(myKingSq, yourPieceBbs, allPiecesBb);
       const BitBoardT allMyKingAttackersBb = myKingAttackers.pieceAttackers[AllPieceTypes];
 
-      const int nChecks = Bits::count(allMyKingAttackersBb);
-
       // Needed for castling and for king moves so evaluate this here.
       const PieceAttacksT yourAttacks = genPieceAttacks<YourColorTraitsT>(yourState, allPiecesBb);
 
+      legalMoves.nChecks = Bits::count(allMyKingAttackersBb);
+
       // Double check can only be evaded by moving the king so only bother with other pieces if nChecks < 2
-      if(nChecks < 2) {
+      if(legalMoves.nChecks < 2) {
 
 	// If we're in check then the only legal moves are capture or blocking of the checking piece.
-	const BitBoardT legalMoveMaskBb = genLegalMoveMaskBb<BoardTraitsT>(board, nChecks, allMyKingAttackersBb, myKingSq, allPiecesBb, yourAttacks);
+	const BitBoardT legalMoveMaskBb = genLegalMoveMaskBb<BoardTraitsT>(board, legalMoves.nChecks, allMyKingAttackersBb, myKingSq, allPiecesBb, yourAttacks);
 	  
 	// Calculate pinned piece move restrictions.
 	const PiecePinMasksT pinMasks = genPinMasks<BoardTraitsT>(board, pieceBbs);
