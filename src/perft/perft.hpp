@@ -173,51 +173,6 @@ namespace Chess {
 	}
       }
 
-      // Is my king in check?
-      // const SquareAttackersT myKingAttackers = genSquareAttackers<YourColorTraitsT>(myState.pieceSquares[TheKing], yourState, allPiecesBb);
-      // const BitBoardT allMyKingAttackers = myKingAttackers.pieceAttackers[AllPieceTypes];
-      // if(allMyKingAttackers != 0) {
-      // 	stats.checks++;
-
-      // 	// If the moved piece is not attacking the king then this is a discovered check
-      // 	if((bbForSquare(moveInfo.to) & allMyKingAttackers) == 0) {
-      // 	  stats.discoverychecks++;
-      // 	  static bool done = false;
-      // 	  if(!moveInfo.isDiscoveredCheck && !done) {
-      // 	    done = true;
-      // 	    printf("\n============================================== Discovered Check missed - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-      // 	    printBoard(board);
-      // 	    printf("\n");
-      // 	  }
-      // 	} else {
-      // 	  static bool done = false;
-      // 	  if(!moveInfo.isDirectCheck && !done) {
-      // 	    done = true;
-      // 	    printf("\n============================================== Direct Check missed - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-      // 	    printBoard(board);
-      // 	    printf("\n");
-      // 	  }
-      // 	  static bool done2 = false;
-      // 	  if(moveInfo.isDiscoveredCheck && !moveInfo.isDirectCheck && !done2) {
-      // 	    done2 = true;
-      // 	    printf("\n============================================== Bogus Discovered Check - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-      // 	    printBoard(board);
-      // 	    printf("\n");
-      // 	  }
-      // 	}
-	  
-      // 	// If there are multiple king attackers then we have a double check
-      // 	if(Bits::count(allMyKingAttackers) != 1) {
-      // 	  stats.doublechecks++;
-      // 	  static bool done2 = false;
-      // 	  if(!(moveInfo.isDiscoveredCheck && moveInfo.isDirectCheck) && !done2) {
-      // 	    done2 = true;
-      // 	    printf("\n============================================== Missed Double Check - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-      // 	    printBoard(board);
-      // 	    printf("\n");
-      // 	  }
-      // 	}
-
       if(moveInfo.isDirectCheck || moveInfo.isDiscoveredCheck) {
 	if(DoCheckMateStats) {
 	  // Only bother if it is check
