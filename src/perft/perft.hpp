@@ -34,6 +34,9 @@ namespace Chess {
       u64 l0nondiscoveries;
       u64 l0checkertakable;
       u64 l0checkkingcanmove;
+      u64 directchecks1;
+      u64 discoverychecks1;
+      u64 doublechecks1;
     };
 
     struct PerftStateT {
@@ -52,7 +55,21 @@ namespace Chess {
   
     template <typename BoardTraitsT>
     struct PerftPosHandlerT {
+      static const bool ValidatePos = false;
+      
+      inline static void validatePos(const BoardT& board, MoveInfoT moveInfo) {
+	static bool done = false;
+	if(ValidatePos && !done) {
+	  if(!isValid<typename BoardTraitsT::ReverseT>(board)) {
+	    printf("Invalid board - last move from %s to %s\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+	    printBoard(board);
+	    //done = true;
+	  }
+	}
+      }
+      
       inline static void handlePos(const PerftStateT state, const BoardT& board, MoveInfoT moveInfo) {
+	validatePos(board, moveInfo);
 	perftImpl<typename BoardTraitsT::ReverseT>(state, board, moveInfo);
       }
     };
@@ -92,27 +109,28 @@ namespace Chess {
     template <typename BoardTraitsT>
     inline void perft0Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
-      typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
+
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
 
-      const ColorStateT& myState = board.pieces[(size_t)Color];
       const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
-      const BitBoardT allMyPiecesBb = myState.bbs[AllPieceTypes];
-      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieceTypes];
-      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 
       // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
       const bool CheckForInvalid = false;
       if(CheckForInvalid) {
+	const PieceBbsT pieceBbs = genPieceBbs<BoardTraitsT>(board);
+	const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
+	const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
+	const BitBoardT allPiecesBb = myPieceBbs.bbs[AllPieceTypes] | yourPieceBbs.bbs[AllPieceTypes];
+	
 	// Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
-	const SquareAttackersT yourKingAttackers = genSquareAttackers<MyColorTraitsT>(yourState.pieceSquares[TheKing], myState, allPiecesBb);
+	const SquareAttackersT yourKingAttackers = genSquareAttackers<MyColorTraitsT>(yourState.pieceSquares[TheKing], myPieceBbs, allPiecesBb);
 	if(yourKingAttackers.pieceAttackers[AllPieceTypes] != 0) {
 	  // Illegal position - doesn't count
 	  stats.invalids++;
 	  static bool done = false;
 	  if(!done) {
-	    printf("\n============================================== Invalid Depth 0 - last move to %d! ===================================\n\n", moveInfo.to);
+	    printf("\n============================================== Invalid Depth 0 - last move to %s! ===================================\n\n", SquareStr[moveInfo.to]);
 	    printBoard(board);
 	    printf("\n");
 	    done = true;
@@ -142,23 +160,22 @@ namespace Chess {
 	return;
       }
 
-      // Is my king in check?
-      const SquareAttackersT myKingAttackers = genSquareAttackers<YourColorTraitsT>(myState.pieceSquares[TheKing], yourState, allPiecesBb);
-      const BitBoardT allMyKingAttackers = myKingAttackers.pieceAttackers[AllPieceTypes];
-      if(allMyKingAttackers != 0) {
+      if(moveInfo.isDirectCheck) {
 	stats.checks++;
-
-	// If the moved piece is not attacking the king then this is a discovered check
-	if((bbForSquare(moveInfo.to) & allMyKingAttackers) == 0) {
+      }
+      if(moveInfo.isDiscoveredCheck) {
+	// Double checks are counted independently of discoveries
+	if(moveInfo.isDirectCheck) {
+	  stats.doublechecks++;
+	} else {
+	  stats.checks++;
 	  stats.discoverychecks++;
 	}
-	  
-	// If there are multiple king attackers then we have a double check
-	if(Bits::count(allMyKingAttackers) != 1) {
-	  stats.doublechecks++;
-	}
+      }
 
+      if(moveInfo.isDirectCheck || moveInfo.isDiscoveredCheck) {
 	if(DoCheckMateStats) {
+	  // Only bother if it is check
 	  // It's checkmate if there are no legal moves
 	  if(!hasLegalMoves<BoardTraitsT>(board, moveInfo)) {
 	    stats.checkmates++;
@@ -168,7 +185,7 @@ namespace Chess {
     }
 
     template <typename BoardTraitsT>
-    inline void perftImplFull(const PerftStateT state, const BoardT& board, const MoveInfoT moveInfo) {
+    inline void perftImplFull(const PerftStateT state, const BoardT& board) {
       
       const PerftStateT newState(state.stats, state.depthToGo-1);
 
@@ -181,16 +198,17 @@ namespace Chess {
       if(state.depthToGo == 0) {
 	perft0Impl<BoardTraitsT>(state.stats, board, moveInfo);
       } else {
-	perftImplFull<BoardTraitsT>(state, board, moveInfo);
+	perftImplFull<BoardTraitsT>(state, board);
       }
     }
       
     template <typename BoardTraitsT>
     inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
-      PerftStatsT stats = {0};
+      PerftStatsT stats = {};
+      MoveInfoT dummyMoveInfo(0.0, PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/false, /*isDiscoveredCheck*/false);
       const PerftStateT state(stats, depthToGo);
 
-      perftImpl<BoardTraitsT>(state, board, MoveInfoT(PushMove, InvalidSquare));
+      perftImpl<BoardTraitsT>(state, board, dummyMoveInfo);
 
       return stats;
     }

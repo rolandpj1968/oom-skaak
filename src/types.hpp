@@ -66,6 +66,18 @@ namespace Chess {
 
   const SquareT InvalidSquare = H8+1;
 
+  const char* const SquareStr[65] = {
+    "A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1",
+    "A2", "B2", "C2", "D2", "E2", "F2", "G2", "H2",
+    "A3", "B3", "C3", "D3", "E3", "F3", "G3", "H3",
+    "A4", "B4", "C4", "D4", "E4", "F4", "G4", "H4",
+    "A5", "B5", "C5", "D5", "E5", "F5", "G5", "H5",
+    "A6", "B6", "C6", "D6", "E6", "F6", "G6", "H6",
+    "A7", "B7", "C7", "D7", "E7", "F7", "G7", "H7",
+    "A8", "B8", "C8", "D8", "E8", "F8", "G8", "H8",
+    "**" // invalid square
+  };
+
   inline u8 rankOf(SquareT square) {
     return square >> 3;
   }
@@ -131,17 +143,13 @@ namespace Chess {
     QueenRook,
     KingRook,
     TheQueen,
-    PromoQueen,      // First queen promo piece - this captures the majority of actual promo's in real play.
     TheKing,
-    OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
-                     //   We have to look at the (simple) piece type bb's (for example) to see what kind of piece it is.
-                     // TODO - fix this!
     NPieces,
   };
 
   const PieceTypeT PieceTypeForPiece[NPieces] = {
-    NoPieceType,       // NoPiece,
-    Pawn,          // Pawn,
+    NoPieceType,   // NoPiece,
+    Pawn,          // SomePawns,
     Knight,        // QueenKnight,
     Knight,        // KingKnight,
     Bishop,        // BlackBishop,
@@ -149,9 +157,7 @@ namespace Chess {
     Rook,          // QueenRook,
     Rook,          // KingRook,
     Queen,         // Queen,
-    Queen,         // PromoQueen,
     King,          // King,
-    NoPieceType,       // TODO - OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
   };
 
   template <PieceT Piece> struct PieceTypeForPieceT { static const PieceTypeT value; };
@@ -164,9 +170,7 @@ namespace Chess {
   template <> struct PieceTypeForPieceT<QueenRook> { static const PieceTypeT value = Rook; };
   template <> struct PieceTypeForPieceT<KingRook> { static const PieceTypeT value = Rook; };
   template <> struct PieceTypeForPieceT<TheQueen> { static const PieceTypeT value = Queen; };
-  template <> struct PieceTypeForPieceT<PromoQueen> { static const PieceTypeT value = Queen; };
   template <> struct PieceTypeForPieceT<TheKing> { static const PieceTypeT value = King; };
-  // TODO - OtherPromoPiece, // Denotes a promo piece that is not a queen or is a 2nd or subsequent piece promo.
 
   enum PiecePresentShiftsT {
     PawnsPresentShift,
@@ -195,6 +199,19 @@ namespace Chess {
     CanCastleKingside = 2,
   };
 
+  const CastlingRightsT CastlingRightsForPiece[NPieces] = {
+    NoCastlingRights,        // NoPiece,
+    NoCastlingRights,        // SomePawns,
+    NoCastlingRights,        // QueenKnight,
+    NoCastlingRights,        // KingKnight,
+    NoCastlingRights,        // BlackBishop,
+    NoCastlingRights,        // WhiteBishop,
+    CanCastleQueenside,      // QueenRook,
+    CanCastleKingside,       // KingRook,
+    NoCastlingRights,        // Queen,
+    (CastlingRightsT) (CanCastleQueenside | CanCastleKingside)          // King,
+  };
+
   enum MoveTypeT {
     PushMove = 0,
     CaptureMove,
@@ -202,6 +219,7 @@ namespace Chess {
     CastlingMove
   };
 
+  // TODO consts
   struct MoveInfoT {
     MoveTypeT moveType;
     // For castling this is the king 'from' square.
@@ -215,33 +233,37 @@ namespace Chess {
     SquareT captureSq;
     // True iff the moved piece delivers check from the 'to' square.
     bool isDirectCheck;
-    // The square containing the piece delivering discovered check.
-    // InvalidSquare if not in check.
-    // For castling giving check this is the rook 'to' square.
-    SquareT discoveredCheckerSq;
+    // // The square containing the piece delivering discovered check.
+    // // InvalidSquare if not in check.
+    // // For castling giving check this is the rook 'to' square.
+    // SquareT discoveredCheckerSq;
+    // True iff the moved piece uncovers discovered check.
+    bool isDiscoveredCheck;
 
-    // Generic ctor
-    MoveInfoT(MoveTypeT moveType, SquareT from, SquareT to, PieceT capturedPiece, SquareT captureSq, bool isDirectCheck, SquareT discoveredCheckerSq):
-      moveType(moveType), from(from), to(to), capturedPiece(capturedPiece), captureSq(captureSq), isDirectCheck(isDirectCheck), discoveredCheckerSq(discoveredCheckerSq)
-    {}
+    // // Generic ctor
+    // MoveInfoT(MoveTypeT moveType, SquareT from, SquareT to, PieceT capturedPiece, SquareT captureSq, bool isDirectCheck, SquareT discoveredCheckerSq):
+    //   moveType(moveType), from(from), to(to), capturedPiece(capturedPiece), captureSq(captureSq), isDirectCheck(isDirectCheck), discoveredCheckerSq(discoveredCheckerSq)
+    // {}
 
-    // Push move ctor
-    MoveInfoT(SquareT from, SquareT to, bool isDirectCheck = false, SquareT discoveredCheckSq = InvalidSquare) :
-      MoveInfoT(PushMove, from, to, NoPiece, InvalidSquare, isDirectCheck, discoveredCheckSq)
-    {}
+    // // Push move ctor
+    // MoveInfoT(SquareT from, SquareT to, bool isDirectCheck = false, SquareT discoveredCheckSq = InvalidSquare) :
+    //   MoveInfoT(PushMove, from, to, NoPiece, InvalidSquare, isDirectCheck, discoveredCheckSq)
+    // {}
 
-    // Capture move ctor
-    MoveInfoT(SquareT from, SquareT to, PieceT capturedPiece, bool isDirectCheck = false, SquareT discoveredCheckSq = InvalidSquare) :
-      MoveInfoT(CaptureMove, from, to, capturedPiece, to, isDirectCheck, discoveredCheckSq)
-    {}
+    // // Capture move ctor
+    // MoveInfoT(SquareT from, SquareT to, PieceT capturedPiece, bool isDirectCheck = false, SquareT discoveredCheckSq = InvalidSquare) :
+    //   MoveInfoT(CaptureMove, from, to, capturedPiece, to, isDirectCheck, discoveredCheckSq)
+    // {}
 
     // Temporary working ctor
-    MoveInfoT(MoveTypeT moveType, SquareT to): moveType(moveType), to(to) {}
+    MoveInfoT(const double tag, const MoveTypeT moveType, const SquareT from, const SquareT to, const bool isDirectCheck, const bool isDiscoveredCheck):
+      moveType(moveType), from(from), to(to), isDirectCheck(isDirectCheck), isDiscoveredCheck(isDiscoveredCheck) {}
   };
 
   enum SliderDirectionT {
     Diagonal,
-    Orthogonal
+    Orthogonal,
+    NSliderDirections
   };
 }
 

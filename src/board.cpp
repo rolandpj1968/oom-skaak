@@ -1,24 +1,48 @@
 #include <cstdio>
+
+#include <array>
+#include <utility>
+#include <vector>
+
+using namespace std;
+
+#include "bits.hpp"
 #include "board.hpp"
+#include "move-gen.hpp"
 
 namespace Chess {
   
   namespace Board {
 
+    using namespace MoveGen;
+
     // TODO - unusual promos
     static void addPiece(BoardT& board, const ColorT color, const SquareT square, const PieceT piece) {
       ColorStateT& c = board.pieces[(size_t)color];
       
-      const BitBoardT pieceBb = bbForSquare(square);
+      // const BitBoardT pieceBb = bbForSquare(square);
 
-      c.bbs[PieceTypeForPiece[piece]] |= pieceBb;
-      c.bbs[AllPieceTypes] |= pieceBb;
+      // c.bbsOld[PieceTypeForPiece[piece]] |= pieceBb;
+      // c.bbsOld[AllPieceTypes] |= pieceBb;
 
       c.pieceSquares[piece] = square;
 
-      board.board[square] = makeSquarePiece(color, piece);
+      //board.board[square] = makeSquarePiece(color, piece);
     }
 
+    static void addPawn(BoardT& board, const ColorT color, const SquareT square) {
+      ColorStateT& c = board.pieces[(size_t)color];
+      
+      const BitBoardT pieceBb = bbForSquare(square);
+
+      c.pawnsBb/*bbsOld[PieceTypeForPiece[piece]]*/ |= pieceBb;
+      // c.bbsOld[AllPieceTypes] |= pieceBb;
+
+      // c.pieceSquares[piece] = square;
+
+      //board.board[square] = makeSquarePiece(color, SomePawns);
+    }
+    
     static void addStartingPieces(BoardT& board, const ColorT color, const SquareT firstPieceSquare, const SquareT firstPawnSquare) {
       // Pieces
       addPiece(board, color, firstPieceSquare,       QueenRook);
@@ -32,7 +56,7 @@ namespace Chess {
       
       // Pawns
       for(SquareT square = firstPawnSquare; square <= firstPawnSquare+H2-A2; square += (B2-A2)) {
-	addPiece(board, color, square, SomePawns);
+	addPawn(board, color, square);
       }
 
       // Castling rights
@@ -48,6 +72,54 @@ namespace Chess {
       return board;
     }
 
+    static void addPawnsForColor(array<vector<pair<ColorT, PieceT>>, 64>& pieceMap, const ColorT color, BitBoardT pawnsBb) {
+      while(pawnsBb) {
+	const SquareT square = Bits::popLsb(pawnsBb);
+	pieceMap[square].push_back(pair<ColorT, PieceT>(color, SomePawns));
+      }
+    }
+    
+    static void addPiecesForColor(array<vector<pair<ColorT, PieceT>>, 64>& pieceMap, const ColorT color, const ColorStateT& colorState) {
+      addPawnsForColor(pieceMap, color, colorState.pawnsBb);
+
+      for(PieceT piece = QueenKnight; piece < NPieces; piece = (PieceT)(piece+1)) {
+	SquareT square = colorState.pieceSquares[piece];
+	if(square != InvalidSquare) {
+	  pieceMap[square].push_back(pair<ColorT, PieceT>(color, piece));
+	}
+      }
+    }
+
+    static array<vector<pair<ColorT, PieceT>>, 64> genPieceMap(const BoardT& board) {
+      array<vector<pair<ColorT, PieceT>>, 64> pieceMap;
+
+      addPiecesForColor(pieceMap, White, board.pieces[(size_t)White]);
+      addPiecesForColor(pieceMap, Black, board.pieces[(size_t)Black]);
+
+      return pieceMap;
+    }
+
+    // Validate board
+    bool isValid(const BoardT& board, const BitBoardT allYourKingAttackersBb) {
+      array<vector<pair<ColorT, PieceT>>, 64> pieceMap = genPieceMap(board);
+
+      // Are there any squares with multiple pieces on them?
+      for(int i = 0; i < 64; i++) {
+	if(pieceMap[i].size() > 1) {
+	  return false;
+	}
+      }
+
+      // Is the other king in check?
+      if(allYourKingAttackersBb != BbNone) {
+	return false;
+      }
+
+      // TODO castling rights and en-passant square validation
+
+      return true;
+    }
+
     static char PieceChar[NColors][NPieceTypes+1] = {
       // White
       { ".PNBRQK" },
@@ -55,27 +127,61 @@ namespace Chess {
       { ".pnbrqk" }
     };
 
-    static void printRank(const BoardT& board, int rank) {
+    static char pieceChar(const vector<pair<ColorT, PieceT>>& squarePieces) {
+      // Pieces clash on the square?
+      if(squarePieces.size() > 1) {
+	return 'X';
+      }
+      
+      ColorT color = White;
+      PieceTypeT pieceType = NoPieceType;
+
+      if(squarePieces.size() == 1) {
+	color = squarePieces[0].first;
+	PieceT piece = squarePieces[0].second;
+	pieceType = PieceTypeForPiece[piece];
+      }
+      
+      return PieceChar[(size_t)color][pieceType];
+    }
+    
+    static void printRank(const array<vector<pair<ColorT, PieceT>>, 64>& pieceMap, int rank) {
       printf("%d | ", rank+1);
       for(int file = 0; file < 8; file++) {
 	SquareT square = (SquareT)((rank << 3) + file);
-	SquarePieceT squarePiece = board.board[square];
-	ColorT color = squarePieceColor(squarePiece);
-	PieceT piece = squarePiecePiece(squarePiece);
-	PieceTypeT pieceType = PieceTypeForPiece[piece];
-	printf("%c ", PieceChar[(size_t)color][pieceType]);
+	printf("%c ", pieceChar(pieceMap[square]));
       }
       printf(" | %d\n", rank+1);
     }
 
+    void printPieceClashes(const array<vector<pair<ColorT, PieceT>>, 64>& pieceMap) {
+      for(int i = 0; i < 64; i++) {
+	const vector<pair<ColorT, PieceT>>& squarePieceMap = pieceMap[i];
+	if(squarePieceMap.size() > 1) {
+	  printf("\nPiece clash on %s:", SquareStr[i]);
+	  for(unsigned j = 0; j < squarePieceMap.size(); j++) {
+	    ColorT color = squarePieceMap[j].first;
+	    PieceT piece = squarePieceMap[j].second;
+	    PieceTypeT pieceType = PieceTypeForPiece[piece];
+	    printf(" %c", PieceChar[(size_t)color][pieceType]);
+	  }
+	  printf("\n");
+	}
+      }
+    }
+    
     void printBoard(const BoardT& board) {
+      array<vector<pair<ColorT, PieceT>>, 64> pieceMap = genPieceMap(board);
+      
       printf("    A B C D E F G H\n");
       printf("    ---------------\n");
       for(int rank = 7; rank >= 0; rank--) { 
-	printRank(board, rank);
+	printRank(pieceMap, rank);
       }
       printf("    ---------------\n");
       printf("    A B C D E F G H\n");
+
+      printPieceClashes(pieceMap);
     }
 
     static void printBbRank(BitBoardT bb, int rank) {

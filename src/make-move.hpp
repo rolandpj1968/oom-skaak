@@ -15,25 +15,28 @@ namespace Chess {
     // Note that typename PosHandlerT must take care of BoardTraitsT::ReverseT - I can't seem to make this explicit which maybe makes sense.
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn, bool IsPushTwo>
-    inline void handlePawnsPush(StateT state, const BoardT& board, BitBoardT pawnsPush) {
+    inline void handlePawnsPush(StateT state, const BoardT& board, BitBoardT pawnsPush, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
       while(pawnsPush) {
 	const SquareT to = Bits::popLsb(pawnsPush);
 	const SquareT from = To2FromFn::fn(to);
 
-	const BoardT newBoard = movePiece<BoardTraitsT::Color, SomePawns, Push, IsPushTwo>(board, from, to);
+	const BoardT newBoard = pushPawn<BoardTraitsT::Color, IsPushTwo>(board, from, to);
 
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(PushMove, to));
+	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
+	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
+	
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, PushMove, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePawnsPushOne(StateT state, const BoardT& board, BitBoardT pawnsPushOne) {
-      handlePawnsPush<StateT, PosHandlerT, BoardTraitsT, PawnPushOneTo2FromFn<BoardTraitsT::Color>, /*IsPushTwo =*/false>(state, board, pawnsPushOne);
+    inline void handlePawnsPushOne(StateT state, const BoardT& board, BitBoardT pawnsPushOne, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
+      handlePawnsPush<StateT, PosHandlerT, BoardTraitsT, PawnPushOneTo2FromFn<BoardTraitsT::Color>, /*IsPushTwo =*/false>(state, board, pawnsPushOne, directChecksBb, discoveriesBb);
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePawnsPushTwo(StateT state, const BoardT& board, BitBoardT pawnsPushTwo) {
-      handlePawnsPush<StateT, PosHandlerT, BoardTraitsT, PawnPushTwoTo2FromFn<BoardTraitsT::Color>, /*IsPushTwo =*/true>(state, board, pawnsPushTwo);
+    inline void handlePawnsPushTwo(StateT state, const BoardT& board, BitBoardT pawnsPushTwo, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
+      handlePawnsPush<StateT, PosHandlerT, BoardTraitsT, PawnPushTwoTo2FromFn<BoardTraitsT::Color>, /*IsPushTwo =*/true>(state, board, pawnsPushTwo, directChecksBb, discoveriesBb);
     }
 
     template <ColorT Color>
@@ -57,29 +60,32 @@ namespace Chess {
     };
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn>
-    inline void handlePawnsCapture(StateT state, const BoardT& board, BitBoardT pawnsCapture) {
+    inline void handlePawnsCapture(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCapture, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
       while(pawnsCapture) {
 	const SquareT to = Bits::popLsb(pawnsCapture);
 	const SquareT from = To2FromFn::fn(to);
 
-	const BoardT newBoard = movePiece<BoardTraitsT::Color, SomePawns, Capture>(board, from, to);
+	const BoardT newBoard = captureWithPawn<BoardTraitsT::Color>(board, yourPieceMap, from, to);
 
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(CaptureMove, to));
+	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
+	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
+	
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, CaptureMove, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePawnsCaptureLeft(StateT state, const BoardT& board, BitBoardT pawnsCaptureLeft) {
-      handlePawnsCapture<StateT, PosHandlerT, BoardTraitsT, PawnAttackLeftTo2FromFn<BoardTraitsT::Color>>(state, board, pawnsCaptureLeft);
+    inline void handlePawnsCaptureLeft(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureLeft, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
+      handlePawnsCapture<StateT, PosHandlerT, BoardTraitsT, PawnAttackLeftTo2FromFn<BoardTraitsT::Color>>(state, board, yourPieceMap, pawnsCaptureLeft, directChecksBb, discoveriesBb);
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePawnsCaptureRight(StateT state, const BoardT& board, BitBoardT pawnsCaptureRight) {
-      handlePawnsCapture<StateT, PosHandlerT, BoardTraitsT, PawnAttackRightTo2FromFn<BoardTraitsT::Color>>(state, board, pawnsCaptureRight);
+    inline void handlePawnsCaptureRight(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureRight, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
+      handlePawnsCapture<StateT, PosHandlerT, BoardTraitsT, PawnAttackRightTo2FromFn<BoardTraitsT::Color>>(state, board, yourPieceMap, pawnsCaptureRight, directChecksBb, discoveriesBb);
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn>
-    inline void handlePawnEpCapture(StateT state, const BoardT& board, BitBoardT pawnsEpCaptureBb) {
+    inline void handlePawnEpCapture(StateT state, const BoardT& board, BitBoardT pawnsEpCaptureBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const bool isEpDiscovery) {
       // There can be only 1 en-passant capture, so no need to loop
       if(pawnsEpCaptureBb) {
 	const SquareT to = Bits::lsb(pawnsEpCaptureBb);
@@ -88,95 +94,108 @@ namespace Chess {
 
 	const BoardT newBoard = captureEp<BoardTraitsT::Color>(board, from, to, captureSq);
 
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(EpCaptureMove, to));
+	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
+	const bool isDiscoveredCheck = isEpDiscovery || (bbForSquare(from) & discoveriesBb) != BbNone;
+	
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, EpCaptureMove, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePawnEpCaptureLeft(StateT state, const BoardT& board, BitBoardT pawnsCaptureLeft) {
-      handlePawnEpCapture<StateT, PosHandlerT, BoardTraitsT, PawnAttackLeftTo2FromFn<BoardTraitsT::Color>>(state, board, pawnsCaptureLeft);
+    inline void handlePawnEpCaptureLeft(StateT state, const BoardT& board, BitBoardT pawnsCaptureLeft, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const bool isEpDiscovery) {
+      handlePawnEpCapture<StateT, PosHandlerT, BoardTraitsT, PawnAttackLeftTo2FromFn<BoardTraitsT::Color>>(state, board, pawnsCaptureLeft, directChecksBb, discoveriesBb, isEpDiscovery);
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePawnEpCaptureRight(StateT state, const BoardT& board, BitBoardT pawnsCaptureRight) {
-      handlePawnEpCapture<StateT, PosHandlerT, BoardTraitsT, PawnAttackRightTo2FromFn<BoardTraitsT::Color>>(state, board, pawnsCaptureRight);
+    inline void handlePawnEpCaptureRight(StateT state, const BoardT& board, BitBoardT pawnsCaptureRight, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const bool isEpDiscovery) {
+      handlePawnEpCapture<StateT, PosHandlerT, BoardTraitsT, PawnAttackRightTo2FromFn<BoardTraitsT::Color>>(state, board, pawnsCaptureRight, directChecksBb, discoveriesBb, isEpDiscovery);
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePawnMoves(StateT state, const BoardT& board, const PawnPushesAndCapturesT& pawnMoves) {
+    inline void handlePawnMoves(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const PawnPushesAndCapturesT& pawnMoves, const BitBoardT directChecksBb, const BitBoardT pushDiscoveriesBb, const BitBoardT leftDiscoveriesBb, const BitBoardT rightDiscoveriesBb, const bool isEpDiscovery) {
 
       // Pawn pushes
-      handlePawnsPushOne<StateT, PosHandlerT, BoardTraitsT>(state, board, pawnMoves.pushesOneBb);
-      handlePawnsPushTwo<StateT, PosHandlerT, BoardTraitsT>(state, board, pawnMoves.pushesTwoBb);
+      handlePawnsPushOne<StateT, PosHandlerT, BoardTraitsT>(state, board, pawnMoves.pushesOneBb, directChecksBb, pushDiscoveriesBb);
+      handlePawnsPushTwo<StateT, PosHandlerT, BoardTraitsT>(state, board, pawnMoves.pushesTwoBb, directChecksBb, pushDiscoveriesBb);
 	
       // Pawn captures
-      handlePawnsCaptureLeft<StateT, PosHandlerT, BoardTraitsT>(state, board, pawnMoves.capturesLeftBb);
-      handlePawnsCaptureRight<StateT, PosHandlerT, BoardTraitsT>(state, board, pawnMoves.capturesRightBb);
+      handlePawnsCaptureLeft<StateT, PosHandlerT, BoardTraitsT>(state, board, yourPieceMap, pawnMoves.capturesLeftBb, directChecksBb, leftDiscoveriesBb);
+      handlePawnsCaptureRight<StateT, PosHandlerT, BoardTraitsT>(state, board, yourPieceMap, pawnMoves.capturesRightBb, directChecksBb, rightDiscoveriesBb);
       
       // Pawn en-passant captures
-      handlePawnEpCaptureLeft<StateT, PosHandlerT, BoardTraitsT>(state, board, pawnMoves.epCaptures.epLeftCaptureBb);
-      handlePawnEpCaptureRight<StateT, PosHandlerT, BoardTraitsT>(state, board, pawnMoves.epCaptures.epRightCaptureBb);
+      handlePawnEpCaptureLeft<StateT, PosHandlerT, BoardTraitsT>(state, board, pawnMoves.epCaptures.epLeftCaptureBb, directChecksBb, leftDiscoveriesBb, isEpDiscovery);
+      handlePawnEpCaptureRight<StateT, PosHandlerT, BoardTraitsT>(state, board, pawnMoves.epCaptures.epRightCaptureBb, directChecksBb, rightDiscoveriesBb, isEpDiscovery);
     }
     
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece, PushOrCaptureT PushOrCapture>
-    inline void handlePieceMoves(StateT state, const BoardT& board, const SquareT from, BitBoardT toBb, const MoveTypeT moveType) {
+    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece>
+    inline void handlePiecePushes(StateT state, const BoardT& board, const SquareT from, /*const*/ BitBoardT toBb/*pushesBb*/, const BitBoardT directChecksBb, const BitBoardT discoveredChecksBb) {
       while(toBb) {
 	const SquareT to = Bits::popLsb(toBb);
+	
+	const BoardT newBoard = pushPiece<BoardTraitsT::Color, Piece>(board, from, to);
 
-	const BoardT newBoard = movePiece<BoardTraitsT::Color, Piece, PushOrCapture>(board, from, to);
-
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(moveType, to));
+	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
+	const bool isDiscoveredCheck = (bbForSquare(from) & discoveredChecksBb) != BbNone;
+	
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, PushMove/*moveType*/, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece>
-    inline void handlePiecePushes(StateT state, const BoardT& board, const SquareT from, const BitBoardT pushesBb) {
-      handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, Piece, Push>(state, board, from, pushesBb, PushMove);
-    }
-    
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece>
-    inline void handlePieceCaptures(StateT state, const BoardT& board, const SquareT from, const BitBoardT capturesBb) {
-      handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, Piece, Capture>(state, board, from, capturesBb, CaptureMove);
+    inline void handlePieceCaptures(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, /*const*/ BitBoardT toBb/*capturesBb*/, const BitBoardT directChecksBb, const BitBoardT discoveredChecksBb) {
+      while(toBb) {
+	const SquareT to = Bits::popLsb(toBb);
+	
+	const BoardT newBoard = captureWithPiece<BoardTraitsT::Color, Piece>(board, yourPieceMap, from, to);
+
+	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
+	const bool isDiscoveredCheck = (bbForSquare(from) & discoveredChecksBb) != BbNone;
+	
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, CaptureMove/*moveType*/, from, to, isDirectCheck, isDiscoveredCheck));
+      }
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece>
-    inline void handlePieceMoves(StateT state, const BoardT& board, const BitBoardT movesBb, const BitBoardT allYourPiecesBb) {
+    inline void handlePieceMoves(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveredChecksBb, const BitBoardT allYourPiecesBb) {
       const ColorStateT& myState = board.pieces[(size_t)BoardTraitsT::Color];
       const SquareT from = myState.pieceSquares[Piece];
 
-      handlePiecePushes<StateT, PosHandlerT, BoardTraitsT, Piece>(state, board, from, movesBb & ~allYourPiecesBb);
+      handlePiecePushes<StateT, PosHandlerT, BoardTraitsT, Piece>(state, board, from, movesBb & ~allYourPiecesBb, directChecksBb, discoveredChecksBb);
       
-      handlePieceCaptures<StateT, PosHandlerT, BoardTraitsT, Piece>(state, board, from, movesBb & allYourPiecesBb);
+      handlePieceCaptures<StateT, PosHandlerT, BoardTraitsT, Piece>(state, board, yourPieceMap, from, movesBb & allYourPiecesBb, directChecksBb, discoveredChecksBb);
     }
-    
+
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, CastlingRightsT CastlingRight>
     inline void handleCastlingMove(StateT state, const BoardT& board) {
       const ColorT Color = BoardTraitsT::Color;
       
-      const BoardT newBoard1 = movePiece<Color, TheKing, Push>(board, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo);
-      const BoardT newBoard = movePiece<Color, CastlingTraitsT<Color, CastlingRight>::TheRook, Push>(newBoard1, CastlingTraitsT<Color, CastlingRight>::RookFrom, CastlingTraitsT<Color, CastlingRight>::RookTo);
+      const BoardT newBoard1 = pushPiece<Color, TheKing>(board, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo);
+      const BoardT newBoard = pushPiece<Color, CastlingTraitsT<Color, CastlingRight>::TheRook>(newBoard1, CastlingTraitsT<Color, CastlingRight>::RookFrom, CastlingTraitsT<Color, CastlingRight>::RookTo);
 
       // We use the king (from and) to square by convention
-      PosHandlerT::handlePos(state, newBoard, MoveInfoT(CastlingMove, CastlingTraitsT<Color, CastlingRight>::KingTo));
+      PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, CastlingMove, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo, /*isDirectCheck*/false, /*isDiscoveredCheck TODO*/false));
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
     inline void makeAllLegalMoves(StateT state, const BoardT& board) {
-      typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
-
       const ColorT OtherColor = BoardTraitsT::OtherColor;
-
-      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
-      const BitBoardT allYourPiecesBb = yourState.bbs[AllPieceTypes];
 
       // Generate (legal) moves
       const LegalMovesT legalMoves = genLegalMoves<BoardTraitsT>(board);
+
+      const ColorPieceBbsT& yourPieceBbs = legalMoves.pieceBbs.colorPieceBbs[(size_t)OtherColor];
+
+      typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
+      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+      const ColorPieceMapT& yourPieceMap = genColorPieceMap<YourColorTraitsT>(yourState);
+      
+      const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
 
       // Is this an illegal pos - note this should never happen(tm) - but we will notice quickly
       if(legalMoves.isIllegalPos) {
 	static bool done = false;
 	if(!done) {
-	  printf("\n============================================== Invalid pos! ===================================\n\n");
+	  printf("\n============================================== Invalid Pos :( ===================================\n\n");
 	  printBoard(board);
 	  printf("\n");
 	  done = true;
@@ -190,30 +209,22 @@ namespace Chess {
 	// Evaluate moves
 
 	// Pawns
-	//perftImplPawnMoves<BoardTraitsT>(newState, board, legalMoves.pawnMoves);
-	handlePawnMoves<StateT, PosHandlerT, BoardTraitsT>(state, board, legalMoves.pawnMoves);
+	handlePawnMoves<StateT, PosHandlerT, BoardTraitsT>(state, board, yourPieceMap, legalMoves.pawnMoves, legalMoves.directChecks.pawnChecksBb, legalMoves.discoveredChecks.pawnPushDiscoveryMasksBb, legalMoves.discoveredChecks.pawnLeftDiscoveryMasksBb, legalMoves.discoveredChecks.pawnRightDiscoveryMasksBb, legalMoves.discoveredChecks.isEpDiscovery);
 	
 	// Knights
-	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, QueenKnight>(state, board, legalMoves.pieceMoves[QueenKnight], allYourPiecesBb);
-	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, KingKnight>(state, board, legalMoves.pieceMoves[KingKnight], allYourPiecesBb);
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, QueenKnight>(state, board, yourPieceMap, legalMoves.pieceMoves[QueenKnight], legalMoves.directChecks.knightChecksBb, (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb);
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, KingKnight>(state, board, yourPieceMap, legalMoves.pieceMoves[KingKnight], legalMoves.directChecks.knightChecksBb, (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb);
 	
 	// Bishops
-	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, BlackBishop>(state, board, legalMoves.pieceMoves[BlackBishop], allYourPiecesBb); 
-	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, WhiteBishop>(state, board, legalMoves.pieceMoves[WhiteBishop], allYourPiecesBb); 
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, BlackBishop>(state, board, yourPieceMap, legalMoves.pieceMoves[BlackBishop], legalMoves.directChecks.bishopChecksBb, legalMoves.discoveredChecks.orthogDiscoveryPiecesBb, allYourPiecesBb); 
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, WhiteBishop>(state, board, yourPieceMap, legalMoves.pieceMoves[WhiteBishop], legalMoves.directChecks.bishopChecksBb, legalMoves.discoveredChecks.orthogDiscoveryPiecesBb, allYourPiecesBb); 
 
 	// Rooks
-	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, QueenRook>(state, board, legalMoves.pieceMoves[QueenRook], allYourPiecesBb); 
-	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, KingRook>(state, board, legalMoves.pieceMoves[KingRook], allYourPiecesBb); 
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, QueenRook>(state, board, yourPieceMap, legalMoves.pieceMoves[QueenRook], legalMoves.directChecks.rookChecksBb, legalMoves.discoveredChecks.diagDiscoveryPiecesBb, allYourPiecesBb); 
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, KingRook>(state, board, yourPieceMap, legalMoves.pieceMoves[KingRook], legalMoves.directChecks.rookChecksBb, legalMoves.discoveredChecks.diagDiscoveryPiecesBb, allYourPiecesBb); 
 
 	// Queen
-	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, TheQueen>(state, board, legalMoves.pieceMoves[TheQueen], allYourPiecesBb); 
-
-	// TODO other promo pieces
-	if(MyColorTraitsT::HasPromos) {
-	  if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
-	    handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, PromoQueen>(state, board, legalMoves.pieceMoves[PromoQueen], allYourPiecesBb);  
-	  }
-	}
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, TheQueen>(state, board, yourPieceMap, legalMoves.pieceMoves[TheQueen], (legalMoves.directChecks.bishopChecksBb | legalMoves.directChecks.rookChecksBb), /*discoveredChecksBb*/BbNone, allYourPiecesBb); 
 
 	// Castling
 	CastlingRightsT canCastleFlags = legalMoves.canCastleFlags;
@@ -231,8 +242,7 @@ namespace Chess {
       } // nChecks < 2
       
       // King
-      handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, TheKing>(state, board, legalMoves.pieceMoves[TheKing], allYourPiecesBb); 
-
+      handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, TheKing>(state, board, yourPieceMap, legalMoves.pieceMoves[TheKing], /*directChecksBb = */BbNone, /*discoveredChecksBb*/BbNone, allYourPiecesBb); 
     }
      
   } // namespace MakeMove
