@@ -282,21 +282,21 @@ namespace Chess {
 	throw std::invalid_argument("Invalid number of bishops in FEN - we cannot handle promos at present");
       }
       SquareT whiteBishopSq = InvalidSquare;
-      SquareT blackBishopSq = InvalidSquare;
+      SquareT bishop1Sq = InvalidSquare;
       if(bishopSquares.size() > 0) {
 	//printf("Color %d bishopSquares.size() is %d\n", color, bishopSquares.size());
 	whiteBishopSq = bishopSquares[0];
       }
       if(bishopSquares.size() > 1) {
-	blackBishopSq = bishopSquares[1];
+	bishop1Sq = bishopSquares[1];
       }
 
       if(whiteBishopSq != InvalidSquare) {
 	placePiece(board, color, whiteBishopSq, WhiteBishop);
       }
 
-      if(blackBishopSq != InvalidSquare) {
-	placePiece(board, color, blackBishopSq, BlackBishop);
+      if(bishop1Sq != InvalidSquare) {
+	placePiece(board, color, bishop1Sq, Bishop1);
       }
     }
     

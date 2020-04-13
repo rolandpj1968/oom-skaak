@@ -146,7 +146,7 @@ namespace Chess {
     SomePawns,
     Knight1,
     Knight2,
-    BlackBishop,
+    Bishop1,
     WhiteBishop,
     QueenRook,
     KingRook,
@@ -160,7 +160,7 @@ namespace Chess {
     Pawn,          // SomePawns,
     Knight,        // Knight1,
     Knight,        // Knight2,
-    Bishop,        // BlackBishop,
+    Bishop,        // Bishop1,
     Bishop,        // WhiteBishop,
     Rook,          // QueenRook,
     Rook,          // KingRook,
@@ -173,7 +173,7 @@ namespace Chess {
   template <> struct PieceTypeForPieceT<SomePawns> { static const PieceTypeT value = Pawn; };
   template <> struct PieceTypeForPieceT<Knight1> { static const PieceTypeT value = Knight; };
   template <> struct PieceTypeForPieceT<Knight2> { static const PieceTypeT value = Knight; };
-  template <> struct PieceTypeForPieceT<BlackBishop> { static const PieceTypeT value = Bishop; };
+  template <> struct PieceTypeForPieceT<Bishop1> { static const PieceTypeT value = Bishop; };
   template <> struct PieceTypeForPieceT<WhiteBishop> { static const PieceTypeT value = Bishop; };
   template <> struct PieceTypeForPieceT<QueenRook> { static const PieceTypeT value = Rook; };
   template <> struct PieceTypeForPieceT<KingRook> { static const PieceTypeT value = Rook; };
@@ -184,7 +184,7 @@ namespace Chess {
     PawnsPresentShift,
     Knight1PresentShift,
     Knight2PresentShift,
-    BlackBishopPresentShift,
+    Bishop1PresentShift,
     WhiteBishopPresentShift,
     QueenRookPresentShift,
     KingRookPresentShift,
@@ -212,7 +212,7 @@ namespace Chess {
     NoCastlingRights,        // SomePawns,
     NoCastlingRights,        // Knight1,
     NoCastlingRights,        // Knight2,
-    NoCastlingRights,        // BlackBishop,
+    NoCastlingRights,        // Bishop1,
     NoCastlingRights,        // WhiteBishop,
     CanCastleQueenside,      // QueenRook,
     CanCastleKingside,       // KingRook,

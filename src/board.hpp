@@ -77,7 +77,7 @@ namespace Chess {
       // TODO promos
       pieceMap.board[state.pieceSquares[Knight1]] = Knight1;
       pieceMap.board[state.pieceSquares[Knight2]] = Knight2;
-      pieceMap.board[state.pieceSquares[BlackBishop]] = BlackBishop;
+      pieceMap.board[state.pieceSquares[Bishop1]] = Bishop1;
       pieceMap.board[state.pieceSquares[WhiteBishop]] = WhiteBishop;
       pieceMap.board[state.pieceSquares[QueenRook]] = QueenRook;
       pieceMap.board[state.pieceSquares[KingRook]] = KingRook;
