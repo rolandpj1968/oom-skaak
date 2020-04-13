@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include <cstdio>
+
 #include "board.hpp"
 #include "fen.hpp"
 
@@ -47,7 +49,7 @@ namespace Chess {
       { 'k', PieceTypeAndColorT(King, Black) },
     };
 
-    static void parseRank(BoardT& board, int fenRank, const std::string& pieces) {
+    static void parseRank(std::map<ColorT, std::map<PieceTypeT, std::vector<SquareT>>>& pieceTypeMap, int fenRank, const std::string& pieces) {
       int file = 0;
       for(unsigned i = 0; i < pieces.size(); i++) {
 
@@ -70,23 +72,23 @@ namespace Chess {
 
 	  // FEN goes from rank 8 down to rank 1
 	  const SquareT sq = squareOf(7 - fenRank, file);
-	  
-	  if(pieceTypeAndColor.pieceType == Pawn) {
-	    placePawn(board, pieceTypeAndColor.color, sq);
-	  } else {
-	    // Implement me!
-	  }
+
+	  pieceTypeMap[pieceTypeAndColor.color][pieceTypeAndColor.pieceType].push_back(sq);
 
 	  file++;
 	}
 
-	if(file >= 8) {
+	if(file > 8) {
 	  throw std::invalid_argument("Rank has too many items in FEN piece placement string - expecting 8");
 	}
       }
     }
 
-    static void parsePieces(BoardT& board, std::string pieces) {
+    // Return map: color -> map: piece-type -> squares
+    // We will add the pieces to the board once we've worked out what the pieces are wrt castling rights, bishop color, promo pieces etc.
+    static std::map<ColorT, std::map<PieceTypeT, std::vector<SquareT>>> parsePieces(std::string pieces) {
+      std::map<ColorT, std::map<PieceTypeT, std::vector<SquareT>>> pieceTypeMap;
+      
       // Split into ranks with a little hack
       std::replace(pieces.begin(), pieces.end(), '/', ' ');
       auto ranks = split(pieces);
@@ -96,8 +98,10 @@ namespace Chess {
       }
 
       for(int rank = 0; rank < 8; rank++) {
-	parseRank(board, rank, ranks[rank]);
+	parseRank(pieceTypeMap, rank, ranks[rank]);
       }
+
+      return pieceTypeMap;
     }
     
     static ColorT parseColor(const std::string& color) {
@@ -111,8 +115,6 @@ namespace Chess {
     }
 
     std::pair<BoardT, ColorT> parseFen(const std::string& fen) {
-      BoardT board;
-      
       // split the FEN string into fields
       auto fields = split(fen);
 
@@ -121,9 +123,11 @@ namespace Chess {
       }
 
       // Place the pieces
-      parsePieces(board, fields[0]);
+      auto pieceTypeMap = parsePieces(fields[0]);
 
       ColorT color = parseColor(fields[1]);
+      
+      BoardT board;
       
       throw std::invalid_argument("implement me");
 
