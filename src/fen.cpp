@@ -51,13 +51,11 @@ namespace Chess {
 
     static void parseRank(std::map<ColorT, std::map<PieceTypeT, std::vector<SquareT>>>& pieceTypeMap, int fenRank, const std::string& pieces) {
       int file = 0;
-      for(unsigned i = 0; i < pieces.size(); i++) {
+      for(char c: pieces) {
 
 	if(file >= 8) {
 	  throw std::invalid_argument("Rank has too few items in FEN piece placement string - expecting 8");
 	}
-
-	char c = pieces[i];
 
 	if('1' <= c && c <= '8') {
 	  file += c - '0';
@@ -114,6 +112,199 @@ namespace Chess {
       }
     }
 
+    // Return map: color -> map: piece-type -> squares
+    // We will add the pieces to the board once we've worked out what the pieces are wrt castling rights, bishop color, promo pieces etc.
+    static std::map<ColorT, CastlingRightsT> parseCastlingRights(std::string castlingRightsString) {
+      std::map<ColorT, CastlingRightsT> castlingRights;
+
+      if(castlingRightsString == "-") {
+	return castlingRights;
+      }
+
+      for(char c: castlingRightsString) {
+	ColorT color;
+	CastlingRightsT rights;
+	
+	switch(c) {
+	case 'K': color = White; rights = CanCastleKingside; break;
+	case 'Q': color = White; rights = CanCastleQueenside; break;
+	case 'k': color = Black; rights = CanCastleKingside; break;
+	case 'q': color = Black; rights = CanCastleQueenside; break;
+	default:
+	  throw std::invalid_argument("Invalid character in FEN castling rights");
+	}
+
+	castlingRights[color] = (CastlingRightsT) (castlingRights[color] | rights);
+      }
+
+      return castlingRights;
+    }
+
+    // Place pieces on the board - this is fiddlier than ideal because we have to map to sensible concrete pieces like BlackBishop etc.
+    // Where there are castling rights, it's critical that rooks are assigned correctly.
+    static void placePieces(BoardT& board, const ColorT color, std::map<PieceTypeT, std::vector<SquareT>>& pieceTypeMap, const CastlingRightsT castlingRights) {
+      // Pawns - there MUST be 8 at most
+      const std::vector<SquareT>& pawnSquares = pieceTypeMap[Pawn];
+      if(pawnSquares.size() > 8) {
+	throw std::invalid_argument("Too many pawns in FEN - expecting 8 at most per color");
+      }
+      for(SquareT pawnSq: pawnSquares) {
+	placePawn(board, color, pawnSq);
+      }
+      
+      // King - there MUST be only one
+      const std::vector<SquareT>& kingSquares = pieceTypeMap[King];
+      if(kingSquares.size() != 1) {
+	throw std::invalid_argument("Invalid number of kings in FEN - there must be (only) one");
+      }
+      const SquareT kingSq = kingSquares[0];
+      // If there are castling rights then the king MUST be on its starting square
+      const SquareT KingHomes[(size_t)NColors] = {E1, E8};
+      if(castlingRights != NoCastlingRights && kingSq != KingHomes[(size_t)color]) {
+	throw std::invalid_argument("Castling rights specific in FEN but king is not on its starting square");
+      }
+      placePiece(board, color, kingSq, TheKing);
+
+      // Queen - we only handle one at present
+      const std::vector<SquareT>& queenSquares = pieceTypeMap[Queen];
+      if(queenSquares.size() > 1) {
+	throw std::invalid_argument("Invalid number of queens in FEN - we cannot handle promos at present");
+      }
+      if(queenSquares.size() > 0) {
+	const SquareT queenSq = queenSquares[0];
+	placePiece(board, color, queenSq, TheQueen);
+      }
+
+      // Rooks - we only handle two at present; if castling rights are specified then the corresponding rook must be on its starting position
+      std::vector<SquareT> rookSquares = pieceTypeMap[Rook];
+      if(rookSquares.size() > 2) {
+	throw std::invalid_argument("Invalid number of rooks in FEN - we cannot handle promos at present");
+      }
+
+      const SquareT QueenRookHomes[(size_t)NColors] = {A1, A8};
+      const SquareT QueenRookHome = QueenRookHomes[(size_t)color];
+
+      SquareT queenRookSq = InvalidSquare;
+      
+      auto queenRookSqIt = find(rookSquares.begin(), rookSquares.end(), QueenRookHome);
+      if(queenRookSqIt != rookSquares.end()) {
+	rookSquares.erase(queenRookSqIt);
+	queenRookSq = QueenRookHome;
+      }
+	
+      const SquareT KingRookHomes[(size_t)NColors] = {H1, H8};
+      const SquareT KingRookHome = KingRookHomes[(size_t)color];
+
+      SquareT kingRookSq = InvalidSquare;
+      
+      auto kingRookSqIt = find(rookSquares.begin(), rookSquares.end(), KingRookHome);
+      if(kingRookSqIt != rookSquares.end()) {
+	rookSquares.erase(kingRookSqIt);
+	kingRookSq = KingRookHome;
+      }
+
+      // Otherwise allocate the rooks arbitrarily
+      unsigned i = 0;
+      if(queenRookSq == InvalidSquare && i < rookSquares.size()) {
+	queenRookSq = rookSquares[i++];
+      }
+      if(kingRookSq == InvalidSquare && i < rookSquares.size()) {
+	kingRookSq = rookSquares[i++];
+      }
+
+      // Check that castling rights are valid
+      if((castlingRights & CanCastleQueenside) && queenRookSq != QueenRookHome) {
+	throw std::invalid_argument("Queen side castling specified in FEN but queen rook is not on its home square");
+      }
+      if(queenRookSq != InvalidSquare) {
+	placePiece(board, color, queenRookSq, QueenRook);
+      }
+	
+      // Check that castling rights are valid
+      if((castlingRights & CanCastleKingside) && kingRookSq != KingRookHome) {
+	throw std::invalid_argument("King side castling specified in FEN but king rook is not on its home square");
+      }
+      if(kingRookSq != InvalidSquare) {
+	placePiece(board, color, kingRookSq, KingRook);
+      }
+	
+      // Knights - we only handle two at present; we don't really need to allocate them authentically but meh!
+      // TODO - just rename to Knight1 and Knight2 - this is ridonculous
+      std::vector<SquareT> knightSquares = pieceTypeMap[Knight];
+      if(knightSquares.size() > 2) {
+	throw std::invalid_argument("Invalid number of knights in FEN - we cannot handle promos at present");
+      }
+
+      const SquareT QueenKnightHomes[(size_t)NColors] = {A1, A8};
+      const SquareT QueenKnightHome = QueenKnightHomes[(size_t)color];
+
+      SquareT queenKnightSq = InvalidSquare;
+      
+      auto queenKnightSqIt = find(knightSquares.begin(), knightSquares.end(), QueenKnightHome);
+      if(queenKnightSqIt != knightSquares.end()) {
+	knightSquares.erase(queenKnightSqIt);
+	queenKnightSq = QueenKnightHome;
+      }
+	
+      const SquareT KingKnightHomes[(size_t)NColors] = {H1, H8};
+      const SquareT KingKnightHome = KingKnightHomes[(size_t)color];
+
+      SquareT kingKnightSq = InvalidSquare;
+      
+      auto kingKnightSqIt = find(knightSquares.begin(), knightSquares.end(), KingKnightHome);
+      if(kingKnightSqIt != knightSquares.end()) {
+	knightSquares.erase(kingKnightSqIt);
+	kingKnightSq = KingKnightHome;
+      }
+
+      // Otherwise allocate the knights arbitrarily
+      /*unsigned*/ i = 0;
+      if(queenKnightSq == InvalidSquare && i < knightSquares.size()) {
+	queenKnightSq = knightSquares[i++];
+      }
+      if(kingKnightSq == InvalidSquare && i < knightSquares.size()) {
+	kingKnightSq = knightSquares[i++];
+      }
+
+      if(queenKnightSq != InvalidSquare) {
+	placePiece(board, color, queenKnightSq, QueenKnight);
+      }
+	
+      if(kingKnightSq != InvalidSquare) {
+	placePiece(board, color, kingKnightSq, KingKnight);
+      }
+	
+      // Bishops - we only handle two at present
+      // TODO bishop naming at the moment is broken - I'm gonna rename to Bishop1 and Bishop2 cos at present black's black bishop is called WhiteBishop
+      std::vector<SquareT> bishopSquares = pieceTypeMap[Bishop];
+      //printf("Color %d bishopSquares.size() is %d\n", color, bishopSquares.size());
+      if(bishopSquares.size() > 2) {
+	throw std::invalid_argument("Invalid number of bishops in FEN - we cannot handle promos at present");
+      }
+      SquareT whiteBishopSq = InvalidSquare;
+      SquareT blackBishopSq = InvalidSquare;
+      if(bishopSquares.size() > 0) {
+	//printf("Color %d bishopSquares.size() is %d\n", color, bishopSquares.size());
+	whiteBishopSq = bishopSquares[0];
+      }
+      if(bishopSquares.size() > 1) {
+	blackBishopSq = bishopSquares[1];
+      }
+
+      if(whiteBishopSq != InvalidSquare) {
+	placePiece(board, color, whiteBishopSq, WhiteBishop);
+      }
+
+      if(blackBishopSq != InvalidSquare) {
+	placePiece(board, color, blackBishopSq, BlackBishop);
+      }
+    }
+    
+    static void placePieces(BoardT& board, std::map<ColorT, std::map<PieceTypeT, std::vector<SquareT>>>& pieceTypeMap, std::map<ColorT, CastlingRightsT>& castlingRights) {
+      placePieces(board, White, pieceTypeMap[White], castlingRights[White]);
+      placePieces(board, Black, pieceTypeMap[Black], castlingRights[Black]);
+    }
+    
     std::pair<BoardT, ColorT> parseFen(const std::string& fen) {
       // split the FEN string into fields
       auto fields = split(fen);
@@ -122,15 +313,27 @@ namespace Chess {
 	throw std::invalid_argument("Invalid number of FEN fields - we allow 4 to 6");
       }
 
-      // Place the pieces
+      // Piece placement
       auto pieceTypeMap = parsePieces(fields[0]);
 
+      // Color to move
       ColorT color = parseColor(fields[1]);
-      
-      BoardT board;
-      
-      throw std::invalid_argument("implement me");
 
+      // Castling rights
+      auto castlingRights = parseCastlingRights(fields[2]);
+
+      // EP square
+      SquareT epSquare = InvalidSquare; // TODO parseEpSquare(fields[3]);
+      
+      BoardT board = emptyBoard();
+
+      placePieces(board, pieceTypeMap, castlingRights);
+
+      board.pieces[(size_t)White].castlingRights = castlingRights[White];
+      board.pieces[(size_t)Black].castlingRights = castlingRights[Black];
+
+      board.pieces[(size_t)otherColor(color)].epSquare = epSquare;
+      
       return std::make_pair(board, color);
     }
 

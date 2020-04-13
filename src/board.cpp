@@ -16,6 +16,17 @@ namespace Chess {
 
     using namespace MoveGen;
 
+    BoardT emptyBoard() {
+      BoardT board = {};
+      for(unsigned color = 0; color < NColors; color++) {
+	ColorStateT& colorState = board.pieces[color];
+	for(int i = 0; i < NPieces; i++) {
+	  colorState.pieceSquares[i] = InvalidSquare;
+	}
+      }
+      return board;
+    }
+
     // TODO - unusual promos
     static void addPiece(BoardT& board, const ColorT color, const SquareT square, const PieceT piece) {
       ColorStateT& c = board.pieces[(size_t)color];
@@ -35,7 +46,7 @@ namespace Chess {
       // Pieces
       addPiece(board, color, firstPieceSquare,       QueenRook);
       addPiece(board, color, firstPieceSquare+B1-A1, QueenKnight);
-      addPiece(board, color, firstPieceSquare+C1-A1, BlackBishop);
+      addPiece(board, color, firstPieceSquare+C1-A1, BlackBishop); // TODO - this is the white bishop for black side!!!! Change the name!
       addPiece(board, color, firstPieceSquare+D1-A1, TheQueen);
       addPiece(board, color, firstPieceSquare+E1-A1, TheKing);
       addPiece(board, color, firstPieceSquare+F1-A1, WhiteBishop);
@@ -52,7 +63,7 @@ namespace Chess {
     }
 
     BoardT startingPosition() {
-      BoardT board = {0};
+      BoardT board = emptyBoard();
 
       addStartingPieces(board, White, A1, A2);
       addStartingPieces(board, Black, A8, A7);

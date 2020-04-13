@@ -64,6 +64,8 @@ int main(int argc, char* argv[]) {
   }
 
   printBoard(board);
+
+  return 0;
   
   ColorStateT& w = board.pieces[(size_t)White];
   ColorStateT& b = board.pieces[(size_t)Black];

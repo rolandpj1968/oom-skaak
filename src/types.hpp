@@ -19,6 +19,10 @@ namespace Chess {
   const ColorT Black = ColorT::Black;
   const size_t NColors = (size_t)ColorT::NColors;
 
+  inline ColorT otherColor(const ColorT color) {
+    return (ColorT) ((int)Black - (int)color);
+  }
+
   template <ColorT color> struct OtherColorT { static const ColorT value; };
   template <> struct OtherColorT<White> { static const ColorT value = Black; };
   template <> struct OtherColorT<Black> { static const ColorT value = White; };

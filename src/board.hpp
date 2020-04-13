@@ -12,7 +12,7 @@ namespace Chess {
       BitBoardT pawnsBb;
 
       // All pieces except pawns and strange promos.
-      // MUST be InvalidSquare if a piece is not present
+      // MUST be InvalidSquare if a piece is not present - see emptyBoard()
       SquareT pieceSquares[NPieces];
 
       // True iff there are promo pieces on the board.
@@ -253,13 +253,16 @@ namespace Chess {
       
       return board;
     }
-    
-    extern BoardT startingPosition();
 
-    extern bool isValid(const BoardT& board, const BitBoardT allYourKingAttackersBb);
+    // Note - MUST use this rather than zero-initialisation because piece squares need to be InvalidSquare
+    BoardT emptyBoard();
     
-    extern void printBoard(const BoardT& board);
-    extern void printBb(BitBoardT bb);
+    BoardT startingPosition();
+
+    bool isValid(const BoardT& board, const BitBoardT allYourKingAttackersBb);
+    
+    void printBoard(const BoardT& board);
+    void printBb(BitBoardT bb);
   }
     
 }
