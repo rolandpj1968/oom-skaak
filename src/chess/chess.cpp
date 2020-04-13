@@ -3,6 +3,7 @@
 #include <boost/preprocessor/iteration/local.hpp>
 
 #include "board.hpp"
+#include "fen.hpp"
 #include "move-gen.hpp"
 
 using namespace Chess;
@@ -16,8 +17,9 @@ int a[] = {
 #include BOOST_PP_LOCAL_ITERATE()
 };
 
-using namespace MoveGen;
 using namespace Board;
+using namespace Fen;
+using namespace MoveGen;
 
 static void dumpAttacks(const PieceAttacksT& pieceAttacks) {
   printf("pawn attacks left:   %016lx\n", pieceAttacks.pawnsLeftAttacks);
@@ -53,12 +55,20 @@ int main(int argc, char* argv[]) {
   printf("Hallo again RPJ - sizeof(a) is %zu, sizeof(a)/sizeof(a[0]) = %zu, a[4] = %d, a[0] = %d\n", sizeof(a), sizeof(a)/sizeof(a[0]), a[4], a[0]);
   printf("H8 is %u\n", H8);
 
-  BoardT startingBoard = Board::startingPosition();
-  
-  ColorStateT& w = startingBoard.pieces[(size_t)White];
-  ColorStateT& b = startingBoard.pieces[(size_t)Black];
+  BoardT board;
 
-  const PieceBbsT& pieceBbs = genPieceBbs<StartingBoardTraitsT>(startingBoard);
+  if(argc > 1) {
+    board = parseFen(argv[1]).first;
+  } else {
+    board = Board::startingPosition();
+  }
+
+  printBoard(board);
+  
+  ColorStateT& w = board.pieces[(size_t)White];
+  ColorStateT& b = board.pieces[(size_t)Black];
+
+  const PieceBbsT& pieceBbs = genPieceBbs<StartingBoardTraitsT>(board);
 
   const ColorPieceBbsT& wPieceBbs = pieceBbs.colorPieceBbs[(size_t)White];
   const ColorPieceBbsT& bPieceBbs = pieceBbs.colorPieceBbs[(size_t)Black];

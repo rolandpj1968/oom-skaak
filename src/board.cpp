@@ -19,15 +19,8 @@ namespace Chess {
     // TODO - unusual promos
     static void addPiece(BoardT& board, const ColorT color, const SquareT square, const PieceT piece) {
       ColorStateT& c = board.pieces[(size_t)color];
-      
-      // const BitBoardT pieceBb = bbForSquare(square);
-
-      // c.bbsOld[PieceTypeForPiece[piece]] |= pieceBb;
-      // c.bbsOld[AllPieceTypes] |= pieceBb;
 
       c.pieceSquares[piece] = square;
-
-      //board.board[square] = makeSquarePiece(color, piece);
     }
 
     static void addPawn(BoardT& board, const ColorT color, const SquareT square) {
@@ -35,12 +28,7 @@ namespace Chess {
       
       const BitBoardT pieceBb = bbForSquare(square);
 
-      c.pawnsBb/*bbsOld[PieceTypeForPiece[piece]]*/ |= pieceBb;
-      // c.bbsOld[AllPieceTypes] |= pieceBb;
-
-      // c.pieceSquares[piece] = square;
-
-      //board.board[square] = makeSquarePiece(color, SomePawns);
+      c.pawnsBb |= pieceBb;
     }
     
     static void addStartingPieces(BoardT& board, const ColorT color, const SquareT firstPieceSquare, const SquareT firstPawnSquare) {

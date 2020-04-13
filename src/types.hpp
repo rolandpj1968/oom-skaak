@@ -86,6 +86,10 @@ namespace Chess {
     return square & 0x7;
   }
 
+  inline SquareT squareOf(int rank, int file) {
+    return (rank << 3) | file;
+  }
+
 #include <boost/preprocessor/iteration/local.hpp>
   // Lookup table for single square -> bitboard (including InvalidSquare -> BbNone)
   const BitBoardT BbForSquare[64+1] = {

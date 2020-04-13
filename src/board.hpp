@@ -139,22 +139,29 @@ namespace Chess {
     }
 
     // TODO -  promos
-    template <ColorT Color>
-    inline void placePiece(BoardT& board, const SquareT square, const PieceT piece) {
+    inline void placePiece(BoardT& board, const ColorT color, const SquareT square, const PieceT piece) {
       // TODO handle non-standard promos
-      ColorStateT &pieces = board.pieces[(size_t)Color];
+      ColorStateT &pieces = board.pieces[(size_t)color];
 
       pieces.pieceSquares[piece] = square;
     }
-
+    
     template <ColorT Color>
-    inline void placePawn(BoardT& board, const SquareT square) {
-      // TODO handle non-standard promos
-      ColorStateT &pieces = board.pieces[(size_t)Color];
+    inline void placePiece(BoardT& board, const SquareT square, const PieceT piece) {
+      placePiece(board, Color, square, piece);
+    }
+
+    inline void placePawn(BoardT& board, const ColorT color, const SquareT square) {
+      ColorStateT &pieces = board.pieces[(size_t)color];
 
       const BitBoardT squareBb = bbForSquare(square);
 
       pieces.pawnsBb |= squareBb;
+    }
+
+    template <ColorT Color>
+    inline void placePawn(BoardT& board, const SquareT square) {
+      placePawn(board, Color, square);
     }
 
     // TODO - non-standard promos
