@@ -181,15 +181,15 @@ namespace Chess {
 	throw std::invalid_argument("Invalid number of rooks in FEN - we cannot handle promos at present");
       }
 
-      const SquareT QueenRookHomes[(size_t)NColors] = {A1, A8};
-      const SquareT QueenRookHome = QueenRookHomes[(size_t)color];
+      const SquareT Rook1Homes[(size_t)NColors] = {A1, A8};
+      const SquareT Rook1Home = Rook1Homes[(size_t)color];
 
-      SquareT queenRookSq = InvalidSquare;
+      SquareT rook1Sq = InvalidSquare;
       
-      auto queenRookSqIt = find(rookSquares.begin(), rookSquares.end(), QueenRookHome);
-      if(queenRookSqIt != rookSquares.end()) {
-	rookSquares.erase(queenRookSqIt);
-	queenRookSq = QueenRookHome;
+      auto rook1SqIt = find(rookSquares.begin(), rookSquares.end(), Rook1Home);
+      if(rook1SqIt != rookSquares.end()) {
+	rookSquares.erase(rook1SqIt);
+	rook1Sq = Rook1Home;
       }
 	
       const SquareT KingRookHomes[(size_t)NColors] = {H1, H8};
@@ -205,19 +205,19 @@ namespace Chess {
 
       // Otherwise allocate the rooks arbitrarily
       unsigned i = 0;
-      if(queenRookSq == InvalidSquare && i < rookSquares.size()) {
-	queenRookSq = rookSquares[i++];
+      if(rook1Sq == InvalidSquare && i < rookSquares.size()) {
+	rook1Sq = rookSquares[i++];
       }
       if(kingRookSq == InvalidSquare && i < rookSquares.size()) {
 	kingRookSq = rookSquares[i++];
       }
 
       // Check that castling rights are valid
-      if((castlingRights & CanCastleQueenside) && queenRookSq != QueenRookHome) {
+      if((castlingRights & CanCastleQueenside) && rook1Sq != Rook1Home) {
 	throw std::invalid_argument("Queen side castling specified in FEN but queen rook is not on its home square");
       }
-      if(queenRookSq != InvalidSquare) {
-	placePiece(board, color, queenRookSq, QueenRook);
+      if(rook1Sq != InvalidSquare) {
+	placePiece(board, color, rook1Sq, Rook1);
       }
 	
       // Check that castling rights are valid

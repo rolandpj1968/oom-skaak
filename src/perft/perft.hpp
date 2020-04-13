@@ -92,7 +92,7 @@ namespace Chess {
 	legalMoves.pieceMoves[Bishop1] |
 	legalMoves.pieceMoves[Bishop2] |
 	  
-	legalMoves.pieceMoves[QueenRook] |
+	legalMoves.pieceMoves[Rook1] |
 	legalMoves.pieceMoves[KingRook] |
 	  
 	legalMoves.pieceMoves[TheQueen] |

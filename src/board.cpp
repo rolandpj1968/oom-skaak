@@ -44,7 +44,7 @@ namespace Chess {
     
     static void addStartingPieces(BoardT& board, const ColorT color, const SquareT firstPieceSquare, const SquareT firstPawnSquare) {
       // Pieces
-      addPiece(board, color, firstPieceSquare,       QueenRook);
+      addPiece(board, color, firstPieceSquare,       Rook1);
       addPiece(board, color, firstPieceSquare+B1-A1, Knight1);
       addPiece(board, color, firstPieceSquare+C1-A1, Bishop1); // TODO - this is the white bishop for black side!!!! Change the name!
       addPiece(board, color, firstPieceSquare+D1-A1, TheQueen);

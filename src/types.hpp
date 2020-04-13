@@ -148,7 +148,7 @@ namespace Chess {
     Knight2,
     Bishop1,
     Bishop2,
-    QueenRook,
+    Rook1, // MUST be the queenside rook if queenside castling is still possible
     KingRook,
     TheQueen,
     TheKing,
@@ -162,7 +162,7 @@ namespace Chess {
     Knight,        // Knight2,
     Bishop,        // Bishop1,
     Bishop,        // Bishop2,
-    Rook,          // QueenRook,
+    Rook,          // Rook1,
     Rook,          // KingRook,
     Queen,         // Queen,
     King,          // King,
@@ -175,7 +175,7 @@ namespace Chess {
   template <> struct PieceTypeForPieceT<Knight2> { static const PieceTypeT value = Knight; };
   template <> struct PieceTypeForPieceT<Bishop1> { static const PieceTypeT value = Bishop; };
   template <> struct PieceTypeForPieceT<Bishop2> { static const PieceTypeT value = Bishop; };
-  template <> struct PieceTypeForPieceT<QueenRook> { static const PieceTypeT value = Rook; };
+  template <> struct PieceTypeForPieceT<Rook1> { static const PieceTypeT value = Rook; };
   template <> struct PieceTypeForPieceT<KingRook> { static const PieceTypeT value = Rook; };
   template <> struct PieceTypeForPieceT<TheQueen> { static const PieceTypeT value = Queen; };
   template <> struct PieceTypeForPieceT<TheKing> { static const PieceTypeT value = King; };
@@ -186,7 +186,7 @@ namespace Chess {
     Knight2PresentShift,
     Bishop1PresentShift,
     Bishop2PresentShift,
-    QueenRookPresentShift,
+    Rook1PresentShift,
     KingRookPresentShift,
     QueenPresentShift,
     PromoQueenPresentShift,       // First queen promo piece.
@@ -214,7 +214,7 @@ namespace Chess {
     NoCastlingRights,        // Knight2,
     NoCastlingRights,        // Bishop1,
     NoCastlingRights,        // Bishop2,
-    CanCastleQueenside,      // QueenRook,
+    CanCastleQueenside,      // Rook1,
     CanCastleKingside,       // KingRook,
     NoCastlingRights,        // Queen,
     (CastlingRightsT) (CanCastleQueenside | CanCastleKingside)          // King,

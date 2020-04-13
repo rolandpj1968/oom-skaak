@@ -220,7 +220,7 @@ namespace Chess {
 	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, Bishop2>(state, board, yourPieceMap, legalMoves.pieceMoves[Bishop2], legalMoves.directChecks.bishopChecksBb, legalMoves.discoveredChecks.orthogDiscoveryPiecesBb, allYourPiecesBb); 
 
 	// Rooks
-	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, QueenRook>(state, board, yourPieceMap, legalMoves.pieceMoves[QueenRook], legalMoves.directChecks.rookChecksBb, legalMoves.discoveredChecks.diagDiscoveryPiecesBb, allYourPiecesBb); 
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, Rook1>(state, board, yourPieceMap, legalMoves.pieceMoves[Rook1], legalMoves.directChecks.rookChecksBb, legalMoves.discoveredChecks.diagDiscoveryPiecesBb, allYourPiecesBb); 
 	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, KingRook>(state, board, yourPieceMap, legalMoves.pieceMoves[KingRook], legalMoves.directChecks.rookChecksBb, legalMoves.discoveredChecks.diagDiscoveryPiecesBb, allYourPiecesBb); 
 
 	// Queen
