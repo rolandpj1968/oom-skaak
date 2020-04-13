@@ -75,7 +75,7 @@ namespace Chess {
       ColorPieceMapT pieceMap = {};
 
       // TODO promos
-      pieceMap.board[state.pieceSquares[QueenKnight]] = QueenKnight;
+      pieceMap.board[state.pieceSquares[Knight1]] = Knight1;
       pieceMap.board[state.pieceSquares[KingKnight]] = KingKnight;
       pieceMap.board[state.pieceSquares[BlackBishop]] = BlackBishop;
       pieceMap.board[state.pieceSquares[WhiteBishop]] = WhiteBishop;

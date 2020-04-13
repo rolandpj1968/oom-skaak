@@ -86,7 +86,7 @@ namespace Chess {
 	legalMoves.pawnMoves.capturesLeftBb | legalMoves.pawnMoves.capturesRightBb |
 	legalMoves.pawnMoves.epCaptures.epLeftCaptureBb | legalMoves.pawnMoves.epCaptures.epRightCaptureBb |
 
-	legalMoves.pieceMoves[QueenKnight] |
+	legalMoves.pieceMoves[Knight1] |
 	legalMoves.pieceMoves[KingKnight] |
 	  
 	legalMoves.pieceMoves[BlackBishop] |

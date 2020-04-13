@@ -27,7 +27,7 @@ static void dumpAttacks(const PieceAttacksT& pieceAttacks) {
   printf("pawn push one:       %016lx\n", pieceAttacks.pawnsPushOne);
   printf("pawn push two:       %016lx\n", pieceAttacks.pawnsPushTwo);
   printf("q rook attacks:      %016lx\n", pieceAttacks.pieceAttacks[QueenRook]);
-  printf("q knight attacks:    %016lx\n", pieceAttacks.pieceAttacks[QueenKnight]);
+  printf("q knight attacks:    %016lx\n", pieceAttacks.pieceAttacks[Knight1]);
   printf("b bishop attacks:    %016lx\n", pieceAttacks.pieceAttacks[BlackBishop]);
   printf("queen attacks:       %016lx\n", pieceAttacks.pieceAttacks[TheQueen]);
   //printf("promo queen attacks: %016lx\n", pieceAttacks.pieceAttacks[PromoQueen]);

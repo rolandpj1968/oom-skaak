@@ -162,7 +162,7 @@ namespace Chess {
 	countFilteredOut(pieceAttacks.pawnsPushOne, filterOut) +
 	countFilteredOut(pieceAttacks.pawnsPushTwo, filterOut);
       
-      for(PieceT piece = QueenKnight; piece <= TheKing; piece = PieceT(piece + 1)) {
+      for(PieceT piece = Knight1; piece <= TheKing; piece = PieceT(piece + 1)) {
 	nAttacks += countFilteredOut(pieceAttacks.pieceAttacks[piece], filterOut);
       }
 

@@ -144,7 +144,7 @@ namespace Chess {
   enum PieceT {
     NoPiece,
     SomePawns,
-    QueenKnight,
+    Knight1,
     KingKnight,
     BlackBishop,
     WhiteBishop,
@@ -171,7 +171,7 @@ namespace Chess {
   template <PieceT Piece> struct PieceTypeForPieceT { static const PieceTypeT value; };
   template <> struct PieceTypeForPieceT<NoPiece> { static const PieceTypeT value = NoPieceType; };
   template <> struct PieceTypeForPieceT<SomePawns> { static const PieceTypeT value = Pawn; };
-  template <> struct PieceTypeForPieceT<QueenKnight> { static const PieceTypeT value = Knight; };
+  template <> struct PieceTypeForPieceT<Knight1> { static const PieceTypeT value = Knight; };
   template <> struct PieceTypeForPieceT<KingKnight> { static const PieceTypeT value = Knight; };
   template <> struct PieceTypeForPieceT<BlackBishop> { static const PieceTypeT value = Bishop; };
   template <> struct PieceTypeForPieceT<WhiteBishop> { static const PieceTypeT value = Bishop; };
@@ -182,7 +182,7 @@ namespace Chess {
 
   enum PiecePresentShiftsT {
     PawnsPresentShift,
-    QueenKnightPresentShift,
+    Knight1PresentShift,
     KingKnightPresentShift,
     BlackBishopPresentShift,
     WhiteBishopPresentShift,
@@ -210,7 +210,7 @@ namespace Chess {
   const CastlingRightsT CastlingRightsForPiece[NPieces] = {
     NoCastlingRights,        // NoPiece,
     NoCastlingRights,        // SomePawns,
-    NoCastlingRights,        // QueenKnight,
+    NoCastlingRights,        // Knight1,
     NoCastlingRights,        // KingKnight,
     NoCastlingRights,        // BlackBishop,
     NoCastlingRights,        // WhiteBishop,

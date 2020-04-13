@@ -235,15 +235,15 @@ namespace Chess {
 	throw std::invalid_argument("Invalid number of knights in FEN - we cannot handle promos at present");
       }
 
-      const SquareT QueenKnightHomes[(size_t)NColors] = {A1, A8};
-      const SquareT QueenKnightHome = QueenKnightHomes[(size_t)color];
+      const SquareT Knight1Homes[(size_t)NColors] = {A1, A8};
+      const SquareT Knight1Home = Knight1Homes[(size_t)color];
 
-      SquareT queenKnightSq = InvalidSquare;
+      SquareT knight1Sq = InvalidSquare;
       
-      auto queenKnightSqIt = find(knightSquares.begin(), knightSquares.end(), QueenKnightHome);
-      if(queenKnightSqIt != knightSquares.end()) {
-	knightSquares.erase(queenKnightSqIt);
-	queenKnightSq = QueenKnightHome;
+      auto knight1SqIt = find(knightSquares.begin(), knightSquares.end(), Knight1Home);
+      if(knight1SqIt != knightSquares.end()) {
+	knightSquares.erase(knight1SqIt);
+	knight1Sq = Knight1Home;
       }
 	
       const SquareT KingKnightHomes[(size_t)NColors] = {H1, H8};
@@ -259,15 +259,15 @@ namespace Chess {
 
       // Otherwise allocate the knights arbitrarily
       /*unsigned*/ i = 0;
-      if(queenKnightSq == InvalidSquare && i < knightSquares.size()) {
-	queenKnightSq = knightSquares[i++];
+      if(knight1Sq == InvalidSquare && i < knightSquares.size()) {
+	knight1Sq = knightSquares[i++];
       }
       if(kingKnightSq == InvalidSquare && i < knightSquares.size()) {
 	kingKnightSq = knightSquares[i++];
       }
 
-      if(queenKnightSq != InvalidSquare) {
-	placePiece(board, color, queenKnightSq, QueenKnight);
+      if(knight1Sq != InvalidSquare) {
+	placePiece(board, color, knight1Sq, Knight1);
       }
 	
       if(kingKnightSq != InvalidSquare) {

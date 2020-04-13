@@ -45,7 +45,7 @@ namespace Chess {
     static void addStartingPieces(BoardT& board, const ColorT color, const SquareT firstPieceSquare, const SquareT firstPawnSquare) {
       // Pieces
       addPiece(board, color, firstPieceSquare,       QueenRook);
-      addPiece(board, color, firstPieceSquare+B1-A1, QueenKnight);
+      addPiece(board, color, firstPieceSquare+B1-A1, Knight1);
       addPiece(board, color, firstPieceSquare+C1-A1, BlackBishop); // TODO - this is the white bishop for black side!!!! Change the name!
       addPiece(board, color, firstPieceSquare+D1-A1, TheQueen);
       addPiece(board, color, firstPieceSquare+E1-A1, TheKing);
@@ -81,7 +81,7 @@ namespace Chess {
     static void addPiecesForColor(array<vector<pair<ColorT, PieceT>>, 64>& pieceMap, const ColorT color, const ColorStateT& colorState) {
       addPawnsForColor(pieceMap, color, colorState.pawnsBb);
 
-      for(PieceT piece = QueenKnight; piece < NPieces; piece = (PieceT)(piece+1)) {
+      for(PieceT piece = Knight1; piece < NPieces; piece = (PieceT)(piece+1)) {
 	SquareT square = colorState.pieceSquares[piece];
 	if(square != InvalidSquare) {
 	  pieceMap[square].push_back(pair<ColorT, PieceT>(color, piece));
