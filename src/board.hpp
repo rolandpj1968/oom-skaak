@@ -80,7 +80,7 @@ namespace Chess {
       pieceMap.board[state.pieceSquares[Bishop1]] = Bishop1;
       pieceMap.board[state.pieceSquares[Bishop2]] = Bishop2;
       pieceMap.board[state.pieceSquares[Rook1]] = Rook1;
-      pieceMap.board[state.pieceSquares[KingRook]] = KingRook;
+      pieceMap.board[state.pieceSquares[Rook2]] = Rook2;
       pieceMap.board[state.pieceSquares[TheQueen]] = TheQueen;
       pieceMap.board[state.pieceSquares[TheKing]] = TheKing;
       

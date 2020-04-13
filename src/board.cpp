@@ -51,7 +51,7 @@ namespace Chess {
       addPiece(board, color, firstPieceSquare+E1-A1, TheKing);
       addPiece(board, color, firstPieceSquare+F1-A1, Bishop2);
       addPiece(board, color, firstPieceSquare+G1-A1, Knight2);
-      addPiece(board, color, firstPieceSquare+H1-A1, KingRook);
+      addPiece(board, color, firstPieceSquare+H1-A1, Rook2);
       
       // Pawns
       for(SquareT square = firstPawnSquare; square <= firstPawnSquare+H2-A2; square += (B2-A2)) {

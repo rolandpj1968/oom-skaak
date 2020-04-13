@@ -192,15 +192,15 @@ namespace Chess {
 	rook1Sq = Rook1Home;
       }
 	
-      const SquareT KingRookHomes[(size_t)NColors] = {H1, H8};
-      const SquareT KingRookHome = KingRookHomes[(size_t)color];
+      const SquareT Rook2Homes[(size_t)NColors] = {H1, H8};
+      const SquareT Rook2Home = Rook2Homes[(size_t)color];
 
-      SquareT kingRookSq = InvalidSquare;
+      SquareT rook2Sq = InvalidSquare;
       
-      auto kingRookSqIt = find(rookSquares.begin(), rookSquares.end(), KingRookHome);
-      if(kingRookSqIt != rookSquares.end()) {
-	rookSquares.erase(kingRookSqIt);
-	kingRookSq = KingRookHome;
+      auto rook2SqIt = find(rookSquares.begin(), rookSquares.end(), Rook2Home);
+      if(rook2SqIt != rookSquares.end()) {
+	rookSquares.erase(rook2SqIt);
+	rook2Sq = Rook2Home;
       }
 
       // Otherwise allocate the rooks arbitrarily
@@ -208,8 +208,8 @@ namespace Chess {
       if(rook1Sq == InvalidSquare && i < rookSquares.size()) {
 	rook1Sq = rookSquares[i++];
       }
-      if(kingRookSq == InvalidSquare && i < rookSquares.size()) {
-	kingRookSq = rookSquares[i++];
+      if(rook2Sq == InvalidSquare && i < rookSquares.size()) {
+	rook2Sq = rookSquares[i++];
       }
 
       // Check that castling rights are valid
@@ -221,11 +221,11 @@ namespace Chess {
       }
 	
       // Check that castling rights are valid
-      if((castlingRights & CanCastleKingside) && kingRookSq != KingRookHome) {
+      if((castlingRights & CanCastleKingside) && rook2Sq != Rook2Home) {
 	throw std::invalid_argument("King side castling specified in FEN but king rook is not on its home square");
       }
-      if(kingRookSq != InvalidSquare) {
-	placePiece(board, color, kingRookSq, KingRook);
+      if(rook2Sq != InvalidSquare) {
+	placePiece(board, color, rook2Sq, Rook2);
       }
 	
       // Knights - we only handle two at present; we don't really need to allocate them authentically but meh!
