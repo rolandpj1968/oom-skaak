@@ -21,7 +21,7 @@ CC_FLAGS = -Wall -std=c++11 -fshort-enums -fno-rtti -finline-limit=2000 -flto -m
 #CC_FLAGS = -Wall -std=c++11 -fshort-enums -fno-exceptions -fno-rtti -flto -march=native -O2 -I$(SRC_DIR)
 #CC_FLAGS = -Wall -std=c++11 -I$(SRC_DIR)
 
-LD_FLAGS = -fshort-enums -fno-rtti -finline-limit=2000 -flto -march=native -Ofast
+LD_FLAGS = -fshort-enums -fno-rtti -finline-limit=2000 -flto -march=native -O3
 #LD_FLAGS = -fshort-enums -fno-exceptions -fno-rtti -finline-limit=2000 -flto -march=native -Ofast
 #LD_FLAGS = -fprofile-generate -fshort-enums -fno-exceptions -fno-rtti -finline-limit=2000 -flto -march=native -Ofast
 #LD_FLAGS = -fprofile-use -fshort-enums -fno-exceptions -fno-rtti -finline-limit=2000 -flto -march=native -Ofast

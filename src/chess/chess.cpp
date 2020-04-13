@@ -31,7 +31,7 @@ static void dumpAttacks(const PieceAttacksT& pieceAttacks) {
   printf("b bishop attacks:    %016lx\n", pieceAttacks.pieceAttacks[Bishop1]);
   printf("queen attacks:       %016lx\n", pieceAttacks.pieceAttacks[TheQueen]);
   printf("king attacks:        %016lx\n", pieceAttacks.pieceAttacks[TheKing]);
-  printf("w bishop attacks:    %016lx\n", pieceAttacks.pieceAttacks[WhiteBishop]);
+  printf("w bishop attacks:    %016lx\n", pieceAttacks.pieceAttacks[Bishop2]);
   printf("k knight attacks:    %016lx\n", pieceAttacks.pieceAttacks[Knight2]);
   printf("k rook attacks:      %016lx\n", pieceAttacks.pieceAttacks[KingRook]);
       

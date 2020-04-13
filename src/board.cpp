@@ -49,7 +49,7 @@ namespace Chess {
       addPiece(board, color, firstPieceSquare+C1-A1, Bishop1); // TODO - this is the white bishop for black side!!!! Change the name!
       addPiece(board, color, firstPieceSquare+D1-A1, TheQueen);
       addPiece(board, color, firstPieceSquare+E1-A1, TheKing);
-      addPiece(board, color, firstPieceSquare+F1-A1, WhiteBishop);
+      addPiece(board, color, firstPieceSquare+F1-A1, Bishop2);
       addPiece(board, color, firstPieceSquare+G1-A1, Knight2);
       addPiece(board, color, firstPieceSquare+H1-A1, KingRook);
       
