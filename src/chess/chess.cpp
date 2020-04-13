@@ -30,23 +30,12 @@ static void dumpAttacks(const PieceAttacksT& pieceAttacks) {
   printf("q knight attacks:    %016lx\n", pieceAttacks.pieceAttacks[Knight1]);
   printf("b bishop attacks:    %016lx\n", pieceAttacks.pieceAttacks[BlackBishop]);
   printf("queen attacks:       %016lx\n", pieceAttacks.pieceAttacks[TheQueen]);
-  //printf("promo queen attacks: %016lx\n", pieceAttacks.pieceAttacks[PromoQueen]);
   printf("king attacks:        %016lx\n", pieceAttacks.pieceAttacks[TheKing]);
   printf("w bishop attacks:    %016lx\n", pieceAttacks.pieceAttacks[WhiteBishop]);
-  printf("k knight attacks:    %016lx\n", pieceAttacks.pieceAttacks[KingKnight]);
+  printf("k knight attacks:    %016lx\n", pieceAttacks.pieceAttacks[Knight2]);
   printf("k rook attacks:      %016lx\n", pieceAttacks.pieceAttacks[KingRook]);
-      // BitBoardT pawnsRightAttacks;
-      // BitBoardT pawnsPushOne;     // Not actually attacks - possibly remove
-      // BitBoardT pawnsPushTwo;     // Not actually attacks - possible remove
-
-      // // Piece moves
-      // BitBoardT pieceAttacks[NSpecificPieceTypes];
-      
-      // // Uncommon promo piece moves - one for each pawn - one for each promo piece except 2nd queen.
-      // BitBoardT promoPieceMoves[NPawns];
       
   printf("all attacks:         %016lx\n", pieceAttacks.allAttacks);
-  //BitBoardT allAttacks;
 }
 
 int main(int argc, char* argv[]) {

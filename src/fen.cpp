@@ -246,15 +246,15 @@ namespace Chess {
 	knight1Sq = Knight1Home;
       }
 	
-      const SquareT KingKnightHomes[(size_t)NColors] = {H1, H8};
-      const SquareT KingKnightHome = KingKnightHomes[(size_t)color];
+      const SquareT Knight2Homes[(size_t)NColors] = {H1, H8};
+      const SquareT Knight2Home = Knight2Homes[(size_t)color];
 
-      SquareT kingKnightSq = InvalidSquare;
+      SquareT knight2Sq = InvalidSquare;
       
-      auto kingKnightSqIt = find(knightSquares.begin(), knightSquares.end(), KingKnightHome);
-      if(kingKnightSqIt != knightSquares.end()) {
-	knightSquares.erase(kingKnightSqIt);
-	kingKnightSq = KingKnightHome;
+      auto knight2SqIt = find(knightSquares.begin(), knightSquares.end(), Knight2Home);
+      if(knight2SqIt != knightSquares.end()) {
+	knightSquares.erase(knight2SqIt);
+	knight2Sq = Knight2Home;
       }
 
       // Otherwise allocate the knights arbitrarily
@@ -262,16 +262,16 @@ namespace Chess {
       if(knight1Sq == InvalidSquare && i < knightSquares.size()) {
 	knight1Sq = knightSquares[i++];
       }
-      if(kingKnightSq == InvalidSquare && i < knightSquares.size()) {
-	kingKnightSq = knightSquares[i++];
+      if(knight2Sq == InvalidSquare && i < knightSquares.size()) {
+	knight2Sq = knightSquares[i++];
       }
 
       if(knight1Sq != InvalidSquare) {
 	placePiece(board, color, knight1Sq, Knight1);
       }
 	
-      if(kingKnightSq != InvalidSquare) {
-	placePiece(board, color, kingKnightSq, KingKnight);
+      if(knight2Sq != InvalidSquare) {
+	placePiece(board, color, knight2Sq, Knight2);
       }
 	
       // Bishops - we only handle two at present
