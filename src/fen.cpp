@@ -1,8 +1,10 @@
 #include <algorithm>
+#include <array>
 #include <iterator>
 #include <map>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <cstdio>
@@ -175,6 +177,8 @@ namespace Chess {
 	placePiece(board, color, queenSq, TheQueen);
       }
 
+      // TODO - handling of rooks, knights and bishops should be factored
+
       // Rooks - we only handle two at present; if castling rights are specified then the corresponding rook must be on its starting position
       std::vector<SquareT> rookSquares = pieceTypeMap[Rook];
       if(rookSquares.size() > 2) {
@@ -228,8 +232,7 @@ namespace Chess {
 	placePiece(board, color, rook2Sq, Rook2);
       }
 	
-      // Knights - we only handle two at present; we don't really need to allocate them authentically but meh!
-      // TODO - just rename to Knight1 and Knight2 - this is ridonculous
+      // Knights - we only handle two at present; we don't really need to allocate them this way but meh!
       std::vector<SquareT> knightSquares = pieceTypeMap[Knight];
       if(knightSquares.size() > 2) {
 	throw std::invalid_argument("Invalid number of knights in FEN - we cannot handle promos at present");
@@ -274,8 +277,7 @@ namespace Chess {
 	placePiece(board, color, knight2Sq, Knight2);
       }
 	
-      // Bishops - we only handle two at present
-      // TODO bishop naming at the moment is broken - I'm gonna rename to Bishop1 and Bishop2 cos at present black's black bishop is called Bishop2
+      // Bishops - we only handle two at present; ditto - this is overkill but meh!
       std::vector<SquareT> bishopSquares = pieceTypeMap[Bishop];
       //printf("Color %d bishopSquares.size() is %d\n", color, bishopSquares.size());
       if(bishopSquares.size() > 2) {
@@ -284,7 +286,6 @@ namespace Chess {
       SquareT bishop2Sq = InvalidSquare;
       SquareT bishop1Sq = InvalidSquare;
       if(bishopSquares.size() > 0) {
-	//printf("Color %d bishopSquares.size() is %d\n", color, bishopSquares.size());
 	bishop2Sq = bishopSquares[0];
       }
       if(bishopSquares.size() > 1) {
@@ -336,6 +337,75 @@ namespace Chess {
       
       return std::make_pair(board, color);
     }
+
+    static std::string genPieces(const BoardT& board) {
+      std::stringstream ss;
+      
+      auto pieceMap = genPieceMap(board);
+
+      // FEN does rank 8 first
+      for(int rank = 7; rank >= 0; --rank) {
+	if(rank != 7) {
+	  ss << '/';
+	}
+	int nEmpty = 0; // count of trailing empty squares in a rank
+	for(int file = 0; file < 8; file++) {
+	  SquareT sq = squareOf(rank, file);
+	  char c = pieceChar(pieceMap[sq]);
+	  if(c == '.') {
+	    nEmpty++;
+	  } else {
+	    if(nEmpty) {
+	      ss << (char)('0' + nEmpty);
+	      nEmpty = 0;
+	    }
+	    ss << c;
+	  }
+	}
+	if(nEmpty) {
+	  ss << (char)('0' + nEmpty);
+	}
+      }
+      
+      return ss.str();
+    }
+
+    static char genColor(const ColorT colorToMove) {
+      return colorToMove == White ? 'w' : 'b';
+    }
+
+    static std::string genCastlingRights(const BoardT& board) {
+      CastlingRightsT wRights = board.pieces[(size_t)White].castlingRights;
+      CastlingRightsT bRights = board.pieces[(size_t)Black].castlingRights;
+
+      if(wRights == NoCastlingRights && bRights == NoCastlingRights) {
+	return "-";
+      }
+
+      std::stringstream ss;
+
+      if(wRights & CanCastleKingside) { ss << 'K'; }
+      if(wRights & CanCastleQueenside) { ss << 'Q'; }
+
+      if(bRights & CanCastleKingside) { ss << 'k'; }
+      if(bRights & CanCastleQueenside) { ss << 'q'; }
+
+      return ss.str();
+    }
+
+    static std::string genEpSquare(const BoardT& board, const ColorT colorToMove) {
+      return "-";
+    }
+
+    // TODO - halfmove clock and fullmove number when we support those
+    std::string toFen(const BoardT& board, const ColorT colorToMove) {
+      std::stringstream ss;
+
+      ss << genPieces(board) << ' ' << genColor(colorToMove) << ' ' << genCastlingRights(board) << ' ' << genEpSquare(board, colorToMove);
+
+      return ss.str();
+    }
+
 
   } // namespace Fen
 } // namespace Chess

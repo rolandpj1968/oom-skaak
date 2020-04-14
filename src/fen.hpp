@@ -16,6 +16,8 @@ namespace Chess {
 
     std::pair<BoardT, ColorT> parseFen(const std::string& fen);
 
+    std::string toFen(const BoardT& board, const ColorT colorToMove);
+
   } // namespace Fen
 } // namespace Chess
 

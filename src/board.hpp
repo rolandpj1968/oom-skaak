@@ -1,6 +1,10 @@
 #ifndef BOARD_HPP
 #define BOARD_HPP
 
+#include <array>
+#include <utility>
+#include <vector>
+
 #include "types.hpp"
 
 namespace Chess {
@@ -260,7 +264,11 @@ namespace Chess {
     BoardT startingPosition();
 
     bool isValid(const BoardT& board, const BitBoardT allYourKingAttackersBb);
-    
+
+    // These are used for FEN output
+    char pieceChar(const std::vector<std::pair<ColorT, PieceT>>& squarePieces);
+    std::array<std::vector<std::pair<ColorT, PieceT>>, 64> genPieceMap(const BoardT& board);
+
     void printBoard(const BoardT& board);
     void printBb(BitBoardT bb);
   }

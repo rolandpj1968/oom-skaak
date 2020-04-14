@@ -26,6 +26,9 @@ int main(int argc, char* argv[]) {
     board = Fen::parseFen(argv[2]).first;
   }
 
+  printBoard(board);
+  printf("\n%s\n\n", Fen::toFen(board, White).c_str());
+
   PerftStatsT stats = perft<StartingBoardTraitsT>(board, depthToGo);
 
   printf("perft(%d) - nodes = %lu, captures = %lu, eps = %lu, castles = %lu, checks = %lu, discoveries = %lu, doublechecks = %lu, checkmates = %lu\n", depthToGo, stats.nodes, stats.captures, stats.eps, stats.castles, stats.checks, stats.discoverychecks, stats.doublechecks, stats.checkmates);
