@@ -205,7 +205,7 @@ namespace Chess {
     template <typename BoardTraitsT>
     inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
       PerftStatsT stats = {};
-      MoveInfoT dummyMoveInfo(0.0, PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/false, /*isDiscoveredCheck*/false);
+      MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/false, /*isDiscoveredCheck*/false);
       const PerftStateT state(stats, depthToGo);
 
       perftImpl<BoardTraitsT>(state, board, dummyMoveInfo);

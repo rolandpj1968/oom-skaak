@@ -25,7 +25,7 @@ namespace Chess {
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
 	
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, PushMove, from, to, isDirectCheck, isDiscoveredCheck));
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
 
@@ -70,7 +70,7 @@ namespace Chess {
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
 	
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, CaptureMove, from, to, isDirectCheck, isDiscoveredCheck));
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
 
@@ -97,7 +97,7 @@ namespace Chess {
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = isEpDiscovery || (bbForSquare(from) & discoveriesBb) != BbNone;
 	
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, EpCaptureMove, from, to, isDirectCheck, isDiscoveredCheck));
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(EpCaptureMove, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
 
@@ -137,7 +137,7 @@ namespace Chess {
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveredChecksBb) != BbNone;
 	
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, PushMove/*moveType*/, from, to, isDirectCheck, isDiscoveredCheck));
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(PushMove/*moveType*/, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
     
@@ -151,7 +151,7 @@ namespace Chess {
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveredChecksBb) != BbNone;
 	
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, CaptureMove/*moveType*/, from, to, isDirectCheck, isDiscoveredCheck));
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(CaptureMove/*moveType*/, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
 
@@ -173,7 +173,7 @@ namespace Chess {
       const BoardT newBoard = pushPiece<Color, CastlingTraitsT<Color, CastlingRight>::TheRook>(newBoard1, CastlingTraitsT<Color, CastlingRight>::RookFrom, CastlingTraitsT<Color, CastlingRight>::RookTo);
 
       // We use the king (from and) to square by convention
-      PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, CastlingMove, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo, /*isDirectCheck*/false, /*isDiscoveredCheck TODO*/false));
+      PosHandlerT::handlePos(state, newBoard, MoveInfoT(CastlingMove, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo, /*isDirectCheck*/false, /*isDiscoveredCheck TODO*/false));
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
