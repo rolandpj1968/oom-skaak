@@ -151,19 +151,19 @@ namespace Chess {
 	throw std::invalid_argument("Invalid FEN en-passant field");
       }
 
-      char rankC = ep[0];
-      auto rank = std::string("abcdefgh").find(rankC);
-      if(rank == std::string::npos) {
-	throw std::invalid_argument("Invalid FEN en-passant rank - expecting a-h");
+      char fileC = ep[0];
+      auto file = std::string("abcdefgh").find(fileC);
+      if(file == std::string::npos) {
+	throw std::invalid_argument("Invalid FEN en-passant file - expecting a-h");
       }
 
-      char fileC = ep[1];
-      if(fileC < '1' || '8' < fileC) {
-	throw std::invalid_argument("Invalid FEN en-passant file - expecting 1-8");
+      char rankC = ep[1];
+      if(rankC < '1' || '8' < rankC) {
+	throw std::invalid_argument("Invalid FEN en-passant rank - expecting 1-8");
       }
-      int file = fileC - '1';
+      int rank = rankC - '1';
 
-      return squareOf((int)rank, file);
+      return squareOf(rank, (int)file);
     }
 
     // Place pieces on the board - this is fiddlier than ideal because we have to map to sensible concrete pieces like BlackBishop etc.
@@ -423,7 +423,7 @@ namespace Chess {
       if(epSq == InvalidSquare) { return "-"; }
 
       std::stringstream ss;
-      ss << "abcdefgh"[rankOf(epSq)] << "12345678"[fileOf(epSq)];
+      ss << "abcdefgh"[fileOf(epSq)] << "12345678"[rankOf(epSq)];
 
       return ss.str();
     }
