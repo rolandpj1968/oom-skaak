@@ -25,7 +25,7 @@ namespace Chess {
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
 	
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, PushMove, from, to, isDirectCheck, isDiscoveredCheck));
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
 
@@ -70,7 +70,7 @@ namespace Chess {
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
 	
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, CaptureMove, from, to, isDirectCheck, isDiscoveredCheck));
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
 
@@ -97,7 +97,7 @@ namespace Chess {
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = isEpDiscovery || (bbForSquare(from) & discoveriesBb) != BbNone;
 	
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, EpCaptureMove, from, to, isDirectCheck, isDiscoveredCheck));
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(EpCaptureMove, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
 
@@ -137,7 +137,7 @@ namespace Chess {
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveredChecksBb) != BbNone;
 	
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, PushMove/*moveType*/, from, to, isDirectCheck, isDiscoveredCheck));
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(PushMove/*moveType*/, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
     
@@ -151,7 +151,7 @@ namespace Chess {
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveredChecksBb) != BbNone;
 	
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, CaptureMove/*moveType*/, from, to, isDirectCheck, isDiscoveredCheck));
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(CaptureMove/*moveType*/, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
 
@@ -173,7 +173,7 @@ namespace Chess {
       const BoardT newBoard = pushPiece<Color, CastlingTraitsT<Color, CastlingRight>::TheRook>(newBoard1, CastlingTraitsT<Color, CastlingRight>::RookFrom, CastlingTraitsT<Color, CastlingRight>::RookTo);
 
       // We use the king (from and) to square by convention
-      PosHandlerT::handlePos(state, newBoard, MoveInfoT(0.0, CastlingMove, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo, /*isDirectCheck*/false, /*isDiscoveredCheck TODO*/false));
+      PosHandlerT::handlePos(state, newBoard, MoveInfoT(CastlingMove, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo, /*isDirectCheck*/false, /*isDiscoveredCheck TODO*/false));
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
@@ -212,16 +212,16 @@ namespace Chess {
 	handlePawnMoves<StateT, PosHandlerT, BoardTraitsT>(state, board, yourPieceMap, legalMoves.pawnMoves, legalMoves.directChecks.pawnChecksBb, legalMoves.discoveredChecks.pawnPushDiscoveryMasksBb, legalMoves.discoveredChecks.pawnLeftDiscoveryMasksBb, legalMoves.discoveredChecks.pawnRightDiscoveryMasksBb, legalMoves.discoveredChecks.isEpDiscovery);
 	
 	// Knights
-	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, QueenKnight>(state, board, yourPieceMap, legalMoves.pieceMoves[QueenKnight], legalMoves.directChecks.knightChecksBb, (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb);
-	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, KingKnight>(state, board, yourPieceMap, legalMoves.pieceMoves[KingKnight], legalMoves.directChecks.knightChecksBb, (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb);
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, Knight1>(state, board, yourPieceMap, legalMoves.pieceMoves[Knight1], legalMoves.directChecks.knightChecksBb, (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb);
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, Knight2>(state, board, yourPieceMap, legalMoves.pieceMoves[Knight2], legalMoves.directChecks.knightChecksBb, (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb);
 	
 	// Bishops
-	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, BlackBishop>(state, board, yourPieceMap, legalMoves.pieceMoves[BlackBishop], legalMoves.directChecks.bishopChecksBb, legalMoves.discoveredChecks.orthogDiscoveryPiecesBb, allYourPiecesBb); 
-	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, WhiteBishop>(state, board, yourPieceMap, legalMoves.pieceMoves[WhiteBishop], legalMoves.directChecks.bishopChecksBb, legalMoves.discoveredChecks.orthogDiscoveryPiecesBb, allYourPiecesBb); 
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, Bishop1>(state, board, yourPieceMap, legalMoves.pieceMoves[Bishop1], legalMoves.directChecks.bishopChecksBb, legalMoves.discoveredChecks.orthogDiscoveryPiecesBb, allYourPiecesBb); 
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, Bishop2>(state, board, yourPieceMap, legalMoves.pieceMoves[Bishop2], legalMoves.directChecks.bishopChecksBb, legalMoves.discoveredChecks.orthogDiscoveryPiecesBb, allYourPiecesBb); 
 
 	// Rooks
-	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, QueenRook>(state, board, yourPieceMap, legalMoves.pieceMoves[QueenRook], legalMoves.directChecks.rookChecksBb, legalMoves.discoveredChecks.diagDiscoveryPiecesBb, allYourPiecesBb); 
-	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, KingRook>(state, board, yourPieceMap, legalMoves.pieceMoves[KingRook], legalMoves.directChecks.rookChecksBb, legalMoves.discoveredChecks.diagDiscoveryPiecesBb, allYourPiecesBb); 
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, Rook1>(state, board, yourPieceMap, legalMoves.pieceMoves[Rook1], legalMoves.directChecks.rookChecksBb, legalMoves.discoveredChecks.diagDiscoveryPiecesBb, allYourPiecesBb); 
+	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, Rook2>(state, board, yourPieceMap, legalMoves.pieceMoves[Rook2], legalMoves.directChecks.rookChecksBb, legalMoves.discoveredChecks.diagDiscoveryPiecesBb, allYourPiecesBb); 
 
 	// Queen
 	handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, TheQueen>(state, board, yourPieceMap, legalMoves.pieceMoves[TheQueen], (legalMoves.directChecks.bishopChecksBb | legalMoves.directChecks.rookChecksBb), /*discoveredChecksBb*/BbNone, allYourPiecesBb); 

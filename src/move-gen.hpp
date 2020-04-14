@@ -210,7 +210,7 @@ namespace Chess {
       static const SquareT KingTo = C1;
 
       // Rook move
-      static const PieceT TheRook = QueenRook;
+      static const PieceT TheRook = Rook1;
       static const SquareT RookFrom = A1;
       static const SquareT RookTo = D1;
     };
@@ -226,7 +226,7 @@ namespace Chess {
       static const SquareT KingTo = G1;
 
       // Rook move
-      static const PieceT TheRook = KingRook;
+      static const PieceT TheRook = Rook2;
       static const SquareT RookFrom = H1;
       static const SquareT RookTo = F1;
     };
@@ -242,7 +242,7 @@ namespace Chess {
       static const SquareT KingTo = C8;
 
       // Rook move
-      static const PieceT TheRook = QueenRook;
+      static const PieceT TheRook = Rook1;
       static const SquareT RookFrom = A8;
       static const SquareT RookTo = D8;
     };
@@ -258,7 +258,7 @@ namespace Chess {
       static const SquareT KingTo = G8;
 
       // Rook move
-      static const PieceT TheRook = KingRook;
+      static const PieceT TheRook = Rook2;
       static const SquareT RookFrom = H8;
       static const SquareT RookTo = F8;
     };
@@ -745,45 +745,45 @@ namespace Chess {
 
       // Knights
       
-      SquareT queenKnightSquare = colorState.pieceSquares[QueenKnight];
+      SquareT knight1Square = colorState.pieceSquares[Knight1];
       
-      attacks.pieceAttacks[QueenKnight] = KnightAttacks[queenKnightSquare];
+      attacks.pieceAttacks[Knight1] = KnightAttacks[knight1Square];
       
-      attacks.allAttacks |= attacks.pieceAttacks[QueenKnight];
+      attacks.allAttacks |= attacks.pieceAttacks[Knight1];
       
-      SquareT kingKnightSquare = colorState.pieceSquares[KingKnight];
+      SquareT knight2Square = colorState.pieceSquares[Knight2];
       
-      attacks.pieceAttacks[KingKnight] = KnightAttacks[kingKnightSquare];
+      attacks.pieceAttacks[Knight2] = KnightAttacks[knight2Square];
       
-      attacks.allAttacks |= attacks.pieceAttacks[KingKnight];
+      attacks.allAttacks |= attacks.pieceAttacks[Knight2];
 
       // Bishops
 
-      SquareT blackBishopSquare = colorState.pieceSquares[BlackBishop];
+      SquareT bishop1Square = colorState.pieceSquares[Bishop1];
       
-      attacks.pieceAttacks[BlackBishop] = bishopAttacks(blackBishopSquare, allPiecesBb);
+      attacks.pieceAttacks[Bishop1] = bishopAttacks(bishop1Square, allPiecesBb);
       
-      attacks.allAttacks |= attacks.pieceAttacks[BlackBishop];
+      attacks.allAttacks |= attacks.pieceAttacks[Bishop1];
       
-      SquareT whiteBishopSquare = colorState.pieceSquares[WhiteBishop];
+      SquareT bishop2Square = colorState.pieceSquares[Bishop2];
       
-      attacks.pieceAttacks[WhiteBishop] = bishopAttacks(whiteBishopSquare, allPiecesBb);
+      attacks.pieceAttacks[Bishop2] = bishopAttacks(bishop2Square, allPiecesBb);
       
-      attacks.allAttacks |= attacks.pieceAttacks[WhiteBishop];
+      attacks.allAttacks |= attacks.pieceAttacks[Bishop2];
       
       // Rooks
 
-      SquareT queenRookSquare = colorState.pieceSquares[QueenRook];
+      SquareT rook1Square = colorState.pieceSquares[Rook1];
       
-      attacks.pieceAttacks[QueenRook] = rookAttacks(queenRookSquare, allPiecesBb);
+      attacks.pieceAttacks[Rook1] = rookAttacks(rook1Square, allPiecesBb);
       
-      attacks.allAttacks |= attacks.pieceAttacks[QueenRook];
+      attacks.allAttacks |= attacks.pieceAttacks[Rook1];
       
-      SquareT kingRookSquare = colorState.pieceSquares[KingRook];
+      SquareT rook2Square = colorState.pieceSquares[Rook2];
       
-      attacks.pieceAttacks[KingRook] = rookAttacks(kingRookSquare, allPiecesBb);
+      attacks.pieceAttacks[Rook2] = rookAttacks(rook2Square, allPiecesBb);
       
-      attacks.allAttacks |= attacks.pieceAttacks[KingRook];
+      attacks.allAttacks |= attacks.pieceAttacks[Rook2];
       
       // Queen
 
@@ -920,16 +920,16 @@ namespace Chess {
       pinMasks.pawnsRightPinMask = BbAll;
       
       // Knights
-      pinMasks.piecePinMasks[QueenKnight] = BbAll;
-      pinMasks.piecePinMasks[KingKnight] = BbAll;
+      pinMasks.piecePinMasks[Knight1] = BbAll;
+      pinMasks.piecePinMasks[Knight2] = BbAll;
 	
       // Bishops
-      pinMasks.piecePinMasks[BlackBishop] = BbAll;
-      pinMasks.piecePinMasks[WhiteBishop] = BbAll;
+      pinMasks.piecePinMasks[Bishop1] = BbAll;
+      pinMasks.piecePinMasks[Bishop2] = BbAll;
 
       // Rooks
-      pinMasks.piecePinMasks[QueenRook] = BbAll;
-      pinMasks.piecePinMasks[KingRook] = BbAll;
+      pinMasks.piecePinMasks[Rook1] = BbAll;
+      pinMasks.piecePinMasks[Rook2] = BbAll;
 
       // Queens
       //   - diagonally pinned queens can only move along the king's bishop rays
@@ -975,16 +975,16 @@ namespace Chess {
       pinMasks.pawnsRightPinMask = ~(myOrthogPinsRightAttacksBb | myUnsafeDiagPinsRightAttacksBb); 
       
       // Knights
-      pinMasks.piecePinMasks[QueenKnight] = genPinnedMoveMask<Knight>(myState.pieceSquares[QueenKnight], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-      pinMasks.piecePinMasks[KingKnight] = genPinnedMoveMask<Knight>(myState.pieceSquares[KingKnight], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+      pinMasks.piecePinMasks[Knight1] = genPinnedMoveMask<Knight>(myState.pieceSquares[Knight1], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+      pinMasks.piecePinMasks[Knight2] = genPinnedMoveMask<Knight>(myState.pieceSquares[Knight2], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
 	
       // Bishops
-      pinMasks.piecePinMasks[BlackBishop] = genPinnedMoveMask<Bishop>(myState.pieceSquares[BlackBishop], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-      pinMasks.piecePinMasks[WhiteBishop] = genPinnedMoveMask<Bishop>(myState.pieceSquares[WhiteBishop], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+      pinMasks.piecePinMasks[Bishop1] = genPinnedMoveMask<Bishop>(myState.pieceSquares[Bishop1], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+      pinMasks.piecePinMasks[Bishop2] = genPinnedMoveMask<Bishop>(myState.pieceSquares[Bishop2], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
 
       // Rooks
-      pinMasks.piecePinMasks[QueenRook] = genPinnedMoveMask<Rook>(myState.pieceSquares[QueenRook], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-      pinMasks.piecePinMasks[KingRook] = genPinnedMoveMask<Rook>(myState.pieceSquares[KingRook], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+      pinMasks.piecePinMasks[Rook1] = genPinnedMoveMask<Rook>(myState.pieceSquares[Rook1], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+      pinMasks.piecePinMasks[Rook2] = genPinnedMoveMask<Rook>(myState.pieceSquares[Rook2], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
 
       // Queens
       //   - diagonally pinned queens can only move along the king's bishop rays
@@ -1164,14 +1164,14 @@ namespace Chess {
 
       legalMoves.pawnMoves = genLegalPawnMoves<BoardTraitsT>(board, yourPieceBbs, myAttacks, yourState.epSquare, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
       
-      legalMoves.pieceMoves[QueenKnight] = genLegalPieceMoves<QueenKnight>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
-      legalMoves.pieceMoves[KingKnight] = genLegalPieceMoves<KingKnight>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
+      legalMoves.pieceMoves[Knight1] = genLegalPieceMoves<Knight1>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
+      legalMoves.pieceMoves[Knight2] = genLegalPieceMoves<Knight2>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
 
-      legalMoves.pieceMoves[BlackBishop] = genLegalPieceMoves<BlackBishop>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
-      legalMoves.pieceMoves[WhiteBishop] = genLegalPieceMoves<WhiteBishop>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
+      legalMoves.pieceMoves[Bishop1] = genLegalPieceMoves<Bishop1>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
+      legalMoves.pieceMoves[Bishop2] = genLegalPieceMoves<Bishop2>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
       
-      legalMoves.pieceMoves[QueenRook] = genLegalPieceMoves<QueenRook>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
-      legalMoves.pieceMoves[KingRook] = genLegalPieceMoves<KingRook>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
+      legalMoves.pieceMoves[Rook1] = genLegalPieceMoves<Rook1>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
+      legalMoves.pieceMoves[Rook2] = genLegalPieceMoves<Rook2>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
 
       legalMoves.pieceMoves[TheQueen] = genLegalPieceMoves<TheQueen>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
       
@@ -1260,9 +1260,9 @@ namespace Chess {
       pieceBbs.bbs[Pawn] = state.pawnsBb; //bbsOld[Pawn];
 
       // TODO promos
-      pieceBbs.bbs[Knight] = bbForSquare(state.pieceSquares[QueenKnight]) | bbForSquare(state.pieceSquares[KingKnight]);
-      pieceBbs.bbs[Bishop] = bbForSquare(state.pieceSquares[BlackBishop]) | bbForSquare(state.pieceSquares[WhiteBishop]);
-      pieceBbs.bbs[Rook] = bbForSquare(state.pieceSquares[QueenRook]) | bbForSquare(state.pieceSquares[KingRook]);
+      pieceBbs.bbs[Knight] = bbForSquare(state.pieceSquares[Knight1]) | bbForSquare(state.pieceSquares[Knight2]);
+      pieceBbs.bbs[Bishop] = bbForSquare(state.pieceSquares[Bishop1]) | bbForSquare(state.pieceSquares[Bishop2]);
+      pieceBbs.bbs[Rook] = bbForSquare(state.pieceSquares[Rook1]) | bbForSquare(state.pieceSquares[Rook2]);
       pieceBbs.bbs[Queen] = bbForSquare(state.pieceSquares[TheQueen]);
       pieceBbs.bbs[King] = bbForSquare(state.pieceSquares[TheKing]);
 

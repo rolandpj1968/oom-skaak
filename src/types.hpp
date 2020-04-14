@@ -19,6 +19,10 @@ namespace Chess {
   const ColorT Black = ColorT::Black;
   const size_t NColors = (size_t)ColorT::NColors;
 
+  inline ColorT otherColor(const ColorT color) {
+    return (ColorT) ((int)Black - (int)color);
+  }
+
   template <ColorT color> struct OtherColorT { static const ColorT value; };
   template <> struct OtherColorT<White> { static const ColorT value = Black; };
   template <> struct OtherColorT<Black> { static const ColorT value = White; };
@@ -86,6 +90,10 @@ namespace Chess {
     return square & 0x7;
   }
 
+  inline SquareT squareOf(int rank, int file) {
+    return (rank << 3) | file;
+  }
+
 #include <boost/preprocessor/iteration/local.hpp>
   // Lookup table for single square -> bitboard (including InvalidSquare -> BbNone)
   const BitBoardT BbForSquare[64+1] = {
@@ -136,12 +144,12 @@ namespace Chess {
   enum PieceT {
     NoPiece,
     SomePawns,
-    QueenKnight,
-    KingKnight,
-    BlackBishop,
-    WhiteBishop,
-    QueenRook,
-    KingRook,
+    Knight1,
+    Knight2,
+    Bishop1,
+    Bishop2,
+    Rook1, // MUST be the queenside rook if queenside castling is still possible
+    Rook2, // MUST be the kingside rook if kingside castling is still possible
     TheQueen,
     TheKing,
     NPieces,
@@ -150,12 +158,12 @@ namespace Chess {
   const PieceTypeT PieceTypeForPiece[NPieces] = {
     NoPieceType,   // NoPiece,
     Pawn,          // SomePawns,
-    Knight,        // QueenKnight,
-    Knight,        // KingKnight,
-    Bishop,        // BlackBishop,
-    Bishop,        // WhiteBishop,
-    Rook,          // QueenRook,
-    Rook,          // KingRook,
+    Knight,        // Knight1,
+    Knight,        // Knight2,
+    Bishop,        // Bishop1,
+    Bishop,        // Bishop2,
+    Rook,          // Rook1,
+    Rook,          // Rook2,
     Queen,         // Queen,
     King,          // King,
   };
@@ -163,23 +171,23 @@ namespace Chess {
   template <PieceT Piece> struct PieceTypeForPieceT { static const PieceTypeT value; };
   template <> struct PieceTypeForPieceT<NoPiece> { static const PieceTypeT value = NoPieceType; };
   template <> struct PieceTypeForPieceT<SomePawns> { static const PieceTypeT value = Pawn; };
-  template <> struct PieceTypeForPieceT<QueenKnight> { static const PieceTypeT value = Knight; };
-  template <> struct PieceTypeForPieceT<KingKnight> { static const PieceTypeT value = Knight; };
-  template <> struct PieceTypeForPieceT<BlackBishop> { static const PieceTypeT value = Bishop; };
-  template <> struct PieceTypeForPieceT<WhiteBishop> { static const PieceTypeT value = Bishop; };
-  template <> struct PieceTypeForPieceT<QueenRook> { static const PieceTypeT value = Rook; };
-  template <> struct PieceTypeForPieceT<KingRook> { static const PieceTypeT value = Rook; };
+  template <> struct PieceTypeForPieceT<Knight1> { static const PieceTypeT value = Knight; };
+  template <> struct PieceTypeForPieceT<Knight2> { static const PieceTypeT value = Knight; };
+  template <> struct PieceTypeForPieceT<Bishop1> { static const PieceTypeT value = Bishop; };
+  template <> struct PieceTypeForPieceT<Bishop2> { static const PieceTypeT value = Bishop; };
+  template <> struct PieceTypeForPieceT<Rook1> { static const PieceTypeT value = Rook; };
+  template <> struct PieceTypeForPieceT<Rook2> { static const PieceTypeT value = Rook; };
   template <> struct PieceTypeForPieceT<TheQueen> { static const PieceTypeT value = Queen; };
   template <> struct PieceTypeForPieceT<TheKing> { static const PieceTypeT value = King; };
 
   enum PiecePresentShiftsT {
     PawnsPresentShift,
-    QueenKnightPresentShift,
-    KingKnightPresentShift,
-    BlackBishopPresentShift,
-    WhiteBishopPresentShift,
-    QueenRookPresentShift,
-    KingRookPresentShift,
+    Knight1PresentShift,
+    Knight2PresentShift,
+    Bishop1PresentShift,
+    Bishop2PresentShift,
+    Rook1PresentShift,
+    Rook2PresentShift,
     QueenPresentShift,
     PromoQueenPresentShift,       // First queen promo piece.
     OtherPromoPiecesPresentShift, // Promo pieces that are not the first queen promo.
@@ -202,12 +210,12 @@ namespace Chess {
   const CastlingRightsT CastlingRightsForPiece[NPieces] = {
     NoCastlingRights,        // NoPiece,
     NoCastlingRights,        // SomePawns,
-    NoCastlingRights,        // QueenKnight,
-    NoCastlingRights,        // KingKnight,
-    NoCastlingRights,        // BlackBishop,
-    NoCastlingRights,        // WhiteBishop,
-    CanCastleQueenside,      // QueenRook,
-    CanCastleKingside,       // KingRook,
+    NoCastlingRights,        // Knight1,
+    NoCastlingRights,        // Knight2,
+    NoCastlingRights,        // Bishop1,
+    NoCastlingRights,        // Bishop2,
+    CanCastleQueenside,      // Rook1,
+    CanCastleKingside,       // Rook2,
     NoCastlingRights,        // Queen,
     (CastlingRightsT) (CanCastleQueenside | CanCastleKingside)          // King,
   };
@@ -219,44 +227,18 @@ namespace Chess {
     CastlingMove
   };
 
-  // TODO consts
   struct MoveInfoT {
     MoveTypeT moveType;
     // For castling this is the king 'from' square.
     SquareT from;
     // For castling this is the king 'to' square;
     SquareT to;
-    // NoPiece if not a capture.
-    PieceT capturedPiece;
-    // Generally same as 'to' for a capture except for en-passent.
-    // InvalidSquare is this is not a capture.
-    SquareT captureSq;
     // True iff the moved piece delivers check from the 'to' square.
     bool isDirectCheck;
-    // // The square containing the piece delivering discovered check.
-    // // InvalidSquare if not in check.
-    // // For castling giving check this is the rook 'to' square.
-    // SquareT discoveredCheckerSq;
     // True iff the moved piece uncovers discovered check.
     bool isDiscoveredCheck;
 
-    // // Generic ctor
-    // MoveInfoT(MoveTypeT moveType, SquareT from, SquareT to, PieceT capturedPiece, SquareT captureSq, bool isDirectCheck, SquareT discoveredCheckerSq):
-    //   moveType(moveType), from(from), to(to), capturedPiece(capturedPiece), captureSq(captureSq), isDirectCheck(isDirectCheck), discoveredCheckerSq(discoveredCheckerSq)
-    // {}
-
-    // // Push move ctor
-    // MoveInfoT(SquareT from, SquareT to, bool isDirectCheck = false, SquareT discoveredCheckSq = InvalidSquare) :
-    //   MoveInfoT(PushMove, from, to, NoPiece, InvalidSquare, isDirectCheck, discoveredCheckSq)
-    // {}
-
-    // // Capture move ctor
-    // MoveInfoT(SquareT from, SquareT to, PieceT capturedPiece, bool isDirectCheck = false, SquareT discoveredCheckSq = InvalidSquare) :
-    //   MoveInfoT(CaptureMove, from, to, capturedPiece, to, isDirectCheck, discoveredCheckSq)
-    // {}
-
-    // Temporary working ctor
-    MoveInfoT(const double tag, const MoveTypeT moveType, const SquareT from, const SquareT to, const bool isDirectCheck, const bool isDiscoveredCheck):
+    MoveInfoT(const MoveTypeT moveType, const SquareT from, const SquareT to, const bool isDirectCheck, const bool isDiscoveredCheck):
       moveType(moveType), from(from), to(to), isDirectCheck(isDirectCheck), isDiscoveredCheck(isDiscoveredCheck) {}
   };
 

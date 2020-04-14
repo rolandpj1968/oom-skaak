@@ -1,6 +1,10 @@
 #ifndef BOARD_HPP
 #define BOARD_HPP
 
+#include <array>
+#include <utility>
+#include <vector>
+
 #include "types.hpp"
 
 namespace Chess {
@@ -12,7 +16,7 @@ namespace Chess {
       BitBoardT pawnsBb;
 
       // All pieces except pawns and strange promos.
-      // MUST be InvalidSquare if a piece is not present
+      // MUST be InvalidSquare if a piece is not present - see emptyBoard()
       SquareT pieceSquares[NPieces];
 
       // True iff there are promo pieces on the board.
@@ -25,6 +29,8 @@ namespace Chess {
       CastlingRightsT castlingRights;
     };
 
+    // Don't use this directly with zero-initialisation or you'll be disappointed because some fields need InvalidSquare (!= 0) init.
+    // Use emptyBoard() or startingPosition() or parseFen().
     struct BoardT {
       ColorStateT pieces[NColors];
     };
@@ -75,12 +81,12 @@ namespace Chess {
       ColorPieceMapT pieceMap = {};
 
       // TODO promos
-      pieceMap.board[state.pieceSquares[QueenKnight]] = QueenKnight;
-      pieceMap.board[state.pieceSquares[KingKnight]] = KingKnight;
-      pieceMap.board[state.pieceSquares[BlackBishop]] = BlackBishop;
-      pieceMap.board[state.pieceSquares[WhiteBishop]] = WhiteBishop;
-      pieceMap.board[state.pieceSquares[QueenRook]] = QueenRook;
-      pieceMap.board[state.pieceSquares[KingRook]] = KingRook;
+      pieceMap.board[state.pieceSquares[Knight1]] = Knight1;
+      pieceMap.board[state.pieceSquares[Knight2]] = Knight2;
+      pieceMap.board[state.pieceSquares[Bishop1]] = Bishop1;
+      pieceMap.board[state.pieceSquares[Bishop2]] = Bishop2;
+      pieceMap.board[state.pieceSquares[Rook1]] = Rook1;
+      pieceMap.board[state.pieceSquares[Rook2]] = Rook2;
       pieceMap.board[state.pieceSquares[TheQueen]] = TheQueen;
       pieceMap.board[state.pieceSquares[TheKing]] = TheKing;
       
@@ -139,22 +145,29 @@ namespace Chess {
     }
 
     // TODO -  promos
-    template <ColorT Color>
-    inline void placePiece(BoardT& board, const SquareT square, const PieceT piece) {
+    inline void placePiece(BoardT& board, const ColorT color, const SquareT square, const PieceT piece) {
       // TODO handle non-standard promos
-      ColorStateT &pieces = board.pieces[(size_t)Color];
+      ColorStateT &pieces = board.pieces[(size_t)color];
 
       pieces.pieceSquares[piece] = square;
     }
-
+    
     template <ColorT Color>
-    inline void placePawn(BoardT& board, const SquareT square) {
-      // TODO handle non-standard promos
-      ColorStateT &pieces = board.pieces[(size_t)Color];
+    inline void placePiece(BoardT& board, const SquareT square, const PieceT piece) {
+      placePiece(board, Color, square, piece);
+    }
+
+    inline void placePawn(BoardT& board, const ColorT color, const SquareT square) {
+      ColorStateT &pieces = board.pieces[(size_t)color];
 
       const BitBoardT squareBb = bbForSquare(square);
 
       pieces.pawnsBb |= squareBb;
+    }
+
+    template <ColorT Color>
+    inline void placePawn(BoardT& board, const SquareT square) {
+      placePawn(board, Color, square);
     }
 
     // TODO - non-standard promos
@@ -246,13 +259,20 @@ namespace Chess {
       
       return board;
     }
-    
-    extern BoardT startingPosition();
 
-    extern bool isValid(const BoardT& board, const BitBoardT allYourKingAttackersBb);
+    // Note - MUST use this rather than zero-initialisation because piece squares need to be InvalidSquare
+    BoardT emptyBoard();
     
-    extern void printBoard(const BoardT& board);
-    extern void printBb(BitBoardT bb);
+    BoardT startingPosition();
+
+    bool isValid(const BoardT& board, const BitBoardT allYourKingAttackersBb);
+
+    // These are used for FEN output
+    char pieceChar(const std::vector<std::pair<ColorT, PieceT>>& squarePieces);
+    std::array<std::vector<std::pair<ColorT, PieceT>>, 64> genPieceMap(const BoardT& board);
+
+    void printBoard(const BoardT& board);
+    void printBb(BitBoardT bb);
   }
     
 }

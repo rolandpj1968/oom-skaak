@@ -86,14 +86,14 @@ namespace Chess {
 	legalMoves.pawnMoves.capturesLeftBb | legalMoves.pawnMoves.capturesRightBb |
 	legalMoves.pawnMoves.epCaptures.epLeftCaptureBb | legalMoves.pawnMoves.epCaptures.epRightCaptureBb |
 
-	legalMoves.pieceMoves[QueenKnight] |
-	legalMoves.pieceMoves[KingKnight] |
+	legalMoves.pieceMoves[Knight1] |
+	legalMoves.pieceMoves[Knight2] |
 	  
-	legalMoves.pieceMoves[BlackBishop] |
-	legalMoves.pieceMoves[WhiteBishop] |
+	legalMoves.pieceMoves[Bishop1] |
+	legalMoves.pieceMoves[Bishop2] |
 	  
-	legalMoves.pieceMoves[QueenRook] |
-	legalMoves.pieceMoves[KingRook] |
+	legalMoves.pieceMoves[Rook1] |
+	legalMoves.pieceMoves[Rook2] |
 	  
 	legalMoves.pieceMoves[TheQueen] |
 
@@ -205,7 +205,7 @@ namespace Chess {
     template <typename BoardTraitsT>
     inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
       PerftStatsT stats = {};
-      MoveInfoT dummyMoveInfo(0.0, PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/false, /*isDiscoveredCheck*/false);
+      MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/false, /*isDiscoveredCheck*/false);
       const PerftStateT state(stats, depthToGo);
 
       perftImpl<BoardTraitsT>(state, board, dummyMoveInfo);
