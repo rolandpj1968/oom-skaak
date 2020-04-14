@@ -142,6 +142,30 @@ namespace Chess {
       return castlingRights;
     }
 
+    static SquareT parseEpSquare(const std::string& ep) {
+      if(ep == "-") {
+	return InvalidSquare;
+      }
+      
+      if(ep.size() != 2) {
+	throw std::invalid_argument("Invalid FEN en-passant field");
+      }
+
+      char rankC = ep[0];
+      auto rank = std::string("abcdefgh").find(rankC);
+      if(rank == std::string::npos) {
+	throw std::invalid_argument("Invalid FEN en-passant rank - expecting a-h");
+      }
+
+      char fileC = ep[1];
+      if(fileC < '1' || '8' < fileC) {
+	throw std::invalid_argument("Invalid FEN en-passant file - expecting 1-8");
+      }
+      int file = fileC - '1';
+
+      return squareOf((int)rank, file);
+    }
+
     // Place pieces on the board - this is fiddlier than ideal because we have to map to sensible concrete pieces like BlackBishop etc.
     // Where there are castling rights, it's critical that rooks are assigned correctly.
     static void placePieces(BoardT& board, const ColorT color, std::map<PieceTypeT, std::vector<SquareT>>& pieceTypeMap, const CastlingRightsT castlingRights) {
@@ -324,7 +348,7 @@ namespace Chess {
       auto castlingRights = parseCastlingRights(fields[2]);
 
       // EP square
-      SquareT epSquare = InvalidSquare; // TODO parseEpSquare(fields[3]);
+      SquareT epSquare = parseEpSquare(fields[3]);
       
       BoardT board = emptyBoard();
 
@@ -394,7 +418,14 @@ namespace Chess {
     }
 
     static std::string genEpSquare(const BoardT& board, const ColorT colorToMove) {
-      return "-";
+      SquareT epSq = board.pieces[(size_t)otherColor(colorToMove)].epSquare;
+
+      if(epSq == InvalidSquare) { return "-"; }
+
+      std::stringstream ss;
+      ss << "abcdefgh"[rankOf(epSq)] << "12345678"[fileOf(epSq)];
+
+      return ss.str();
     }
 
     // TODO - halfmove clock and fullmove number when we support those

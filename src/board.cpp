@@ -21,6 +21,7 @@ namespace Chess {
 	for(int i = 0; i < NPieces; i++) {
 	  colorState.pieceSquares[i] = InvalidSquare;
 	}
+	colorState.epSquare = InvalidSquare;
       }
       return board;
     }
