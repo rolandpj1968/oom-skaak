@@ -1396,14 +1396,13 @@ namespace Chess {
       
       return legalMoves;
     }
-
-    extern int countAttacks(const PieceAttacksT& pieceAttacks, const BitBoardT filterOut = BbNone, const BitBoardT filterInPawnTakes = BbAll);
+    
+    int countAttacks(const PieceAttacksT& pieceAttacks, const BitBoardT filterOut = BbNone, const BitBoardT filterInPawnTakes = BbAll);
 
     // TODO - this shouldn't be in this header file but it has awkward dependencies
     template <typename BoardTraitsT>
-    extern bool isValid(const BoardT& board) {
+    bool isValid(const BoardT& board) {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
-      //typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
 
@@ -1422,6 +1421,13 @@ namespace Chess {
       const BitBoardT allYourKingAttackersBb = yourKingAttackers.pieceAttackers[AllPieceTypes];
 
       return Board::isValid(board, allYourKingAttackersBb);
+    }
+
+    // TODO - this shouldn't be in this header file but it has awkward dependencies
+    template <typename BoardTraitsT>
+    int getNChecks(const BoardT& board) {
+      // Not the most efficient but fine for non-perf critical code
+      return genLegalMoves<BoardTraitsT>(board).nChecks;
     }
     
   } // namespace MoveGen

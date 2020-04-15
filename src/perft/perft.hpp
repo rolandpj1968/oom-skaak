@@ -108,29 +108,42 @@ namespace Chess {
 
     template <typename BoardTraitsT>
     inline void perft0Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
-      typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
-
-      const ColorT Color = BoardTraitsT::Color;
-      const ColorT OtherColor = BoardTraitsT::OtherColor;
-
-      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
 
       // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
       const bool CheckForInvalid = false;
       if(CheckForInvalid) {
-	const PieceBbsT pieceBbs = genPieceBbs<BoardTraitsT>(board);
-	const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
-	const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
-	const BitBoardT allPiecesBb = myPieceBbs.bbs[AllPieceTypes] | yourPieceBbs.bbs[AllPieceTypes];
-	
-	// Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
-	const SquareAttackersT yourKingAttackers = genSquareAttackers<MyColorTraitsT>(yourState.pieceSquares[TheKing], myPieceBbs, allPiecesBb);
-	if(yourKingAttackers.pieceAttackers[AllPieceTypes] != 0) {
+	if(!isValid<BoardTraitsT>(board)) {
 	  // Illegal position - doesn't count
 	  stats.invalids++;
 	  static bool done = false;
 	  if(!done) {
-	    printf("\n============================================== Invalid Depth 0 - last move to %s! ===================================\n\n", SquareStr[moveInfo.to]);
+	    printf("\n============================================== Invalid Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+	    printBoard(board);
+	    printf("\n");
+	    done = true;
+	  }
+	  return;
+	}
+      }
+	
+      // Check that we detect check accurately
+      const bool CheckChecks = true;
+      if(CheckChecks) {
+	int nChecks = getNChecks<BoardTraitsT>(board);
+	bool isCheck = nChecks > 0;
+	bool isCheckDetected = moveInfo.isDirectCheck || moveInfo.isDiscoveredCheck;
+	
+	bool ok = isCheck == isCheckDetected;
+	if(nChecks > 1 && (!moveInfo.isDirectCheck || !moveInfo.isDiscoveredCheck)) {
+	  ok = false;
+	}
+
+	if(!ok) {
+	  // Bad check detection
+	  stats.invalids++;
+	  static bool done = false;
+	  if(!done) {
+	    printf("\n================================= Bad Check Detection Depth 0 - nChecks %d direct %d discovery %d last move %s-%s ===================================\n\n", nChecks, (int)moveInfo.isDirectCheck, (int)moveInfo.isDiscoveredCheck, SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
 	    printBoard(board);
 	    printf("\n");
 	    done = true;
