@@ -3,6 +3,7 @@
 
 #include "types.hpp"
 #include "board.hpp"
+#include "fen.hpp"
 #include "move-gen.hpp"
 #include "make-move.hpp"
 #include "bits.hpp"
@@ -119,7 +120,7 @@ namespace Chess {
 	  if(!done) {
 	    printf("\n============================================== Invalid Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
 	    printBoard(board);
-	    printf("\n");
+	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
 	    done = true;
 	  }
 	  return;
@@ -145,7 +146,7 @@ namespace Chess {
 	  if(!done) {
 	    printf("\n================================= Bad Check Detection Depth 0 - nChecks %d direct %d discovery %d last move %s-%s ===================================\n\n", nChecks, (int)moveInfo.isDirectCheck, (int)moveInfo.isDiscoveredCheck, SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
 	    printBoard(board);
-	    printf("\n");
+	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
 	    done = true;
 	  }
 	  return;

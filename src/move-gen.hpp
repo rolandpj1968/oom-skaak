@@ -630,6 +630,12 @@ namespace Chess {
       return SliderDirection == Diagonal ? bishopAttacks(square, allPiecesBb) : rookAttacks(square, allPiecesBb);
     }
 
+    // static void dumpBb(const BitBoardT bb, const char* desc) {
+    //   printf("\n%s\n\n", desc);
+    //   printBb(bb);
+    //   printf("\n");
+    // }
+
     template <SliderDirectionT SliderDirection> inline BitBoardT genPinnedPiecesBb(const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allMyPiecesBb, const ColorPieceBbsT yourPieceBbs) {
       const BitBoardT myKingSliderAttackersBb = genSliderAttacksBb<SliderDirection>(myKingSq, allPiecesBb);
       // Potentially pinned pieces are my pieces that are on an open ray from my king
@@ -1050,6 +1056,7 @@ namespace Chess {
 
       // Find my pieces that are blocking check - used for discovered check detection.
       const BitBoardT myDiagDiscoveryPiecesBb = genPinnedPiecesBb<Diagonal>(yourKingSq, allPiecesBb, allMyPiecesBb, myPieceBbs);
+      printf("\nOrthog discovery pieces:\n\n");
       const BitBoardT myOrthogDiscoveryPiecesBb = genPinnedPiecesBb<Orthogonal>(yourKingSq, allPiecesBb, allMyPiecesBb, myPieceBbs);
 
       // Pawn push discovery pieces are all (pawn) diag discovery pieces AND all (pawn) orthog discovery pieces on the rank of the king.

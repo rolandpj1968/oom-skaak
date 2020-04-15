@@ -241,8 +241,8 @@ namespace Chess {
 
       } // nChecks < 2
       
-      // King
-      handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, TheKing>(state, board, yourPieceMap, legalMoves.pieceMoves[TheKing], /*directChecksBb = */BbNone, /*discoveredChecksBb*/BbNone, allYourPiecesBb); 
+      // King - discoveries from king moves are a pain in the butt!
+      handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, TheKing>(state, board, yourPieceMap, legalMoves.pieceMoves[TheKing], /*directChecksBb = */BbNone, /*discoveredChecksBb/BbNone*/allDiscoveryPiecesBb, allYourPiecesBb); 
     }
      
   } // namespace MakeMove
