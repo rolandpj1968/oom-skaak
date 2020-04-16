@@ -1056,7 +1056,7 @@ namespace Chess {
 
       // Find my pieces that are blocking check - used for discovered check detection.
       const BitBoardT myDiagDiscoveryPiecesBb = genPinnedPiecesBb<Diagonal>(yourKingSq, allPiecesBb, allMyPiecesBb, myPieceBbs);
-      printf("\nOrthog discovery pieces:\n\n");
+      //printf("\nOrthog discovery pieces:\n\n");
       const BitBoardT myOrthogDiscoveryPiecesBb = genPinnedPiecesBb<Orthogonal>(yourKingSq, allPiecesBb, allMyPiecesBb, myPieceBbs);
 
       // Pawn push discovery pieces are all (pawn) diag discovery pieces AND all (pawn) orthog discovery pieces on the rank of the king.
