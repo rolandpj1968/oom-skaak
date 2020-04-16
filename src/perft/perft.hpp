@@ -128,7 +128,7 @@ namespace Chess {
       }
 	
       // Check that we detect check accurately
-      const bool CheckChecks = true;
+      const bool CheckChecks = false;
       if(CheckChecks) {
 	int nChecks = getNChecks<BoardTraitsT>(board);
 	bool isCheck = nChecks > 0;
