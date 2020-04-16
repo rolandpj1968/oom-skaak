@@ -4,6 +4,7 @@
 #include "types.hpp"
 #include "bits.hpp"
 #include "board.hpp"
+#include "fen.hpp" // TODO get rid...
 
 namespace Chess {
 
@@ -1111,7 +1112,6 @@ namespace Chess {
     inline EpPawnCapturesT genLegalPawnEpCaptures(const BoardT& board, const ColorPieceBbsT& yourPieceBbs, const PieceAttacksT myAttacks, const SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalPawnsLeftBb, const BitBoardT legalPawnsRightBb) {
       const ColorT Color = BoardTraitsT::Color;
       const BitBoardT epSquareBb = bbForSquare(epSquare);
-      
 
       const BitBoardT semiLegalEpCaptureLeftBb = legalPawnsLeftBb & epSquareBb;
       const BitBoardT semiLegalEpCaptureRightBb = legalPawnsRightBb & epSquareBb;
@@ -1125,49 +1125,73 @@ namespace Chess {
 	const ColorStateT& myState = board.pieces[(size_t)Color];
 	const SquareT myKingSq = myState.pieceSquares[TheKing];
 	  
-	const BitBoardT toBb = semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb; // there is only one bit set in one of these cos only 1 EP move is possible
-	const SquareT to = Bits::lsb(toBb);
-	const SquareT captureSq = pawnPushOneTo2From<Color>(to);
+	const SquareT captureSq = pawnPushOneTo2From<Color>(epSquare);
 	const BitBoardT captureSquareBb = bbForSquare(captureSq);
 
 	// Note that a discovered check can only be diagonal or horizontal, not vertical - because the capturing pawn ends up on the same file as the captured pawn.
 	const BitBoardT diagPinnedEpPawnBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, captureSquareBb, yourPieceBbs);
-	// Horizontal is really tricky because it involves both capturing and captured pawn.
-	// We detect it by removing them both and looking for a king attack - could optimise this
 
-	const BitBoardT fromBb = Color == White ?
-	  (semiLegalEpCaptureRightBb >> 9) | (semiLegalEpCaptureLeftBb >> 7) :
-	  (semiLegalEpCaptureRightBb << 7) | (semiLegalEpCaptureLeftBb << 9);
+	if(diagPinnedEpPawnBb == BbNone) {
+	  // Horizontal is really tricky because it involves both capturing and captured pawn.
+	  // We detect it by removing them both and looking for a king attack - could optimise this
+
+	  if(semiLegalEpCaptureLeftBb != BbNone) {
+	    const BitBoardT fromBb = Color == White ?
+	      (semiLegalEpCaptureLeftBb >> 7) :
+	      (semiLegalEpCaptureLeftBb << 9);
+
+	    const bool isPinned = (rookAttacks(myKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | epSquareBb) & yourPieceBbs.sliderBbs[Orthogonal]) != BbNone;
+
+	    if(!isPinned) {
+	      legalEpCaptureLeftBb = semiLegalEpCaptureLeftBb;
+	    }
+	  }
+
+	  if(semiLegalEpCaptureRightBb != BbNone) {
+	    const BitBoardT fromBb = Color == White ?
+	      (semiLegalEpCaptureRightBb >> 9) :
+	      (semiLegalEpCaptureRightBb << 7);
+
+	    const bool isPinned = (rookAttacks(myKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | epSquareBb) & yourPieceBbs.sliderBbs[Orthogonal]) != BbNone;
+
+	    if(!isPinned) {
+	      legalEpCaptureRightBb = semiLegalEpCaptureRightBb;
+	    }
+	  }
+	  // const BitBoardT fromBb = Color == White ?
+	  //   (semiLegalEpCaptureRightBb >> 9) | (semiLegalEpCaptureLeftBb >> 7) :
+	  //   (semiLegalEpCaptureRightBb << 7) | (semiLegalEpCaptureLeftBb << 9);
 	
-	// printf("EP horizontal pin - board after EP:");
-	// printBb((allPiecesBb & ~fromBb & ~captureSquareBb) | toBb);
-	// printf("\n");
-	// printf("EP horizontal pin - rook rays from my king:");
-	// printBb(rookAttacks(myKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | toBb));
-	// printf("EP horizontal pin - your sliders:");
-	// printBb(yourPieceBbs.sliderBbs[Orthogonal]);
-	// printf("\n");
+	  // // printf("EP horizontal pin - board after EP:");
+	  // // printBb((allPiecesBb & ~fromBb & ~captureSquareBb) | toBb);
+	  // // printf("\n");
+	  // // printf("EP horizontal pin - rook rays from my king:");
+	  // // printBb(rookAttacks(myKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | toBb));
+	  // // printf("EP horizontal pin - your sliders:");
+	  // // printBb(yourPieceBbs.sliderBbs[Orthogonal]);
+	  // // printf("\n");
 	  
-	BitBoardT orthogPinnedEpPawnBb = BbNone;
+	  // BitBoardT orthogPinnedEpPawnBb = BbNone;
 
-	if((rookAttacks(myKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | toBb) & yourPieceBbs.sliderBbs[Orthogonal]) != BbNone) {
-	  // printf("EP capture pawn is pinned!\n\n");
-	  orthogPinnedEpPawnBb = fromBb;
-	}
+	  // if((rookAttacks(myKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | toBb) & yourPieceBbs.sliderBbs[Orthogonal]) != BbNone) {
+	  //   // printf("EP capture pawn is pinned!\n\n");
+	  //   orthogPinnedEpPawnBb = fromBb;
+	  // }
 	
-	// if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) != BbNone) {
-	//   static bool done = false;
-	//   if(!done) {
-	//     printf("\n============================================== EP avoidance EP square is %d ===================================\n\n", epSquare);
-	//     printBoard(board);
-	//     printf("\n");
-	//     done = true;
-	//   }
-	// }
-
-	if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) == BbNone) {
-	  legalEpCaptureLeftBb = semiLegalEpCaptureLeftBb;
-	  legalEpCaptureRightBb = semiLegalEpCaptureRightBb;
+	  // if(false && (diagPinnedEpPawnBb | orthogPinnedEpPawnBb) != BbNone) {
+	  //   static bool done = false;
+	  //   if(!done) {
+	  //     printf("\n============================================== EP %s pin avoidance EP square is %s ===================================\n\n", (diagPinnedEpPawnBb ? "diag" : "orthog"), SquareStr[epSquare]);
+	  //     printBoard(board);
+	  //     printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
+	  //     //done = true;
+	  //   }
+	  // }
+	  
+	  // if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) == BbNone) {
+	  //   legalEpCaptureLeftBb = semiLegalEpCaptureLeftBb;
+	  //   legalEpCaptureRightBb = semiLegalEpCaptureRightBb;
+	  // }
 	}
       }
 

@@ -27,6 +27,10 @@ namespace Chess {
   template <> struct OtherColorT<White> { static const ColorT value = Black; };
   template <> struct OtherColorT<Black> { static const ColorT value = White; };
   
+  const char* const ColorStr[2] = { "w", "b" };
+
+  inline const char* colorStr(const ColorT color) { return ColorStr[(size_t)color]; }
+
   typedef u64 BitBoardT;
 
   const BitBoardT BbNone = (BitBoardT)0;

@@ -28,16 +28,17 @@ namespace Chess {
       u64 doublechecks;
       u64 checkmates;
       u64 invalids;
-      u64 invalidsnon0;
-      u64 non0inpinpath;
-      u64 non0withdiagpins;
-      u64 non0withorthogpins;
-      u64 l0nondiscoveries;
-      u64 l0checkertakable;
-      u64 l0checkkingcanmove;
-      u64 directchecks1;
-      u64 discoverychecks1;
-      u64 doublechecks1;
+      // u64 invalidsnon0;
+      // u64 non0inpinpath;
+      // u64 non0withdiagpins;
+      // u64 non0withorthogpins;
+      // u64 l0nondiscoveries;
+      // u64 l0checkertakable;
+      // u64 l0checkkingcanmove;
+      // u64 directchecks1;
+      // u64 discoverychecks1;
+      // u64 doublechecks1;
+      u64 nposwitheps;
     };
 
     struct PerftStateT {
@@ -110,6 +111,34 @@ namespace Chess {
     template <typename BoardTraitsT>
     inline void perft0Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
 
+      // TODO get rid...
+      if(false) {
+	static bool done = false;
+	if(board.pieces[(size_t)otherColor(BoardTraitsT::Color)].epSquare != InvalidSquare) {
+	  stats.nposwitheps++;
+	  if(!done) {
+	    printf("\n============================================== EP set at Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+	    printBoard(board);
+	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
+	    done = true;
+	  }
+	}
+      }	    
+
+      // TODO get rid...
+      if(false) {
+	static bool done = false;
+	if(moveInfo.moveType == EpCaptureMove) {
+	  stats.nposwitheps++;
+	  if(!done) {
+	    printf("\n============================================== EP capture Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+	    printBoard(board);
+	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
+	    //done = true;
+	  }
+	}
+      }	    
+
       // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
       const bool CheckForInvalid = false;
       if(CheckForInvalid) {
@@ -149,7 +178,6 @@ namespace Chess {
 	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
 	    done = true;
 	  }
-	  return;
 	}
       }
 	
@@ -200,6 +228,19 @@ namespace Chess {
 
     template <typename BoardTraitsT>
     inline void perftImplFull(const PerftStateT state, const BoardT& board) {
+
+      // TODO get rid...
+      if(false && state.depthToGo == 1) {
+	static bool done = false;
+	if(board.pieces[(size_t)otherColor(BoardTraitsT::Color)].epSquare != InvalidSquare) {
+	  if(!done) {
+	    printf("\n============================================== EP sq %s set at Depth 1 ===================================\n\n", SquareStr[board.pieces[(size_t)otherColor(BoardTraitsT::Color)].epSquare]);
+	    printBoard(board);
+	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
+	    //done = true;
+	  }
+	}
+      }	    
       
       const PerftStateT newState(state.stats, state.depthToGo-1);
 
