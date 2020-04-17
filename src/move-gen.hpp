@@ -97,15 +97,16 @@ namespace Chess {
       BitBoardT pawnLeftDiscoveryMasksBb;
       BitBoardT pawnRightDiscoveryMasksBb;
       // Is EP move a discovery through the capture piece?
-      bool isEpDiscovery;
+      bool isLeftEpDiscovery;
+      bool isRightEpDiscovery;
       
-      // TODO and king
+      // TODO castling discoveries
 
       DiscoveredCheckMasksT():
-	diagDiscoveryPiecesBb(BbNone), orthogDiscoveryPiecesBb(BbNone), pawnPushDiscoveryMasksBb(BbNone), pawnLeftDiscoveryMasksBb(BbNone), pawnRightDiscoveryMasksBb(BbNone), isEpDiscovery(false) {}
+	diagDiscoveryPiecesBb(BbNone), orthogDiscoveryPiecesBb(BbNone), pawnPushDiscoveryMasksBb(BbNone), pawnLeftDiscoveryMasksBb(BbNone), pawnRightDiscoveryMasksBb(BbNone), isLeftEpDiscovery(false), isRightEpDiscovery(false) {}
       
-      DiscoveredCheckMasksT(const BitBoardT diagDiscoveryPiecesBb, const BitBoardT orthogDiscoveryPiecesBb, const BitBoardT pawnPushDiscoveryMasksBb, const BitBoardT pawnLeftDiscoveryMasksBb, const BitBoardT pawnRightDiscoveryMasksBb, const bool isEpDiscovery):
-	diagDiscoveryPiecesBb(diagDiscoveryPiecesBb), orthogDiscoveryPiecesBb(orthogDiscoveryPiecesBb), pawnPushDiscoveryMasksBb(pawnPushDiscoveryMasksBb), pawnLeftDiscoveryMasksBb(pawnLeftDiscoveryMasksBb), pawnRightDiscoveryMasksBb(pawnRightDiscoveryMasksBb), isEpDiscovery(isEpDiscovery) {}
+      DiscoveredCheckMasksT(const BitBoardT diagDiscoveryPiecesBb, const BitBoardT orthogDiscoveryPiecesBb, const BitBoardT pawnPushDiscoveryMasksBb, const BitBoardT pawnLeftDiscoveryMasksBb, const BitBoardT pawnRightDiscoveryMasksBb, const bool isLeftEpDiscovery, const bool isRightEpDiscovery):
+	diagDiscoveryPiecesBb(diagDiscoveryPiecesBb), orthogDiscoveryPiecesBb(orthogDiscoveryPiecesBb), pawnPushDiscoveryMasksBb(pawnPushDiscoveryMasksBb), pawnLeftDiscoveryMasksBb(pawnLeftDiscoveryMasksBb), pawnRightDiscoveryMasksBb(pawnRightDiscoveryMasksBb), isLeftEpDiscovery(isLeftEpDiscovery), isRightEpDiscovery(isRightEpDiscovery) {}
     };
 
     struct EpPawnCapturesT {
@@ -1053,7 +1054,9 @@ namespace Chess {
       const BitBoardT pawnLeftDiscoveryMasksBb = (myDiagDiscoveryPiecesBb & ~bishopUniRay<Color, Left>(yourKingSq)) | myOrthogDiscoveryPiecesBb;
       const BitBoardT pawnRightDiscoveryMasksBb = (myDiagDiscoveryPiecesBb & ~bishopUniRay<Color, Right>(yourKingSq)) | myOrthogDiscoveryPiecesBb;
 
-      bool isEpDiscovery = false;
+      bool isLeftEpDiscovery = false;
+      bool isRightEpDiscovery = false;
+      
       // Only do the heavy lifting of detecting discovered check through the en-passant captured pawn if there really is an en-passant opportunity
       // En-passant is tricky because the captured pawn is not on the same square as the capturing piece, and might expose a discovered check itself.
       if((legalEpCaptureLeftBb | legalEpCaptureRightBb) != BbNone) {
@@ -1065,21 +1068,25 @@ namespace Chess {
 
 	// If your king is exposed to a diagonal slider when we remove the captured pawn, then this is a discovery through the ep-captured pawn
 	if((bishopAttacks(yourKingSq, allPiecesBb & ~captureSquareBb) & myPieceBbs.sliderBbs[Diagonal]) != BbNone) {
-	  isEpDiscovery = true;
-	}
 
-	const BitBoardT fromBb = pawnsRightAttacks<OtherColorT<Color>::value>(legalEpCaptureLeftBb) | pawnsLeftAttacks<OtherColorT<Color>::value>(legalEpCaptureRightBb);
+	  isLeftEpDiscovery = isRightEpDiscovery = true;
+	  
+	} else {
+	  if(legalEpCaptureLeftBb != BbNone) {
+	    const BitBoardT fromBb = pawnsRightAttacks<OtherColorT<Color>::value>(legalEpCaptureLeftBb);
 
-	// TODO broken for double ep...
+	    isLeftEpDiscovery = (rookAttacks(yourKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | toBb) & myPieceBbs.sliderBbs[Orthogonal]) != BbNone;
+	  }
 
-	// If your king is exposed to a horizontal slider when we remove both the captured piece and the capturing piece,
-	//   then this is a discovery through BOTH pieces! This can only happen horizontally, not vertically.
-	if((rookAttacks(yourKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | toBb) & myPieceBbs.sliderBbs[Orthogonal]) != BbNone) {
-	  isEpDiscovery = true;
+	  if(legalEpCaptureRightBb != BbNone) {
+	    const BitBoardT fromBb = pawnsLeftAttacks<OtherColorT<Color>::value>(legalEpCaptureRightBb);
+
+	    isRightEpDiscovery = (rookAttacks(yourKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | toBb) & myPieceBbs.sliderBbs[Orthogonal]) != BbNone;
+	  }
 	}
       }
       
-      return DiscoveredCheckMasksT(myDiagDiscoveryPiecesBb, myOrthogDiscoveryPiecesBb, pawnPushDiscoveryMasksBb, pawnLeftDiscoveryMasksBb, pawnRightDiscoveryMasksBb, isEpDiscovery);
+      return DiscoveredCheckMasksT(myDiagDiscoveryPiecesBb, myOrthogDiscoveryPiecesBb, pawnPushDiscoveryMasksBb, pawnLeftDiscoveryMasksBb, pawnRightDiscoveryMasksBb, isLeftEpDiscovery, isRightEpDiscovery);
     }
 
     template <PieceT Piece>
