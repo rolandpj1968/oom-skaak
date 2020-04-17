@@ -1119,25 +1119,26 @@ namespace Chess {
       BitBoardT legalEpCaptureLeftBb = BbNone;
       BitBoardT legalEpCaptureRightBb = BbNone;
 
-      printf("genLegalPawnEpCaptures\n");
-      printf("non-pinned pawns-left:\n");
-      printBb(nonPinnedPawnsLeftBb);
-      printf("\nnon-pinned pawns-right:\n");
-      printBb(nonPinnedPawnsRightBb);
+      const SquareT captureSq = pawnPushOneTo2From<Color>(epSquare);
+      const BitBoardT captureSquareBb = bbForSquare(captureSq);
+      
+      // printf("genLegalPawnEpCaptures\n");
+      // printf("non-pinned pawns-left:\n");
+      // printBb(nonPinnedPawnsLeftBb);
+      // printf("\nnon-pinned pawns-right:\n");
+      // printBb(nonPinnedPawnsRightBb);
       
       // Only do the heavy lifting of detecting discovered check through the captured pawn if there really is an en-passant opportunity
       // En-passant is tricky because the captured pawn is not on the same square as the capturing piece, and might expose a discovered check itself.
-      // Legal move mask handling is tricky because it applies to both the capture (ep) square and the to square.
-      const SquareT captureSq = pawnPushOneTo2From<Color>(epSquare);
-      const BitBoardT captureSquareBb = bbForSquare(captureSq);
-      printf("\ncapture-square-bb:\n");
-      printBb(captureSquareBb);
-      printf("\nep-square-bb:\n");
-      printBb(epSquareBb);
-      printf("\nlegal-move-mask:\n");
-      printBb(legalMoveMaskBb);
+      // Legal move mask handling is tricky because it applies to both the captured pawn (if the captured pawn is delivering check) and the to square.
+      // printf("\ncapture-square-bb:\n");
+      // printBb(captureSquareBb);
+      // printf("\nep-square-bb:\n");
+      // printBb(epSquareBb);
+      // printf("\nlegal-move-mask:\n");
+      // printBb(legalMoveMaskBb);
       if((semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone && ((captureSquareBb | epSquareBb) & legalMoveMaskBb) != BbNone ) {
-	printf("We have semi legal eps!\n");
+	// printf("We have semi legal eps!\n");
 	const ColorStateT& myState = board.pieces[(size_t)Color];
 	const SquareT myKingSq = myState.pieceSquares[TheKing];
 
@@ -1224,18 +1225,18 @@ namespace Chess {
       const BitBoardT nonPinnedPawnsLeftBb = myAttacks.pawnsLeftAttacks & pinMasks.pawnsLeftPinMask;
       const BitBoardT nonPinnedPawnsRightBb = myAttacks.pawnsRightAttacks & pinMasks.pawnsRightPinMask;
 
-      printf("pawnsRightAttacks:\n");
-      printBb(myAttacks.pawnsRightAttacks);
-      printf("\n");
-      printf("pawnsRightPinMask:\n");
-      printBb(pinMasks.pawnsRightPinMask);
-      printf("\n");
-      printf("legalMoveMaskBb:\n");
-      printBb(legalMoveMaskBb);
-      printf("\n");
-      printf("legalPawnsPushOneBb:\n");
-      printBb(legalPawnsPushOneBb);
-      printf("\n");
+      // printf("pawnsRightAttacks:\n");
+      // printBb(myAttacks.pawnsRightAttacks);
+      // printf("\n");
+      // printf("pawnsRightPinMask:\n");
+      // printBb(pinMasks.pawnsRightPinMask);
+      // printf("\n");
+      // printf("legalMoveMaskBb:\n");
+      // printBb(legalMoveMaskBb);
+      // printf("\n");
+      // printf("legalPawnsPushOneBb:\n");
+      // printBb(legalPawnsPushOneBb);
+      // printf("\n");
 
       const BitBoardT legalPawnsLeftBb = nonPinnedPawnsLeftBb & legalMoveMaskBb & allYourPiecesBb;
       const BitBoardT legalPawnsRightBb = nonPinnedPawnsRightBb & legalMoveMaskBb & allYourPiecesBb;
