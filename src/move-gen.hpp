@@ -1109,24 +1109,37 @@ namespace Chess {
     }
 
     template <typename BoardTraitsT>
-    inline EpPawnCapturesT genLegalPawnEpCaptures(const BoardT& board, const ColorPieceBbsT& yourPieceBbs, const PieceAttacksT myAttacks, const SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalPawnsLeftBb, const BitBoardT legalPawnsRightBb) {
+    inline EpPawnCapturesT genLegalPawnEpCaptures(const BoardT& board, const ColorPieceBbsT& yourPieceBbs, const PieceAttacksT myAttacks, const SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT nonPinnedPawnsLeftBb, const BitBoardT nonPinnedPawnsRightBb, const BitBoardT legalMoveMaskBb) {
       const ColorT Color = BoardTraitsT::Color;
       const BitBoardT epSquareBb = bbForSquare(epSquare);
 
-      const BitBoardT semiLegalEpCaptureLeftBb = legalPawnsLeftBb & epSquareBb;
-      const BitBoardT semiLegalEpCaptureRightBb = legalPawnsRightBb & epSquareBb;
+      const BitBoardT semiLegalEpCaptureLeftBb = nonPinnedPawnsLeftBb & epSquareBb;
+      const BitBoardT semiLegalEpCaptureRightBb = nonPinnedPawnsRightBb & epSquareBb;
 
       BitBoardT legalEpCaptureLeftBb = BbNone;
       BitBoardT legalEpCaptureRightBb = BbNone;
 
+      printf("genLegalPawnEpCaptures\n");
+      printf("non-pinned pawns-left:\n");
+      printBb(nonPinnedPawnsLeftBb);
+      printf("\nnon-pinned pawns-right:\n");
+      printBb(nonPinnedPawnsRightBb);
+      
       // Only do the heavy lifting of detecting discovered check through the captured pawn if there really is an en-passant opportunity
       // En-passant is tricky because the captured pawn is not on the same square as the capturing piece, and might expose a discovered check itself.
-      if((semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone) {
+      // Legal move mask handling is tricky because it applies to both the capture (ep) square and the to square.
+      const SquareT captureSq = pawnPushOneTo2From<Color>(epSquare);
+      const BitBoardT captureSquareBb = bbForSquare(captureSq);
+      printf("\ncapture-square-bb:\n");
+      printBb(captureSquareBb);
+      printf("\nep-square-bb:\n");
+      printBb(epSquareBb);
+      printf("\nlegal-move-mask:\n");
+      printBb(legalMoveMaskBb);
+      if((semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone && ((captureSquareBb | epSquareBb) & legalMoveMaskBb) != BbNone ) {
+	printf("We have semi legal eps!\n");
 	const ColorStateT& myState = board.pieces[(size_t)Color];
 	const SquareT myKingSq = myState.pieceSquares[TheKing];
-	  
-	const SquareT captureSq = pawnPushOneTo2From<Color>(epSquare);
-	const BitBoardT captureSquareBb = bbForSquare(captureSq);
 
 	// Note that a discovered check can only be diagonal or horizontal, not vertical - because the capturing pawn ends up on the same file as the captured pawn.
 	const BitBoardT diagPinnedEpPawnBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, captureSquareBb, yourPieceBbs);
@@ -1200,23 +1213,41 @@ namespace Chess {
     
     template <typename BoardTraitsT>
     inline PawnPushesAndCapturesT genLegalPawnMoves(const BoardT& board, const ColorPieceBbsT& yourPieceBbs, const PieceAttacksT myAttacks, const SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
-      const BitBoardT legalPawnsPushOneBb = myAttacks.pawnsPushOne & legalMoveMaskBb & pinMasks.pawnsPushOnePinMask;
-      const BitBoardT legalPawnsPushTwoBb = myAttacks.pawnsPushTwo & legalMoveMaskBb & pinMasks.pawnsPushTwoPinMask;
+      const BitBoardT legalPawnsPushOneBb = myAttacks.pawnsPushOne & pinMasks.pawnsPushOnePinMask & legalMoveMaskBb;
+      const BitBoardT legalPawnsPushTwoBb = myAttacks.pawnsPushTwo & pinMasks.pawnsPushTwoPinMask & legalMoveMaskBb;
 	
       // Pawn captures
 
-      const BitBoardT legalPawnsLeftBb = myAttacks.pawnsLeftAttacks & legalMoveMaskBb & pinMasks.pawnsLeftPinMask;
-      const BitBoardT legalPawnsRightBb = myAttacks.pawnsRightAttacks & legalMoveMaskBb & pinMasks.pawnsRightPinMask;
+      // const BitBoardT legalPawnsLeftBb = myAttacks.pawnsLeftAttacks & legalMoveMaskBb & pinMasks.pawnsLeftPinMask;
+      // const BitBoardT legalPawnsRightBb = myAttacks.pawnsRightAttacks & legalMoveMaskBb & pinMasks.pawnsRightPinMask;
+      
+      const BitBoardT nonPinnedPawnsLeftBb = myAttacks.pawnsLeftAttacks & pinMasks.pawnsLeftPinMask;
+      const BitBoardT nonPinnedPawnsRightBb = myAttacks.pawnsRightAttacks & pinMasks.pawnsRightPinMask;
+
+      printf("pawnsRightAttacks:\n");
+      printBb(myAttacks.pawnsRightAttacks);
+      printf("\n");
+      printf("pawnsRightPinMask:\n");
+      printBb(pinMasks.pawnsRightPinMask);
+      printf("\n");
+      printf("legalMoveMaskBb:\n");
+      printBb(legalMoveMaskBb);
+      printf("\n");
+      printf("legalPawnsPushOneBb:\n");
+      printBb(legalPawnsPushOneBb);
+      printf("\n");
+
+      const BitBoardT legalPawnsLeftBb = nonPinnedPawnsLeftBb & legalMoveMaskBb & allYourPiecesBb;
+      const BitBoardT legalPawnsRightBb = nonPinnedPawnsRightBb & legalMoveMaskBb & allYourPiecesBb;
 
       // Pawn en-passant captures
-      const EpPawnCapturesT legalEpPawnCaptures = (epSquare == InvalidSquare) ? EpPawnCapturesT() : genLegalPawnEpCaptures<BoardTraitsT>(board, yourPieceBbs, myAttacks, epSquare, allYourPiecesBb, allPiecesBb, legalPawnsLeftBb, legalPawnsRightBb);
-      
-      return PawnPushesAndCapturesT(legalPawnsPushOneBb, legalPawnsPushTwoBb, legalPawnsLeftBb & allYourPiecesBb, legalPawnsRightBb & allYourPiecesBb, legalEpPawnCaptures);
+      const EpPawnCapturesT legalEpPawnCaptures = (epSquare == InvalidSquare) ? EpPawnCapturesT() : genLegalPawnEpCaptures<BoardTraitsT>(board, yourPieceBbs, myAttacks, epSquare, allYourPiecesBb, allPiecesBb, nonPinnedPawnsLeftBb, nonPinnedPawnsRightBb, legalMoveMaskBb);
+
+      return PawnPushesAndCapturesT(legalPawnsPushOneBb, legalPawnsPushTwoBb, legalPawnsLeftBb, legalPawnsRightBb, legalEpPawnCaptures);
     }
     
     template <typename BoardTraitsT> 
     inline void genLegalNonKingMoves(LegalMovesT& legalMoves, const BoardT& board, const PieceBbsT& pieceBbs, const PieceAttacksT& myAttacks, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
-      // typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
@@ -1243,12 +1274,7 @@ namespace Chess {
 
       legalMoves.pieceMoves[TheQueen] = genLegalPieceMoves<TheQueen>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
       
-      // TODO other promo pieces
-      // if(MyColorTraitsT::HasPromos) {
-      // 	if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
-      // 	  legalMoves.pieceMoves[PromoQueen] = genLegalPieceMoves<PromoQueen>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
-      // 	}
-      // }
+      // TODO promo pieces
     }
 
     template <typename BoardTraitsT>
