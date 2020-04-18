@@ -1109,8 +1109,13 @@ namespace Chess {
 	    isKingsideCastlingDiscovery = true;
 	  }
 	}
-	if((canCastleFlags & CanCastleQueenside) != NoCastlingRights && (yourKingRookAttacks & bbForSquare(CastlingTraitsT<Color, CanCastleKingside>::RookTo)) != BbNone) {
-	  isQueensideCastlingDiscovery = true;
+	if((canCastleFlags & CanCastleQueenside) != NoCastlingRights) {
+ 	  const BitBoardT rookToBb = bbForSquare(CastlingTraitsT<Color, CanCastleQueenside>::RookTo);
+
+	  if((yourKingRookAttacks & rookToBb) != BbNone) {
+	    printf("Is queenside castling discovery\n");
+	    isQueensideCastlingDiscovery = true;
+	  }
 	}
       }
       

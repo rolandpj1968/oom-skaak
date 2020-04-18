@@ -269,14 +269,13 @@ namespace Chess {
 	// Castling
 	CastlingRightsT canCastleFlags = legalMoves.canCastleFlags;
 	if(canCastleFlags) {
-
-	  if((canCastleFlags & CanCastleQueenside)) {
-	    handleCastlingMove<StateT, PosHandlerT, BoardTraitsT, CanCastleQueenside>(state, board, legalMoves.discoveredChecks.isKingsideCastlingDiscovery);
-	  }
-
 	  if((canCastleFlags & CanCastleKingside)) {
 	    handleCastlingMove<StateT, PosHandlerT, BoardTraitsT, CanCastleKingside>(state, board, legalMoves.discoveredChecks.isKingsideCastlingDiscovery);
 	  }	
+
+	  if((canCastleFlags & CanCastleQueenside)) {
+	    handleCastlingMove<StateT, PosHandlerT, BoardTraitsT, CanCastleQueenside>(state, board, legalMoves.discoveredChecks.isQueensideCastlingDiscovery);
+	  }
 	}
 
       } // nChecks < 2
