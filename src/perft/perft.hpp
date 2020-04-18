@@ -28,17 +28,11 @@ namespace Chess {
       u64 doublechecks;
       u64 checkmates;
       u64 invalids;
-      // u64 invalidsnon0;
-      // u64 non0inpinpath;
-      // u64 non0withdiagpins;
-      // u64 non0withorthogpins;
-      // u64 l0nondiscoveries;
-      // u64 l0checkertakable;
-      // u64 l0checkkingcanmove;
-      // u64 directchecks1;
-      // u64 discoverychecks1;
-      // u64 doublechecks1;
       u64 nposwitheps;
+      u64 epdiscoveries;
+      u64 ephorizdiscoveries;
+      u64 epdiagfromdiscoveries;
+      u64 epdiagcapturediscoveries;
     };
 
     struct PerftStateT {
@@ -190,6 +184,21 @@ namespace Chess {
       if(moveInfo.moveType == EpCaptureMove) {
 	stats.captures++;
 	stats.eps++;
+	if(moveInfo.isDiscoveredCheck && !moveInfo.isDirectCheck) {
+	  stats.epdiscoveries++;
+	  const BitBoardT kingBishopRays = BishopRays[board.pieces[(size_t)BoardTraitsT::Color].pieceSquares[TheKing]];
+	  const BitBoardT kingRookRays = RookRays[board.pieces[(size_t)BoardTraitsT::Color].pieceSquares[TheKing]];
+	  const BitBoardT fromBb = bbForSquare(moveInfo.from);
+	  if(kingRookRays & fromBb) {
+	    stats.ephorizdiscoveries++;
+	  } else {
+	    if(fromBb & kingBishopRays) {
+	      stats.epdiagfromdiscoveries++;
+	    } else {
+	      stats.epdiagcapturediscoveries++;
+	    }
+	  }
+	}
       }
 
       if(moveInfo.moveType == CastlingMove) {
