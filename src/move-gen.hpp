@@ -1093,19 +1093,14 @@ namespace Chess {
       bool isKingsideCastlingDiscovery = false;
       bool isQueensideCastlingDiscovery = false;
       if(canCastleFlags != NoCastlingRights) {
-	printf("[RPJ] Can castle\n");
 	// Only have to remove our king in order to determine whether our rook will check your king after castling
 	const ColorStateT& myState = board.pieces[(size_t)Color];
 	const SquareT myKingSq = myState.pieceSquares[TheKing];
 	const BitBoardT myKingSqBb = bbForSquare(myKingSq);
 	const BitBoardT yourKingRookAttacks = rookAttacks(yourKingSq, (allPiecesBb & ~myKingSqBb));
 	if((canCastleFlags & CanCastleKingside) != NoCastlingRights) {
-	  printf("[RPJ] Can castle kingside\n");
-	  printf("\nYour king rook attacks:\n");
-	  printBb(yourKingRookAttacks);
 	  const BitBoardT rookToBb = bbForSquare(CastlingTraitsT<Color, CanCastleKingside>::RookTo);
 	  if((yourKingRookAttacks & rookToBb) != BbNone) {
-	    printf("Is kingside castling discovery\n");
 	    isKingsideCastlingDiscovery = true;
 	  }
 	}
@@ -1113,7 +1108,6 @@ namespace Chess {
  	  const BitBoardT rookToBb = bbForSquare(CastlingTraitsT<Color, CanCastleQueenside>::RookTo);
 
 	  if((yourKingRookAttacks & rookToBb) != BbNone) {
-	    printf("Is queenside castling discovery\n");
 	    isQueensideCastlingDiscovery = true;
 	  }
 	}
