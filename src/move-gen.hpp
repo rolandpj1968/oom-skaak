@@ -4,6 +4,7 @@
 #include "types.hpp"
 #include "bits.hpp"
 #include "board.hpp"
+#include "fen.hpp" // TODO get rid...
 
 namespace Chess {
 
@@ -96,15 +97,20 @@ namespace Chess {
       BitBoardT pawnLeftDiscoveryMasksBb;
       BitBoardT pawnRightDiscoveryMasksBb;
       // Is EP move a discovery through the capture piece?
-      bool isEpDiscovery;
-      
-      // TODO and king
+      bool isLeftEpDiscovery;
+      bool isRightEpDiscovery;
+      // Does rook deliver check after castling
+      bool isKingsideCastlingDiscovery;
+      bool isQueensideCastlingDiscovery;
 
       DiscoveredCheckMasksT():
-	diagDiscoveryPiecesBb(BbNone), orthogDiscoveryPiecesBb(BbNone), pawnPushDiscoveryMasksBb(BbNone), pawnLeftDiscoveryMasksBb(BbNone), pawnRightDiscoveryMasksBb(BbNone), isEpDiscovery(false) {}
+	diagDiscoveryPiecesBb(BbNone), orthogDiscoveryPiecesBb(BbNone), pawnPushDiscoveryMasksBb(BbNone), pawnLeftDiscoveryMasksBb(BbNone), pawnRightDiscoveryMasksBb(BbNone),
+	isLeftEpDiscovery(false), isRightEpDiscovery(false), isKingsideCastlingDiscovery(false), isQueensideCastlingDiscovery(false) {}
       
-      DiscoveredCheckMasksT(const BitBoardT diagDiscoveryPiecesBb, const BitBoardT orthogDiscoveryPiecesBb, const BitBoardT pawnPushDiscoveryMasksBb, const BitBoardT pawnLeftDiscoveryMasksBb, const BitBoardT pawnRightDiscoveryMasksBb, const bool isEpDiscovery):
-	diagDiscoveryPiecesBb(diagDiscoveryPiecesBb), orthogDiscoveryPiecesBb(orthogDiscoveryPiecesBb), pawnPushDiscoveryMasksBb(pawnPushDiscoveryMasksBb), pawnLeftDiscoveryMasksBb(pawnLeftDiscoveryMasksBb), pawnRightDiscoveryMasksBb(pawnRightDiscoveryMasksBb), isEpDiscovery(isEpDiscovery) {}
+      DiscoveredCheckMasksT(const BitBoardT diagDiscoveryPiecesBb, const BitBoardT orthogDiscoveryPiecesBb, const BitBoardT pawnPushDiscoveryMasksBb, const BitBoardT pawnLeftDiscoveryMasksBb, const BitBoardT pawnRightDiscoveryMasksBb,
+			    const bool isLeftEpDiscovery, const bool isRightEpDiscovery, const bool isKingsideCastlingDiscovery, const bool isQueensideCastlingDiscovery):
+	diagDiscoveryPiecesBb(diagDiscoveryPiecesBb), orthogDiscoveryPiecesBb(orthogDiscoveryPiecesBb), pawnPushDiscoveryMasksBb(pawnPushDiscoveryMasksBb), pawnLeftDiscoveryMasksBb(pawnLeftDiscoveryMasksBb), pawnRightDiscoveryMasksBb(pawnRightDiscoveryMasksBb),
+	isLeftEpDiscovery(isLeftEpDiscovery), isRightEpDiscovery(isRightEpDiscovery), isKingsideCastlingDiscovery(isKingsideCastlingDiscovery), isQueensideCastlingDiscovery(isQueensideCastlingDiscovery) {}
     };
 
     struct EpPawnCapturesT {
@@ -601,16 +607,9 @@ namespace Chess {
 	  
 	  const SquareT checkingPieceSq = Bits::lsb(allMyKingAttackersBb);
 	  
-	  // const PieceT checkingPiece1 = squarePiecePiece(board.board[checkingPieceSq]);
-
 	  const BitBoardT pawnAttackerBb = allMyKingAttackersBb & yourState.pawnsBb;
 	  const PieceT checkingPiece = pawnAttackerBb != BbNone ? SomePawns : yourPieceMap.board[checkingPieceSq];
 
-	  // if(checkingPiece != checkingPiece1) {
-	  //   printf("Booooo - bad checking piece - old %d vs new %d\n", checkingPiece1, checkingPiece);
-	  //   //exit(1);
-	  // }
-	  
 	  const BitBoardT diagAttacksFromMyKingBb = bishopAttacks(myKingSq, allPiecesBb);
 	  if(allMyKingAttackersBb & diagAttacksFromMyKingBb) {
 	    legalMoveMaskBb |= diagAttacksFromMyKingBb & yourAttacks.pieceAttacks[checkingPiece] & BishopRays[checkingPieceSq];
@@ -945,7 +944,6 @@ namespace Chess {
     }
     
     // Generate the pin masks for all pieces
-    // TODO - pawns too
     template <typename ColorTraitsT>
     inline void genPiecePinMasks(PiecePinMasksT& pinMasks, const ColorStateT& myState, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
       const ColorT Color = ColorTraitsT::Color;
@@ -1034,7 +1032,7 @@ namespace Chess {
     }
 
     template <typename BoardTraitsT>
-    inline DiscoveredCheckMasksT genDiscoveryMasks(const BoardT& board, const PieceBbsT& pieceBbs, const BitBoardT legalEpCaptureLeftBb, const BitBoardT legalEpCaptureRightBb) {
+    inline DiscoveredCheckMasksT genDiscoveryMasks(const BoardT& board, const PieceBbsT& pieceBbs, const BitBoardT legalEpCaptureLeftBb, const BitBoardT legalEpCaptureRightBb, const CastlingRightsT canCastleFlags) {
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
@@ -1060,24 +1058,62 @@ namespace Chess {
       const BitBoardT pawnLeftDiscoveryMasksBb = (myDiagDiscoveryPiecesBb & ~bishopUniRay<Color, Left>(yourKingSq)) | myOrthogDiscoveryPiecesBb;
       const BitBoardT pawnRightDiscoveryMasksBb = (myDiagDiscoveryPiecesBb & ~bishopUniRay<Color, Right>(yourKingSq)) | myOrthogDiscoveryPiecesBb;
 
-      bool isEpDiscovery = false;
+      bool isLeftEpDiscovery = false;
+      bool isRightEpDiscovery = false;
+      
       // Only do the heavy lifting of detecting discovered check through the en-passant captured pawn if there really is an en-passant opportunity
       // En-passant is tricky because the captured pawn is not on the same square as the capturing piece, and might expose a discovered check itself.
       if((legalEpCaptureLeftBb | legalEpCaptureRightBb) != BbNone) {
-	  
-	const SquareT to = Bits::lsb(legalEpCaptureLeftBb | legalEpCaptureRightBb);
+
+	const BitBoardT toBb = legalEpCaptureLeftBb | legalEpCaptureRightBb; // this is the ep square if ep is possible - there can be only one (bit set)
+	const SquareT to = Bits::lsb(toBb);
 	const SquareT captureSq = pawnPushOneTo2From<BoardTraitsT::Color>(to);
 	const BitBoardT captureSquareBb = bbForSquare(captureSq);
 
 	// If your king is exposed to a diagonal slider when we remove the captured pawn, then this is a discovery through the ep-captured pawn
 	if((bishopAttacks(yourKingSq, allPiecesBb & ~captureSquareBb) & myPieceBbs.sliderBbs[Diagonal]) != BbNone) {
-	  isEpDiscovery = true;
+
+	  isLeftEpDiscovery = isRightEpDiscovery = true;
+	  
+	} else {
+	  if(legalEpCaptureLeftBb != BbNone) {
+	    const BitBoardT fromBb = pawnsRightAttacks<OtherColorT<Color>::value>(legalEpCaptureLeftBb);
+
+	    isLeftEpDiscovery = (rookAttacks(yourKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | toBb) & myPieceBbs.sliderBbs[Orthogonal]) != BbNone;
+	  }
+
+	  if(legalEpCaptureRightBb != BbNone) {
+	    const BitBoardT fromBb = pawnsLeftAttacks<OtherColorT<Color>::value>(legalEpCaptureRightBb);
+
+	    isRightEpDiscovery = (rookAttacks(yourKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | toBb) & myPieceBbs.sliderBbs[Orthogonal]) != BbNone;
+	  }
 	}
-	//isEpDiscovery = (myDiagDiscoveryPiecesBb & captureSquareBb) != BbNone; // Gack - it's your damn piece, not mine :P
-	// TODO horizontal discovery
+      }
+
+      bool isKingsideCastlingDiscovery = false;
+      bool isQueensideCastlingDiscovery = false;
+      if(canCastleFlags != NoCastlingRights) {
+	// Only have to remove our king in order to determine whether our rook will check your king after castling
+	const ColorStateT& myState = board.pieces[(size_t)Color];
+	const SquareT myKingSq = myState.pieceSquares[TheKing];
+	const BitBoardT myKingSqBb = bbForSquare(myKingSq);
+	const BitBoardT yourKingRookAttacks = rookAttacks(yourKingSq, (allPiecesBb & ~myKingSqBb));
+	if((canCastleFlags & CanCastleKingside) != NoCastlingRights) {
+	  const BitBoardT rookToBb = bbForSquare(CastlingTraitsT<Color, CanCastleKingside>::RookTo);
+	  if((yourKingRookAttacks & rookToBb) != BbNone) {
+	    isKingsideCastlingDiscovery = true;
+	  }
+	}
+	if((canCastleFlags & CanCastleQueenside) != NoCastlingRights) {
+ 	  const BitBoardT rookToBb = bbForSquare(CastlingTraitsT<Color, CanCastleQueenside>::RookTo);
+
+	  if((yourKingRookAttacks & rookToBb) != BbNone) {
+	    isQueensideCastlingDiscovery = true;
+	  }
+	}
       }
       
-      return DiscoveredCheckMasksT(myDiagDiscoveryPiecesBb, myOrthogDiscoveryPiecesBb, pawnPushDiscoveryMasksBb, pawnLeftDiscoveryMasksBb, pawnRightDiscoveryMasksBb, isEpDiscovery);
+      return DiscoveredCheckMasksT(myDiagDiscoveryPiecesBb, myOrthogDiscoveryPiecesBb, pawnPushDiscoveryMasksBb, pawnLeftDiscoveryMasksBb, pawnRightDiscoveryMasksBb, isLeftEpDiscovery, isRightEpDiscovery, isKingsideCastlingDiscovery, isQueensideCastlingDiscovery);
     }
 
     template <PieceT Piece>
@@ -1086,44 +1122,52 @@ namespace Chess {
     }
 
     template <typename BoardTraitsT>
-    inline EpPawnCapturesT genLegalPawnEpCaptures(const BoardT& board, const ColorPieceBbsT& yourPieceBbs, const PieceAttacksT myAttacks, const SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalPawnsLeftBb, const BitBoardT legalPawnsRightBb) {
+    inline EpPawnCapturesT genLegalPawnEpCaptures(const BoardT& board, const ColorPieceBbsT& yourPieceBbs, const PieceAttacksT myAttacks, const SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT nonPinnedPawnsLeftBb, const BitBoardT nonPinnedPawnsRightBb, const BitBoardT legalMoveMaskBb) {
+      const ColorT Color = BoardTraitsT::Color;
       const BitBoardT epSquareBb = bbForSquare(epSquare);
 
-      const BitBoardT semiLegalEpCaptureLeftBb = legalPawnsLeftBb & epSquareBb;
-      const BitBoardT semiLegalEpCaptureRightBb = legalPawnsRightBb & epSquareBb;
+      const BitBoardT semiLegalEpCaptureLeftBb = nonPinnedPawnsLeftBb & epSquareBb;
+      const BitBoardT semiLegalEpCaptureRightBb = nonPinnedPawnsRightBb & epSquareBb;
 
       BitBoardT legalEpCaptureLeftBb = BbNone;
       BitBoardT legalEpCaptureRightBb = BbNone;
 
+      const SquareT captureSq = pawnPushOneTo2From<Color>(epSquare);
+      const BitBoardT captureSquareBb = bbForSquare(captureSq);
+      
       // Only do the heavy lifting of detecting discovered check through the captured pawn if there really is an en-passant opportunity
       // En-passant is tricky because the captured pawn is not on the same square as the capturing piece, and might expose a discovered check itself.
-      if((semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone) {
-	const ColorStateT& myState = board.pieces[(size_t)BoardTraitsT::Color];
+      // Legal move mask handling is tricky because it applies to both the captured pawn (if the captured pawn is delivering check) and the to square.
+      if((semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone && ((captureSquareBb | epSquareBb) & legalMoveMaskBb) != BbNone ) {
+	const ColorStateT& myState = board.pieces[(size_t)Color];
 	const SquareT myKingSq = myState.pieceSquares[TheKing];
-	  
-	const SquareT to = Bits::lsb(semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb);
-	const SquareT captureSq = pawnPushOneTo2From<BoardTraitsT::Color>(to);
-	const BitBoardT captureSquareBb = bbForSquare(captureSq);
 
-	// Note that a discovered check can only be diagonal or horizontal, because the capturing pawn ends up on the same file as the captured pawn.
+	// Note that a discovered check can only be diagonal or horizontal, not vertical - because the capturing pawn ends up on the same file as the captured pawn.
 	const BitBoardT diagPinnedEpPawnBb = genPinnedPiecesBb<Diagonal>(myKingSq, allPiecesBb, captureSquareBb, yourPieceBbs);
-	// Horizontal is really tricky because it involves both capturing and captured pawn.
-	// We detect it by removing them both and looking for a king attack - could optimise this... TODO anyhow
-	const BitBoardT orthogPinnedEpPawnBb = BbNone; //genPinnedPiecesBb<Orthogonal>(myKingSq, allPiecesBb, captureSquareBb, yourPieceBbs);
 
-	if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) != BbNone) {
-	  static bool done = false;
-	  if(!done) {
-	    printf("\n============================================== EP avoidance EP square is %d ===================================\n\n", epSquare);
-	    printBoard(board);
-	    printf("\n");
-	    done = true;
+	if(diagPinnedEpPawnBb == BbNone) {
+	  // Horizontal is really tricky because it involves both capturing and captured pawn.
+	  // We detect it by removing them both and looking for a king attack - could optimise this
+
+	  if(semiLegalEpCaptureLeftBb != BbNone) {
+	    const BitBoardT fromBb = pawnsRightAttacks<OtherColorT<Color>::value>(semiLegalEpCaptureLeftBb);
+
+	    const bool isPinned = (rookAttacks(myKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | epSquareBb) & yourPieceBbs.sliderBbs[Orthogonal]) != BbNone;
+
+	    if(!isPinned) {
+	      legalEpCaptureLeftBb = semiLegalEpCaptureLeftBb;
+	    }
 	  }
-	}
 
-	if((diagPinnedEpPawnBb | orthogPinnedEpPawnBb) == BbNone) {
-	  legalEpCaptureLeftBb = semiLegalEpCaptureLeftBb;
-	  legalEpCaptureRightBb = semiLegalEpCaptureRightBb;
+	  if(semiLegalEpCaptureRightBb != BbNone) {
+	    const BitBoardT fromBb = pawnsLeftAttacks<OtherColorT<Color>::value>(semiLegalEpCaptureRightBb);
+
+	    const bool isPinned = (rookAttacks(myKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | epSquareBb) & yourPieceBbs.sliderBbs[Orthogonal]) != BbNone;
+
+	    if(!isPinned) {
+	      legalEpCaptureRightBb = semiLegalEpCaptureRightBb;
+	    }
+	  }
 	}
       }
 
@@ -1132,23 +1176,25 @@ namespace Chess {
     
     template <typename BoardTraitsT>
     inline PawnPushesAndCapturesT genLegalPawnMoves(const BoardT& board, const ColorPieceBbsT& yourPieceBbs, const PieceAttacksT myAttacks, const SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
-      const BitBoardT legalPawnsPushOneBb = myAttacks.pawnsPushOne & legalMoveMaskBb & pinMasks.pawnsPushOnePinMask;
-      const BitBoardT legalPawnsPushTwoBb = myAttacks.pawnsPushTwo & legalMoveMaskBb & pinMasks.pawnsPushTwoPinMask;
+      const BitBoardT legalPawnsPushOneBb = myAttacks.pawnsPushOne & pinMasks.pawnsPushOnePinMask & legalMoveMaskBb;
+      const BitBoardT legalPawnsPushTwoBb = myAttacks.pawnsPushTwo & pinMasks.pawnsPushTwoPinMask & legalMoveMaskBb;
 	
       // Pawn captures
 
-      const BitBoardT legalPawnsLeftBb = myAttacks.pawnsLeftAttacks & legalMoveMaskBb & pinMasks.pawnsLeftPinMask;
-      const BitBoardT legalPawnsRightBb = myAttacks.pawnsRightAttacks & legalMoveMaskBb & pinMasks.pawnsRightPinMask;
+      const BitBoardT nonPinnedPawnsLeftBb = myAttacks.pawnsLeftAttacks & pinMasks.pawnsLeftPinMask;
+      const BitBoardT nonPinnedPawnsRightBb = myAttacks.pawnsRightAttacks & pinMasks.pawnsRightPinMask;
+
+      const BitBoardT legalPawnsLeftBb = nonPinnedPawnsLeftBb & legalMoveMaskBb & allYourPiecesBb;
+      const BitBoardT legalPawnsRightBb = nonPinnedPawnsRightBb & legalMoveMaskBb & allYourPiecesBb;
 
       // Pawn en-passant captures
-      const EpPawnCapturesT legalEpPawnCaptures = (epSquare == InvalidSquare) ? EpPawnCapturesT() : genLegalPawnEpCaptures<BoardTraitsT>(board, yourPieceBbs, myAttacks, epSquare, allYourPiecesBb, allPiecesBb, legalPawnsLeftBb, legalPawnsRightBb);
-      
-      return PawnPushesAndCapturesT(legalPawnsPushOneBb, legalPawnsPushTwoBb, legalPawnsLeftBb & allYourPiecesBb, legalPawnsRightBb & allYourPiecesBb, legalEpPawnCaptures);
+      const EpPawnCapturesT legalEpPawnCaptures = (epSquare == InvalidSquare) ? EpPawnCapturesT() : genLegalPawnEpCaptures<BoardTraitsT>(board, yourPieceBbs, myAttacks, epSquare, allYourPiecesBb, allPiecesBb, nonPinnedPawnsLeftBb, nonPinnedPawnsRightBb, legalMoveMaskBb);
+
+      return PawnPushesAndCapturesT(legalPawnsPushOneBb, legalPawnsPushTwoBb, legalPawnsLeftBb, legalPawnsRightBb, legalEpPawnCaptures);
     }
     
     template <typename BoardTraitsT> 
     inline void genLegalNonKingMoves(LegalMovesT& legalMoves, const BoardT& board, const PieceBbsT& pieceBbs, const PieceAttacksT& myAttacks, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
-      // typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
@@ -1175,12 +1221,7 @@ namespace Chess {
 
       legalMoves.pieceMoves[TheQueen] = genLegalPieceMoves<TheQueen>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
       
-      // TODO other promo pieces
-      // if(MyColorTraitsT::HasPromos) {
-      // 	if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
-      // 	  legalMoves.pieceMoves[PromoQueen] = genLegalPieceMoves<PromoQueen>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
-      // 	}
-      // }
+      // TODO promo pieces
     }
 
     template <typename BoardTraitsT>
@@ -1355,18 +1396,17 @@ namespace Chess {
       legalMoves.pieceMoves[TheKing] = genLegalKingMoves<BoardTraitsT>(board, pieceBbs, yourAttacks, allMyKingAttackersBb);
 
       legalMoves.directChecks = genDirectCheckMasks<Color>(yourState, allPiecesBb);
-      legalMoves.discoveredChecks = genDiscoveryMasks<BoardTraitsT>(board, pieceBbs, legalMoves.pawnMoves.epCaptures.epLeftCaptureBb, legalMoves.pawnMoves.epCaptures.epRightCaptureBb);
+      legalMoves.discoveredChecks = genDiscoveryMasks<BoardTraitsT>(board, pieceBbs, legalMoves.pawnMoves.epCaptures.epLeftCaptureBb, legalMoves.pawnMoves.epCaptures.epRightCaptureBb, legalMoves.canCastleFlags);
       
       return legalMoves;
     }
-
-    extern int countAttacks(const PieceAttacksT& pieceAttacks, const BitBoardT filterOut = BbNone, const BitBoardT filterInPawnTakes = BbAll);
+    
+    int countAttacks(const PieceAttacksT& pieceAttacks, const BitBoardT filterOut = BbNone, const BitBoardT filterInPawnTakes = BbAll);
 
     // TODO - this shouldn't be in this header file but it has awkward dependencies
     template <typename BoardTraitsT>
-    extern bool isValid(const BoardT& board) {
+    bool isValid(const BoardT& board) {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
-      //typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
 
@@ -1385,6 +1425,13 @@ namespace Chess {
       const BitBoardT allYourKingAttackersBb = yourKingAttackers.pieceAttackers[AllPieceTypes];
 
       return Board::isValid(board, allYourKingAttackersBb);
+    }
+
+    // TODO - this shouldn't be in this header file but it has awkward dependencies
+    template <typename BoardTraitsT>
+    int getNChecks(const BoardT& board) {
+      // Not the most efficient but fine for non-perf critical code
+      return genLegalMoves<BoardTraitsT>(board).nChecks;
     }
     
   } // namespace MoveGen

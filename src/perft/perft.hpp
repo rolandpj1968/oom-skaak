@@ -3,6 +3,7 @@
 
 #include "types.hpp"
 #include "board.hpp"
+#include "fen.hpp"
 #include "move-gen.hpp"
 #include "make-move.hpp"
 #include "bits.hpp"
@@ -27,16 +28,11 @@ namespace Chess {
       u64 doublechecks;
       u64 checkmates;
       u64 invalids;
-      u64 invalidsnon0;
-      u64 non0inpinpath;
-      u64 non0withdiagpins;
-      u64 non0withorthogpins;
-      u64 l0nondiscoveries;
-      u64 l0checkertakable;
-      u64 l0checkkingcanmove;
-      u64 directchecks1;
-      u64 discoverychecks1;
-      u64 doublechecks1;
+      u64 nposwitheps;
+      u64 epdiscoveries;
+      u64 ephorizdiscoveries;
+      u64 epdiagfromdiscoveries;
+      u64 epdiagcapturediscoveries;
     };
 
     struct PerftStateT {
@@ -108,34 +104,74 @@ namespace Chess {
 
     template <typename BoardTraitsT>
     inline void perft0Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
-      typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
 
-      const ColorT Color = BoardTraitsT::Color;
-      const ColorT OtherColor = BoardTraitsT::OtherColor;
+      // TODO get rid...
+      if(false) {
+	static bool done = false;
+	if(board.pieces[(size_t)otherColor(BoardTraitsT::Color)].epSquare != InvalidSquare) {
+	  stats.nposwitheps++;
+	  if(!done) {
+	    printf("\n============================================== EP set at Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+	    printBoard(board);
+	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
+	    done = true;
+	  }
+	}
+      }	    
 
-      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+      // TODO get rid...
+      if(false) {
+	static bool done = false;
+	if(moveInfo.moveType == EpCaptureMove) {
+	  stats.nposwitheps++;
+	  if(!done) {
+	    printf("\n============================================== EP capture Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+	    printBoard(board);
+	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
+	    //done = true;
+	  }
+	}
+      }	    
 
       // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
       const bool CheckForInvalid = false;
       if(CheckForInvalid) {
-	const PieceBbsT pieceBbs = genPieceBbs<BoardTraitsT>(board);
-	const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
-	const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
-	const BitBoardT allPiecesBb = myPieceBbs.bbs[AllPieceTypes] | yourPieceBbs.bbs[AllPieceTypes];
-	
-	// Is your king in check? If so we got here via an illegal move of the pseudo-move-generator
-	const SquareAttackersT yourKingAttackers = genSquareAttackers<MyColorTraitsT>(yourState.pieceSquares[TheKing], myPieceBbs, allPiecesBb);
-	if(yourKingAttackers.pieceAttackers[AllPieceTypes] != 0) {
+	if(!isValid<BoardTraitsT>(board)) {
 	  // Illegal position - doesn't count
 	  stats.invalids++;
 	  static bool done = false;
 	  if(!done) {
-	    printf("\n============================================== Invalid Depth 0 - last move to %s! ===================================\n\n", SquareStr[moveInfo.to]);
+	    printf("\n============================================== Invalid Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
 	    printBoard(board);
-	    printf("\n");
+	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
 	    done = true;
 	  }
 	  return;
+	}
+      }
+	
+      // Check that we detect check accurately
+      const bool CheckChecks = false;
+      if(CheckChecks) {
+	int nChecks = getNChecks<BoardTraitsT>(board);
+	bool isCheck = nChecks > 0;
+	bool isCheckDetected = moveInfo.isDirectCheck || moveInfo.isDiscoveredCheck;
+	
+	bool ok = isCheck == isCheckDetected;
+	if(nChecks > 1 && (!moveInfo.isDirectCheck || !moveInfo.isDiscoveredCheck)) {
+	  ok = false;
+	}
+
+	if(!ok) {
+	  // Bad check detection
+	  stats.invalids++;
+	  static bool done = false;
+	  if(!done) {
+	    printf("\n================================= Bad Check Detection Depth 0 - nChecks %d direct %d discovery %d last move %s-%s ===================================\n\n", nChecks, (int)moveInfo.isDirectCheck, (int)moveInfo.isDiscoveredCheck, SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+	    printBoard(board);
+	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
+	    done = true;
+	  }
 	}
       }
 	
@@ -148,6 +184,21 @@ namespace Chess {
       if(moveInfo.moveType == EpCaptureMove) {
 	stats.captures++;
 	stats.eps++;
+	if(moveInfo.isDiscoveredCheck && !moveInfo.isDirectCheck) {
+	  stats.epdiscoveries++;
+	  const BitBoardT kingBishopRays = BishopRays[board.pieces[(size_t)BoardTraitsT::Color].pieceSquares[TheKing]];
+	  const BitBoardT kingRookRays = RookRays[board.pieces[(size_t)BoardTraitsT::Color].pieceSquares[TheKing]];
+	  const BitBoardT fromBb = bbForSquare(moveInfo.from);
+	  if(kingRookRays & fromBb) {
+	    stats.ephorizdiscoveries++;
+	  } else {
+	    if(fromBb & kingBishopRays) {
+	      stats.epdiagfromdiscoveries++;
+	    } else {
+	      stats.epdiagcapturediscoveries++;
+	    }
+	  }
+	}
       }
 
       if(moveInfo.moveType == CastlingMove) {
@@ -186,6 +237,19 @@ namespace Chess {
 
     template <typename BoardTraitsT>
     inline void perftImplFull(const PerftStateT state, const BoardT& board) {
+
+      // TODO get rid...
+      if(false && state.depthToGo == 1) {
+	static bool done = false;
+	if(board.pieces[(size_t)otherColor(BoardTraitsT::Color)].epSquare != InvalidSquare) {
+	  if(!done) {
+	    printf("\n============================================== EP sq %s set at Depth 1 ===================================\n\n", SquareStr[board.pieces[(size_t)otherColor(BoardTraitsT::Color)].epSquare]);
+	    printBoard(board);
+	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
+	    //done = true;
+	  }
+	}
+      }	    
       
       const PerftStateT newState(state.stats, state.depthToGo-1);
 
