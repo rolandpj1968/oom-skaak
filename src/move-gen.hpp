@@ -1336,17 +1336,29 @@ namespace Chess {
     }
     
     template <typename ColorTraitsT>
-    inline ColorPieceBbsT genColorPieceBbs(const ColorStateT& state) {
+    inline ColorPieceBbsT genColorPieceBbs(const ColorStateT& colorState) {
       ColorPieceBbsT pieceBbs = {};
 
-      pieceBbs.bbs[Pawn] = state.pawnsBb; //bbsOld[Pawn];
+      pieceBbs.bbs[Pawn] = colorState.pawnsBb;
 
-      // TODO promos
-      pieceBbs.bbs[Knight] = bbForSquare(state.pieceSquares[Knight1]) | bbForSquare(state.pieceSquares[Knight2]);
-      pieceBbs.bbs[Bishop] = bbForSquare(state.pieceSquares[Bishop1]) | bbForSquare(state.pieceSquares[Bishop2]);
-      pieceBbs.bbs[Rook] = bbForSquare(state.pieceSquares[Rook1]) | bbForSquare(state.pieceSquares[Rook2]);
-      pieceBbs.bbs[Queen] = bbForSquare(state.pieceSquares[TheQueen]);
-      pieceBbs.bbs[King] = bbForSquare(state.pieceSquares[TheKing]);
+      pieceBbs.bbs[Knight] = bbForSquare(colorState.pieceSquares[Knight1]) | bbForSquare(colorState.pieceSquares[Knight2]);
+      pieceBbs.bbs[Bishop] = bbForSquare(colorState.pieceSquares[Bishop1]) | bbForSquare(colorState.pieceSquares[Bishop2]);
+      pieceBbs.bbs[Rook] = bbForSquare(colorState.pieceSquares[Rook1]) | bbForSquare(colorState.pieceSquares[Rook2]);
+      pieceBbs.bbs[Queen] = bbForSquare(colorState.pieceSquares[TheQueen]);
+      pieceBbs.bbs[King] = bbForSquare(colorState.pieceSquares[TheKing]);
+
+      // Promo pieces
+      BitBoardT activePromos = (BitBoardT)colorState.activePromos;
+      while(activePromos) {
+	const int promoIndex = Bits::popLsb(activePromos);
+	const PromoPieceAndSquareT promoPieceAndSquare = colorState.promos[promoIndex];
+	const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
+	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
+	const BitBoardT promoPieceSqBb = bbForSquare(promoPieceSq);
+	const PieceTypeT pieceType = PieceTypeForPromoPiece[promoPiece];
+
+	pieceBbs.bbs[pieceType] |= promoPieceSqBb;
+      }      
 
       pieceBbs.sliderBbs[Diagonal] = pieceBbs.bbs[Bishop] | pieceBbs.bbs[Queen];
       pieceBbs.sliderBbs[Orthogonal] = pieceBbs.bbs[Rook] | pieceBbs.bbs[Queen];
