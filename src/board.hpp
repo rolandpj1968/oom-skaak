@@ -142,9 +142,16 @@ namespace Chess {
 
     template <ColorT Color>
     inline PieceT removePiece(BoardT& board, const ColorPieceMapT& pieceMap, const SquareT square) {
-      const PieceT piece = pieceMap.board[square];
+      const PieceT piece = pieceMap.board[square].piece;
 
       return removePiece<Color>(board, square, piece);
+    }
+
+    template <ColorT Color>
+    inline void removePromoPiece(BoardT& board, const ColorPieceMapT& pieceMap, const SquareT square) {
+      const int promoIndex = pieceMap.board[square].promoIndex;
+
+      removePromoPiece<Color>(board, promoIndex);
     }
 
     template <ColorT Color>
@@ -253,6 +260,22 @@ namespace Chess {
       return board;
     }
     
+    template <ColorT Color, PieceT Piece>
+    inline BoardT capturePromoPieceWithPiece(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
+      BoardT board = oldBoard;
+
+      removePromoPiece<OtherColorT<Color>::value>(board, yourPieceMap, to);
+      
+      removePiece<Color, Piece>(board, from);
+
+      placePiece<Color, Piece>(board, to);
+
+      // Clear en-passant square
+      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      
+      return board;
+    }
+    
     template <ColorT Color>
     inline BoardT captureWithPromoPiece(const BoardT& oldBoard, const int promoIndex, const PromoPieceT promoPiece, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
       BoardT board = oldBoard;
@@ -267,7 +290,7 @@ namespace Chess {
       return board;
     }
     
-    template <ColorT Color, bool IsPawnPushTwo = false>
+    template <ColorT Color>
     inline BoardT captureWithPawn(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
       BoardT board = oldBoard;
 
@@ -277,12 +300,20 @@ namespace Chess {
 
       placePawn<Color>(board, to);
 
-      // Set en-passant square
-      if(IsPawnPushTwo) {
-      	board.pieces[(size_t)Color].epSquare = (SquareT)((from+to)/2);
-      } else {
-      	board.pieces[(size_t)Color].epSquare = InvalidSquare;
-      }	
+      // TODO why not clearing EP square?
+      
+      return board;
+    }
+    
+    template <ColorT Color>
+    inline BoardT capturePromoPieceWithPawn(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
+      BoardT board = oldBoard;
+
+      removePromoPiece<OtherColorT<Color>::value>(board, yourPieceMap, to);
+
+      removePawn<Color>(board, from);
+
+      placePawn<Color>(board, to);
       
       return board;
     }
