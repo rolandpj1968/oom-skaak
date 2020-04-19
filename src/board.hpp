@@ -300,7 +300,8 @@ namespace Chess {
 
       placePawn<Color>(board, to);
 
-      // TODO why not clearing EP square?
+      // Clear en-passant square
+      board.pieces[(size_t)Color].epSquare = InvalidSquare;
       
       return board;
     }
@@ -314,6 +315,9 @@ namespace Chess {
       removePawn<Color>(board, from);
 
       placePawn<Color>(board, to);
+      
+      // Clear en-passant square
+      board.pieces[(size_t)Color].epSquare = InvalidSquare;
       
       return board;
     }
