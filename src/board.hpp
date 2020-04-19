@@ -321,6 +321,23 @@ namespace Chess {
     }
     
     template <ColorT Color>
+    inline BoardT captureWithPawnToPromo(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to, PromoPieceT promoPiece) {
+      BoardT board = oldBoard;
+
+      removePieceOrPawn<OtherColorT<Color>::value>(board, yourPieceMap, to);
+
+      removePawn<Color>(board, from);
+
+      const int promoIndex = Bits::lsb(~board.pieces[(size_t)Color].activePromos);
+      addPromoPiece(board, Color, promoIndex, promoPiece, to);
+
+      // Clear en-passant square
+      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      
+      return board;
+    }
+    
+    template <ColorT Color>
     inline BoardT capturePromoPieceWithPawn(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
       BoardT board = oldBoard;
 
