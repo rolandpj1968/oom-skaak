@@ -261,6 +261,7 @@ namespace Chess {
     CastlingMove
   };
 
+  // TODO - move to using flags instead of bools or even move-type?
   struct MoveInfoT {
     MoveTypeT moveType;
     // For castling this is the king 'from' square.
@@ -271,9 +272,11 @@ namespace Chess {
     bool isDirectCheck;
     // True iff the moved piece uncovers discovered check.
     bool isDiscoveredCheck;
+    // True iff this is a pawn promotion
+    bool isPromo;
 
-    MoveInfoT(const MoveTypeT moveType, const SquareT from, const SquareT to, const bool isDirectCheck, const bool isDiscoveredCheck):
-      moveType(moveType), from(from), to(to), isDirectCheck(isDirectCheck), isDiscoveredCheck(isDiscoveredCheck) {}
+    MoveInfoT(const MoveTypeT moveType, const SquareT from, const SquareT to, const bool isDirectCheck, const bool isDiscoveredCheck, const bool isPromo = false):
+      moveType(moveType), from(from), to(to), isDirectCheck(isDirectCheck), isDiscoveredCheck(isDiscoveredCheck), isPromo(isPromo) {}
   };
 
   enum SliderDirectionT {

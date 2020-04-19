@@ -14,10 +14,42 @@ namespace Chess {
 
     // Note that typename PosHandlerT must take care of BoardTraitsT::ReverseT - I can't seem to make this explicit which maybe makes sense.
 
+    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn>
+    inline void handlePawnsPushToPromo(StateT state, const BoardT& board, BitBoardT pawnsPushBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
+
+      while(pawnsPushBb) {
+	const SquareT to = Bits::popLsb(pawnsPushBb);
+	const SquareT from = To2FromFn::fn(to);
+
+	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
+	const bool isDiscoveredCheck = false; // TODO!!! (bbForSquare(from) & discoveriesBb) != BbNone;
+	
+	const BoardT queenPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoQueen);
+	PosHandlerT::handlePos(state, queenPromoBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
+	
+	const BoardT knightPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoKnight);
+	PosHandlerT::handlePos(state, knightPromoBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
+	
+	const BoardT rookPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoRook);
+	PosHandlerT::handlePos(state, rookPromoBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
+	
+	const BoardT bishopPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoBishop);
+	PosHandlerT::handlePos(state, bishopPromoBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
+      }
+    }
+
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn, bool IsPushTwo>
-    inline void handlePawnsPush(StateT state, const BoardT& board, BitBoardT pawnsPush, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
-      while(pawnsPush) {
-	const SquareT to = Bits::popLsb(pawnsPush);
+    inline void handlePawnsPush(StateT state, const BoardT& board, BitBoardT pawnsPushBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
+
+      // Can't reach promotion on the first move
+      if(!IsPushTwo) {
+	const BitBoardT pawnsPushToPromoBb = pawnsPushBb & (BoardTraitsT::Color == White ? Rank8 : Rank1);
+	handlePawnsPushToPromo<StateT, PosHandlerT, BoardTraitsT, To2FromFn>(state, board, pawnsPushToPromoBb, directChecksBb, discoveriesBb);
+	pawnsPushBb &= ~pawnsPushToPromoBb;
+      }
+      
+      while(pawnsPushBb) {
+	const SquareT to = Bits::popLsb(pawnsPushBb);
 	const SquareT from = To2FromFn::fn(to);
 
 	const BoardT newBoard = pushPawn<BoardTraitsT::Color, IsPushTwo>(board, from, to);
@@ -30,13 +62,13 @@ namespace Chess {
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePawnsPushOne(StateT state, const BoardT& board, BitBoardT pawnsPushOne, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
-      handlePawnsPush<StateT, PosHandlerT, BoardTraitsT, PawnPushOneTo2FromFn<BoardTraitsT::Color>, /*IsPushTwo =*/false>(state, board, pawnsPushOne, directChecksBb, discoveriesBb);
+    inline void handlePawnsPushOne(StateT state, const BoardT& board, BitBoardT pawnsPushOneBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
+      handlePawnsPush<StateT, PosHandlerT, BoardTraitsT, PawnPushOneTo2FromFn<BoardTraitsT::Color>, /*IsPushTwo =*/false>(state, board, pawnsPushOneBb, directChecksBb, discoveriesBb);
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePawnsPushTwo(StateT state, const BoardT& board, BitBoardT pawnsPushTwo, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
-      handlePawnsPush<StateT, PosHandlerT, BoardTraitsT, PawnPushTwoTo2FromFn<BoardTraitsT::Color>, /*IsPushTwo =*/true>(state, board, pawnsPushTwo, directChecksBb, discoveriesBb);
+    inline void handlePawnsPushTwo(StateT state, const BoardT& board, BitBoardT pawnsPushTwoBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
+      handlePawnsPush<StateT, PosHandlerT, BoardTraitsT, PawnPushTwoTo2FromFn<BoardTraitsT::Color>, /*IsPushTwo =*/true>(state, board, pawnsPushTwoBb, directChecksBb, discoveriesBb);
     }
 
     template <ColorT Color>

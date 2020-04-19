@@ -205,6 +205,10 @@ namespace Chess {
 	stats.castles++;
       }
 
+      if(moveInfo.isPromo) {
+	stats.promos++;
+      }
+
       const bool DoCheckStats = true;
       const bool DoCheckMateStats = true;
       if(!DoCheckStats) {
