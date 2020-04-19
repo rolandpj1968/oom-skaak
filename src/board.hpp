@@ -19,8 +19,11 @@ namespace Chess {
       // MUST be InvalidSquare if a piece is not present - see emptyBoard()
       SquareT pieceSquares[NPieces];
 
-      // True iff there are promo pieces on the board.
-      bool hasPromos;
+      // Bitmap of active promo pieces - index into promos array
+      u8 activePromos;
+
+      // Piece type and square of active promos - valid at indexes where activePromos bitmap is 1
+      PromoPieceAndSquareT promos[NPawns];
 
       // InvalidSquare, or else en-passant square of the last move - i.e. the square behind a pawn two-square push.
       SquareT epSquare;

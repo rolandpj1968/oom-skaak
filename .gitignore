@@ -1,6 +1,7 @@
 *~
 *.s
 *.out
+*.log
 obj/
 skaak
 perft

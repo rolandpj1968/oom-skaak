@@ -198,6 +198,36 @@ namespace Chess {
     PiecePresentLimitShift,
   };
 
+  enum PromoPieceT {
+    PromoQueen,
+    PromoKnight,
+    PromoRook,
+    PromoBishop,
+    NPromoPieceTypes
+  };
+    
+  const PieceTypeT PieceTypeForPromoPiece[NPromoPieceTypes] = {
+    Queen,
+    Knight,
+    Rook,
+    Bishop
+  };
+
+  typedef u8 PromoPieceAndSquareT;
+
+  // Note we only have 6 bits for the square so can't support InvalidSquare
+  inline PromoPieceAndSquareT promoPieceAndSquareOf(const PromoPieceT promoPiece, const SquareT sq) {
+    return (PromoPieceAndSquareT) ((promoPiece << 6) | sq);
+  }
+
+  inline PromoPieceT promoPieceOf(const PromoPieceAndSquareT promoPieceAndSquare) {
+    return (PromoPieceT) (promoPieceAndSquare >> 6);
+  }
+
+  inline SquareT squareOf(const PromoPieceAndSquareT promoPieceAndSquare) {
+    return (SquareT) (promoPieceAndSquare & 0x3f);
+  }
+  
   static const int NPawns = 8;
 
   enum PushOrCaptureT {

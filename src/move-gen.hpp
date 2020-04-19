@@ -36,8 +36,8 @@ namespace Chess {
       // Piece moves
       BitBoardT pieceAttacks[NPieces];
       
-      // Uncommon promo piece moves - one for each pawn - one for each promo piece except 2nd queen.
-      BitBoardT promoPieceMoves[NPawns];
+      // Uncommon promo piece moves - one for each pawn
+      BitBoardT promoPieceAttacks[NPawns];
       
       BitBoardT allAttacks;
     };
@@ -57,8 +57,8 @@ namespace Chess {
       // Per-piece pin masks
       BitBoardT piecePinMasks[NPieces];
       
-      // Uncommon promo piece moves - one for each pawn - one for each promo piece except 2nd queen.
-      // BitBoardT promoPiecePinMasks[NPawns];
+      // Uncommon promo piece moves - one for each pawn
+      BitBoardT promoPiecePinMasks[NPawns];
       
       // BitBoardT allPinMasks;
     };
@@ -144,8 +144,10 @@ namespace Chess {
       PieceBbsT pieceBbs; // side-channel info
       
       CastlingRightsT canCastleFlags; // note not actually 'rights' per se but actually legal castling moves
+
       PawnPushesAndCapturesT pawnMoves;
       BitBoardT pieceMoves[NPieces];
+      BitBoardT promoPieceMoves[NPawns];
 
       DirectCheckMasksT directChecks;
       DiscoveredCheckMasksT discoveredChecks;
@@ -799,16 +801,30 @@ namespace Chess {
 
       attacks.allAttacks |= attacks.pieceAttacks[TheKing];
 
-      // TODO - unusual promos
-      // if(ColorTraitsT::HasPromos) {
-      // 	if(true/*piecesPresent & PromoQueenPresentFlag*/) {
-      // 	  SquareT promoQueenSquare = colorState.pieceSquares[PromoQueen];
-	  
-      // 	  attacks.pieceAttacks[PromoQueen] = rookAttacks(promoQueenSquare, allPiecesBb) | bishopAttacks(promoQueenSquare, allPiecesBb);
-	  
-      // 	  attacks.allAttacks |= attacks.pieceAttacks[PromoQueen];
-      // 	}
-      // }
+      // Promo pieces - ugh the bit stuff operates on BitBoardT type
+      BitBoardT activePromos = (BitBoardT)colorState.activePromos;
+      while(activePromos) {
+	const int promoIndex = Bits::popLsb(activePromos);
+	const PromoPieceAndSquareT promoPieceAndSquare = colorState.promos[promoIndex];
+	const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
+	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
+
+	BitBoardT promoPieceAttacksBb = BbNone;
+
+	// Done as a multi-if rather than switch cos in real games it's almost always going to be a Queen
+	if(promoPiece == PromoQueen) {
+	  promoPieceAttacksBb = rookAttacks(promoPieceSq, allPiecesBb) | bishopAttacks(promoPieceSq, allPiecesBb);
+	} else if(promoPiece == PromoKnight) {
+	  promoPieceAttacksBb = KnightAttacks[promoPieceSq];
+	} else if(promoPiece == PromoRook) {
+	  promoPieceAttacksBb = rookAttacks(promoPieceSq, allPiecesBb);
+	} else if(promoPiece == PromoBishop) {
+	  promoPieceAttacksBb = bishopAttacks(promoPieceSq, allPiecesBb);
+	}
+
+	attacks.promoPieceAttacks[promoIndex] = promoPieceAttacksBb;
+	attacks.allAttacks |= promoPieceAttacksBb;
+      }
       
       return attacks;
     }
@@ -863,7 +879,7 @@ namespace Chess {
       attackers.pieceAttackers[King] = kingAttackers;
 
       attackers.pieceAttackers[AllPieceTypes] |= kingAttackers;
-
+      
       return attackers;
     }
 
@@ -911,7 +927,7 @@ namespace Chess {
     
     // Fill a pin mask structure with BbAll for all pieces.
     template <typename MyColorTraitsT>
-    inline void genDefaultPiecePinMasks(PiecePinMasksT& pinMasks) {
+    inline void genDefaultPiecePinMasks(PiecePinMasksT& pinMasks, const ColorStateT& myState) {
       // Pawns
       pinMasks.pawnsPushOnePinMask = BbAll;
       pinMasks.pawnsPushTwoPinMask = BbAll;
@@ -931,16 +947,14 @@ namespace Chess {
       pinMasks.piecePinMasks[Rook2] = BbAll;
 
       // Queens
-      //   - diagonally pinned queens can only move along the king's bishop rays
-      //   - orthogonally pinned queens can only move along the king's rook rays
       pinMasks.piecePinMasks[TheQueen] = BbAll;
 
-      // TODO other promo pieces
-      // if(MyColorTraitsT::HasPromos) {
-      // 	if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
-      // 	  pinMasks.piecePinMasks[PromoQueen] = BbAll;
-      // 	}
-      // }
+      // Promo pieces - it might actually be faster to just set all 8 to BbAll
+      BitBoardT activePromos = (BitBoardT)myState.activePromos;
+      while(activePromos) {
+	const int promoIndex = Bits::popLsb(activePromos);
+	pinMasks.promoPiecePinMasks[promoIndex] = BbAll;
+      }
     }
     
     // Generate the pin masks for all pieces
@@ -984,17 +998,34 @@ namespace Chess {
       pinMasks.piecePinMasks[Rook1] = genPinnedMoveMask<Rook>(myState.pieceSquares[Rook1], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
       pinMasks.piecePinMasks[Rook2] = genPinnedMoveMask<Rook>(myState.pieceSquares[Rook2], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
 
-      // Queens
+      // Queen
       //   - diagonally pinned queens can only move along the king's bishop rays
       //   - orthogonally pinned queens can only move along the king's rook rays
       pinMasks.piecePinMasks[TheQueen] = genPinnedMoveMask<Queen>(myState.pieceSquares[TheQueen], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
 
-      // TODO other promo pieces
-      // if(ColorTraitsT::HasPromos) {
-      // 	if(true/*myState.piecesPresent & PromoQueenPresentFlag*/) {
-      // 	  pinMasks.piecePinMasks[PromoQueen] = genPinnedMoveMask<Queen>(myState.pieceSquares[PromoQueen], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-      // 	}
-      // }
+      // Promo pieces - ugh the bit stuff operates on BitBoardT type
+      BitBoardT activePromos = (BitBoardT)myState.activePromos;
+      while(activePromos) {
+	const int promoIndex = Bits::popLsb(activePromos);
+	const PromoPieceAndSquareT promoPieceAndSquare = myState.promos[promoIndex];
+	const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
+	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
+
+	BitBoardT promoPiecePinMasks = BbNone;
+
+	// Done as a multi-if rather than switch cos in real games it's almost always going to be a Queen
+	if(promoPiece == PromoQueen) {
+	  promoPiecePinMasks = genPinnedMoveMask<Queen>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	} else if(promoPiece == PromoKnight) {
+	  promoPiecePinMasks = genPinnedMoveMask<Knight>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	} else if(promoPiece == PromoRook) {
+	  promoPiecePinMasks = genPinnedMoveMask<Rook>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	} else if(promoPiece == PromoBishop) {
+	  promoPiecePinMasks = genPinnedMoveMask<Bishop>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	}
+
+	pinMasks.promoPiecePinMasks[promoIndex] = promoPiecePinMasks;
+      }      
     }
     
     template <typename BoardTraitsT>
@@ -1023,7 +1054,7 @@ namespace Chess {
       PiecePinMasksT pinMasks = {};
       // Majority of positions have no pins
       if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) == BbNone) {
-	genDefaultPiecePinMasks<MyColorTraitsT>(pinMasks);
+	genDefaultPiecePinMasks<MyColorTraitsT>(pinMasks, myState);
       } else {
 	genPiecePinMasks<MyColorTraitsT>(pinMasks, myState, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
       }
@@ -1121,6 +1152,10 @@ namespace Chess {
       return myAttacks.pieceAttacks[Piece] & legalMoveMaskBb & pinMasks.piecePinMasks[Piece] & ~allMyPiecesBb;
     }
 
+    inline BitBoardT genLegalPromoPieceMoves(const PieceAttacksT myAttacks, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks, const BitBoardT allMyPiecesBb, const int promoPieceIndex) {
+      return myAttacks.promoPieceAttacks[promoPieceIndex] & legalMoveMaskBb & pinMasks.promoPiecePinMasks[promoPieceIndex] & ~allMyPiecesBb;
+    }
+
     template <typename BoardTraitsT>
     inline EpPawnCapturesT genLegalPawnEpCaptures(const BoardT& board, const ColorPieceBbsT& yourPieceBbs, const PieceAttacksT myAttacks, const SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT nonPinnedPawnsLeftBb, const BitBoardT nonPinnedPawnsRightBb, const BitBoardT legalMoveMaskBb) {
       const ColorT Color = BoardTraitsT::Color;
@@ -1198,6 +1233,7 @@ namespace Chess {
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
+      const ColorStateT& myState = board.pieces[(size_t)Color];
       const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
       
       const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
@@ -1221,7 +1257,12 @@ namespace Chess {
 
       legalMoves.pieceMoves[TheQueen] = genLegalPieceMoves<TheQueen>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
       
-      // TODO promo pieces
+      // Promo pieces - ugh the bit stuff operates on BitBoardT type
+      BitBoardT activePromos = (BitBoardT)myState.activePromos;
+      while(activePromos) {
+	const int promoIndex = Bits::popLsb(activePromos);
+	legalMoves.promoPieceMoves[promoIndex] = genLegalPromoPieceMoves(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb, promoIndex);
+      }      
     }
 
     template <typename BoardTraitsT>
