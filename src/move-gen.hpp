@@ -19,6 +19,9 @@ namespace Chess {
 
       // Aggregated bitboards of diagonal/orthogonal sliders
       BitBoardT sliderBbs[NSliderDirections];
+
+      // All promo pieces
+      BitBoardT allPromoPiecesBb;
     };
     
     // Aggregated piece bitboards for both colors.
@@ -584,7 +587,7 @@ namespace Chess {
     //   If we're not in check then all moves are legal.
     //   If we're in check then we must capture or block the checking piece.
     template <typename BoardTraitsT>
-    inline BitBoardT genLegalMoveMaskBb(const BoardT& board, const int nChecks, const BitBoardT allMyKingAttackersBb, const SquareT myKingSq, const BitBoardT allPiecesBb, const PieceAttacksT& yourAttacks) {
+    inline BitBoardT genLegalMoveMaskBb(const BoardT& board, const int nChecks, const BitBoardT allMyKingAttackersBb, const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allYourPromoPiecesBb, const PieceAttacksT& yourAttacks) {
       BitBoardT legalMoveMaskBb = BbAll;
 	
       // When in check, limit moves to captures of the checking piece, and blockers of the checking piece
@@ -601,24 +604,34 @@ namespace Chess {
 	  // Compute the check-blocking squares as the intersection of my king's slider 'view' and the checking piece's attack squares.
 	  // Note for queens we need to restrict to the slider direction otherwise we get bogus 'blocking' squares in the other queen direction.
 
-	  typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
 	  const ColorT OtherColor = BoardTraitsT::OtherColor;
 
 	  const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
-	  const ColorPieceMapT& yourPieceMap = genColorPieceMap<YourColorTraitsT>(yourState);
+	  const ColorPieceMapT& yourPieceMap = genColorPieceMap(yourState, allYourPromoPiecesBb);
 	  
 	  const SquareT checkingPieceSq = Bits::lsb(allMyKingAttackersBb);
-	  
-	  const BitBoardT pawnAttackerBb = allMyKingAttackersBb & yourState.pawnsBb;
-	  const PieceT checkingPiece = pawnAttackerBb != BbNone ? SomePawns : yourPieceMap.board[checkingPieceSq];
 
 	  const BitBoardT diagAttacksFromMyKingBb = bishopAttacks(myKingSq, allPiecesBb);
-	  if(allMyKingAttackersBb & diagAttacksFromMyKingBb) {
-	    legalMoveMaskBb |= diagAttacksFromMyKingBb & yourAttacks.pieceAttacks[checkingPiece] & BishopRays[checkingPieceSq];
-	  }
 	  const BitBoardT orthogAttacksFromMyKingBb = rookAttacks(myKingSq, allPiecesBb);
+
+	  BitBoardT checkingPieceAttacksBb = BbNone;
+	  
+	  const BitBoardT promoPieceAttackerBb = allMyKingAttackersBb & allYourPromoPiecesBb;
+	  if(promoPieceAttackerBb != BbNone) {
+	    const int checkingPromoIndex = yourPieceMap.board[checkingPieceSq].promoIndex;
+	    checkingPieceAttacksBb = yourAttacks.promoPieceAttacks[checkingPromoIndex];
+	  } else {
+	    const BitBoardT pawnAttackerBb = allMyKingAttackersBb & yourState.pawnsBb;
+	    const PieceT checkingPiece = pawnAttackerBb != BbNone ? SomePawns : yourPieceMap.board[checkingPieceSq].piece;
+
+	    checkingPieceAttacksBb = yourAttacks.pieceAttacks[checkingPiece];
+	  }
+	    
+	  if(allMyKingAttackersBb & diagAttacksFromMyKingBb) {
+	    legalMoveMaskBb |= diagAttacksFromMyKingBb & checkingPieceAttacksBb & BishopRays[checkingPieceSq];
+	  }
 	  if(allMyKingAttackersBb & orthogAttacksFromMyKingBb) {
-	    legalMoveMaskBb |= orthogAttacksFromMyKingBb & yourAttacks.pieceAttacks[checkingPiece] & RookRays[checkingPieceSq];
+	    legalMoveMaskBb |= orthogAttacksFromMyKingBb & checkingPieceAttacksBb & RookRays[checkingPieceSq];
 	  }
 	}
       }
@@ -1348,6 +1361,7 @@ namespace Chess {
       pieceBbs.bbs[King] = bbForSquare(colorState.pieceSquares[TheKing]);
 
       // Promo pieces
+      BitBoardT allPromoPiecesBb = BbNone;
       BitBoardT activePromos = (BitBoardT)colorState.activePromos;
       while(activePromos) {
 	const int promoIndex = Bits::popLsb(activePromos);
@@ -1358,7 +1372,9 @@ namespace Chess {
 	const PieceTypeT pieceType = PieceTypeForPromoPiece[promoPiece];
 
 	pieceBbs.bbs[pieceType] |= promoPieceSqBb;
-      }      
+	allPromoPiecesBb |= promoPieceSqBb;
+      }
+      pieceBbs.allPromoPiecesBb = allPromoPiecesBb;
 
       pieceBbs.sliderBbs[Diagonal] = pieceBbs.bbs[Bishop] | pieceBbs.bbs[Queen];
       pieceBbs.sliderBbs[Orthogonal] = pieceBbs.bbs[Rook] | pieceBbs.bbs[Queen];
@@ -1434,7 +1450,7 @@ namespace Chess {
       if(legalMoves.nChecks < 2) {
 
 	// If we're in check then the only legal moves are capture or blocking of the checking piece.
-	const BitBoardT legalMoveMaskBb = genLegalMoveMaskBb<BoardTraitsT>(board, legalMoves.nChecks, allMyKingAttackersBb, myKingSq, allPiecesBb, yourAttacks);
+	const BitBoardT legalMoveMaskBb = genLegalMoveMaskBb<BoardTraitsT>(board, legalMoves.nChecks, allMyKingAttackersBb, myKingSq, allPiecesBb, yourPieceBbs.allPromoPiecesBb, yourAttacks);
 	  
 	// Calculate pinned piece move restrictions.
 	const PiecePinMasksT pinMasks = genPinMasks<BoardTraitsT>(board, pieceBbs);
