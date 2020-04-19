@@ -291,6 +291,20 @@ namespace Chess {
     }
     
     template <ColorT Color>
+    inline BoardT capturePromoPieceWithPromoPiece(const BoardT& oldBoard, const int promoIndex, const PromoPieceT promoPiece, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
+      BoardT board = oldBoard;
+
+      removePromoPiece<OtherColorT<Color>::value>(board, yourPieceMap, to);
+
+      movePromoPiece(board, Color, promoIndex, promoPiece, to);
+
+      // Clear en-passant square
+      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      
+      return board;
+    }
+    
+    template <ColorT Color>
     inline BoardT captureWithPawn(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
       BoardT board = oldBoard;
 
