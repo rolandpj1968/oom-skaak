@@ -17,24 +17,32 @@ namespace Chess {
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn>
     inline void handlePawnsPushToPromo(StateT state, const BoardT& board, BitBoardT pawnsPushBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
 
+      const SquareT yourKingSq = board.pieces[(size_t)BoardTraitsT::OtherColor].pieceSquares[TheKing];
+	
       while(pawnsPushBb) {
 	const SquareT to = Bits::popLsb(pawnsPushBb);
 	const SquareT from = To2FromFn::fn(to);
 
-	const bool isDirectCheck = false; // TODO!!! (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
+	const BitBoardT toBb = bbForSquare(to);
+	const BitBoardT orthogCheckBb = toBb & yourKingRookAttacksBb;
+	const BitBoardT diagCheckBb = toBb & yourKingBishopAttacksBb;
 	
 	const BoardT queenPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoQueen);
-	PosHandlerT::handlePos(state, queenPromoBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
+	const bool isQueenCheck = (orthogCheckBb | diagCheckBb) != BbNone;
+	PosHandlerT::handlePos(state, queenPromoBoard, MoveInfoT(PushMove, from, to, isQueenCheck, isDiscoveredCheck, /*isPromo*/true));
 	
 	const BoardT knightPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoKnight);
-	PosHandlerT::handlePos(state, knightPromoBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
+	const bool isKnightCheck = (KnightAttacks[yourKingSq] & toBb) != BbNone;
+	PosHandlerT::handlePos(state, knightPromoBoard, MoveInfoT(PushMove, from, to, isKnightCheck, isDiscoveredCheck, /*isPromo*/true));
 	
 	const BoardT rookPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoRook);
-	PosHandlerT::handlePos(state, rookPromoBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
+	const bool isRookCheck = orthogCheckBb != BbNone;
+	PosHandlerT::handlePos(state, rookPromoBoard, MoveInfoT(PushMove, from, to, isRookCheck, isDiscoveredCheck, /*isPromo*/true));
 	
 	const BoardT bishopPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoBishop);
-	PosHandlerT::handlePos(state, bishopPromoBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
+	const bool isBishopCheck = diagCheckBb != BbNone;
+	PosHandlerT::handlePos(state, bishopPromoBoard, MoveInfoT(PushMove, from, to, isBishopCheck, isDiscoveredCheck, /*isPromo*/true));
       }
     }
 
