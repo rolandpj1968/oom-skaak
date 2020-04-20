@@ -41,6 +41,13 @@ namespace Chess {
       }
     };
 
+    template <ColorT Color> struct PromoMakeMoveFn<Color, PromoCapturePromo, ColorPieceMapT> {
+      typedef ColorPieceMapT PieceMapImplT;
+      static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to, PromoPieceT promoPiece) {
+	return capturePromoPieceWithPawnToPromo<Color>(board, yourPieceMap, from, to, promoPiece);
+      }
+    };
+
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn, typename PromoMakeMoveFn>
     inline void handlePawnsMoveToPromo(StateT state, const BoardT& board, const typename PromoMakeMoveFn::PieceMapImplT& yourPieceMap, BitBoardT pawnsPushBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
 
@@ -128,34 +135,11 @@ namespace Chess {
     };
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn>
-    inline void handlePawnsCaptureToPromoOfPromoPiece(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
-
-      while(pawnsCaptureBb) {
-	const SquareT to = Bits::popLsb(pawnsCaptureBb);
-	const SquareT from = To2FromFn::fn(to);
-
-	const bool isDirectCheck = false; // TODO!!! (bbForSquare(to) & directChecksBb) != BbNone;
-	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
-	
-	const BoardT queenPromoBoard = capturePromoPieceWithPawnToPromo<BoardTraitsT::Color>(board, yourPieceMap, from, to, PromoQueen);
-	PosHandlerT::handlePos(state, queenPromoBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
-	
-	const BoardT knightPromoBoard = capturePromoPieceWithPawnToPromo<BoardTraitsT::Color>(board, yourPieceMap, from, to, PromoKnight);
-	PosHandlerT::handlePos(state, knightPromoBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
-	
-	const BoardT rookPromoBoard = capturePromoPieceWithPawnToPromo<BoardTraitsT::Color>(board, yourPieceMap, from, to, PromoRook);
-	PosHandlerT::handlePos(state, rookPromoBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
-	
-	const BoardT bishopPromoBoard = capturePromoPieceWithPawnToPromo<BoardTraitsT::Color>(board, yourPieceMap, from, to, PromoBishop);
-	PosHandlerT::handlePos(state, bishopPromoBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
-      }
-    }
-    
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn>
     inline void handlePawnsCaptureOfPromoPiece(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
 
       const BitBoardT pawnsCaptureToPromoBb = pawnsCaptureBb & (BoardTraitsT::Color == White ? Rank8 : Rank1);
-      handlePawnsCaptureToPromoOfPromoPiece<StateT, PosHandlerT, BoardTraitsT, To2FromFn>(state, board, yourPieceMap, pawnsCaptureToPromoBb, directChecksBb, discoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
+      typedef PromoMakeMoveFn<BoardTraitsT::Color, PromoCapturePromo, ColorPieceMapT> PawnPromoCapturePromoFn;
+      handlePawnsMoveToPromo<StateT, PosHandlerT, BoardTraitsT, To2FromFn, PawnPromoCapturePromoFn>(state, board, yourPieceMap, pawnsCaptureToPromoBb, directChecksBb, discoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
       pawnsCaptureBb &= ~pawnsCaptureToPromoBb;
 	
       while(pawnsCaptureBb) {
@@ -172,30 +156,6 @@ namespace Chess {
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn>
-    inline void handlePawnsCaptureToPromo(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
-      
-      while(pawnsCaptureBb) {
-	const SquareT to = Bits::popLsb(pawnsCaptureBb);
-	const SquareT from = To2FromFn::fn(to);
-
-	const bool isDirectCheck = false; // TODO!!! (bbForSquare(to) & directChecksBb) != BbNone;
-	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
-	
-	const BoardT queenPromoBoard = captureWithPawnToPromo<BoardTraitsT::Color>(board, yourPieceMap, from, to, PromoQueen);
-	PosHandlerT::handlePos(state, queenPromoBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
-	
-	const BoardT knightPromoBoard = captureWithPawnToPromo<BoardTraitsT::Color>(board, yourPieceMap, from, to, PromoKnight);
-	PosHandlerT::handlePos(state, knightPromoBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
-	
-	const BoardT rookPromoBoard = captureWithPawnToPromo<BoardTraitsT::Color>(board, yourPieceMap, from, to, PromoRook);
-	PosHandlerT::handlePos(state, rookPromoBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
-	
-	const BoardT bishopPromoBoard = captureWithPawnToPromo<BoardTraitsT::Color>(board, yourPieceMap, from, to, PromoBishop);
-	PosHandlerT::handlePos(state, bishopPromoBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
-      }
-    }
-
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn>
     inline void handlePawnsCapture(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
       
       const BitBoardT promoPieceCaptureBb = pawnsCaptureBb & yourPieceMap.allPromoPiecesBb;
@@ -205,7 +165,6 @@ namespace Chess {
       const BitBoardT pawnsCaptureToPromoBb = pawnsCaptureBb & (BoardTraitsT::Color == White ? Rank8 : Rank1);
       typedef PromoMakeMoveFn<BoardTraitsT::Color, CapturePromo, ColorPieceMapT> PawnCapturePromoFn;
       handlePawnsMoveToPromo<StateT, PosHandlerT, BoardTraitsT, To2FromFn, PawnCapturePromoFn>(state, board, yourPieceMap, pawnsCaptureToPromoBb, directChecksBb, discoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
-      //handlePawnsCaptureToPromo<StateT, PosHandlerT, BoardTraitsT, To2FromFn>(state, board, yourPieceMap, pawnsCaptureToPromoBb, directChecksBb, discoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
       pawnsCaptureBb &= ~pawnsCaptureToPromoBb;
 	
       while(pawnsCaptureBb) {
