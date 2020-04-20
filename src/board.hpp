@@ -427,8 +427,8 @@ namespace Chess {
     bool isValid(const BoardT& board, const BitBoardT allYourKingAttackersBb);
 
     // These are used for FEN output
-    char pieceChar(const std::vector<std::pair<ColorT, PieceT>>& squarePieces);
-    std::array<std::vector<std::pair<ColorT, PieceT>>, 64> genPieceMap(const BoardT& board);
+    char pieceChar(const std::vector<std::pair<ColorT, PieceTypeT>>& squarePieces);
+    std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64> genPieceMap(const BoardT& board);
 
     void printBoard(const BoardT& board);
     void printBb(BitBoardT bb);

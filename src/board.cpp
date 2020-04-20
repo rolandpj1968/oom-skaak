@@ -70,20 +70,20 @@ namespace Chess {
       return board;
     }
 
-    static void addPawnsForColor(std::array<std::vector<std::pair<ColorT, PieceT>>, 64>& pieceMap, const ColorT color, BitBoardT pawnsBb) {
+    static void addPawnsForColor(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const ColorT color, BitBoardT pawnsBb) {
       while(pawnsBb) {
 	const SquareT square = Bits::popLsb(pawnsBb);
-	pieceMap[square].push_back(std::pair<ColorT, PieceT>(color, SomePawns));
+	pieceMap[square].push_back(std::pair<ColorT, PieceTypeT>(color, Pawn));
       }
     }
     
-    static void addPiecesForColor(std::array<std::vector<std::pair<ColorT, PieceT>>, 64>& pieceMap, const ColorT color, const ColorStateT& colorState) {
+    static void addPiecesForColor(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const ColorT color, const ColorStateT& colorState) {
       addPawnsForColor(pieceMap, color, colorState.pawnsBb);
 
       for(PieceT piece = Knight1; piece < NPieces; piece = (PieceT)(piece+1)) {
 	SquareT square = colorState.pieceSquares[piece];
 	if(square != InvalidSquare) {
-	  pieceMap[square].push_back(std::pair<ColorT, PieceT>(color, piece));
+	  pieceMap[square].push_back(std::pair<ColorT, PieceTypeT>(color, PieceTypeForPiece[piece]));
 	}
       }
 
@@ -95,13 +95,13 @@ namespace Chess {
 	const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
 	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
 
-	//pieceMap[promoPieceSq].push_back(std::pair<ColorT, PieceT>(color, piece)); // Grrr we want PieceTypeT in the map, not piece
+	pieceMap[promoPieceSq].push_back(std::pair<ColorT, PieceTypeT>(color, PieceTypeForPromoPiece[promoPiece]));
       }
       
     }
 
-    std::array<std::vector<std::pair<ColorT, PieceT>>, 64> genPieceMap(const BoardT& board) {
-      std::array<std::vector<std::pair<ColorT, PieceT>>, 64> pieceMap;
+    std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64> genPieceMap(const BoardT& board) {
+      std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64> pieceMap;
 
       addPiecesForColor(pieceMap, White, board.pieces[(size_t)White]);
       addPiecesForColor(pieceMap, Black, board.pieces[(size_t)Black]);
@@ -111,7 +111,7 @@ namespace Chess {
 
     // Validate board
     bool isValid(const BoardT& board, const BitBoardT allYourKingAttackersBb) {
-      std::array<std::vector<std::pair<ColorT, PieceT>>, 64> pieceMap = genPieceMap(board);
+      std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64> pieceMap = genPieceMap(board);
 
       // Are there any squares with multiple pieces on them?
       for(int i = 0; i < 64; i++) {
@@ -137,7 +137,7 @@ namespace Chess {
       { ".pnbrqk" }
     };
 
-    char pieceChar(const std::vector<std::pair<ColorT, PieceT>>& squarePieces) {
+    char pieceChar(const std::vector<std::pair<ColorT, PieceTypeT>>& squarePieces) {
       // Pieces clash on the square?
       if(squarePieces.size() > 1) {
 	return 'X';
@@ -148,14 +148,13 @@ namespace Chess {
 
       if(squarePieces.size() == 1) {
 	color = squarePieces[0].first;
-	PieceT piece = squarePieces[0].second;
-	pieceType = PieceTypeForPiece[piece];
+	pieceType = squarePieces[0].second;
       }
       
       return PieceChar[(size_t)color][pieceType];
     }
     
-    static void printRank(const std::array<std::vector<std::pair<ColorT, PieceT>>, 64>& pieceMap, int rank) {
+    static void printRank(const std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, int rank) {
       printf("%d | ", rank+1);
       for(int file = 0; file < 8; file++) {
 	SquareT square = (SquareT)((rank << 3) + file);
@@ -164,15 +163,14 @@ namespace Chess {
       printf(" | %d\n", rank+1);
     }
 
-    void printPieceClashes(const std::array<std::vector<std::pair<ColorT, PieceT>>, 64>& pieceMap) {
+    void printPieceClashes(const std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap) {
       for(int i = 0; i < 64; i++) {
-	const std::vector<std::pair<ColorT, PieceT>>& squarePieceMap = pieceMap[i];
+	const std::vector<std::pair<ColorT, PieceTypeT>>& squarePieceMap = pieceMap[i];
 	if(squarePieceMap.size() > 1) {
 	  printf("\nPiece clash on %s:", SquareStr[i]);
 	  for(unsigned j = 0; j < squarePieceMap.size(); j++) {
 	    ColorT color = squarePieceMap[j].first;
-	    PieceT piece = squarePieceMap[j].second;
-	    PieceTypeT pieceType = PieceTypeForPiece[piece];
+	    PieceTypeT pieceType = squarePieceMap[j].second;
 	    printf(" %c", PieceChar[(size_t)color][pieceType]);
 	  }
 	  printf("\n");
@@ -181,7 +179,7 @@ namespace Chess {
     }
     
     void printBoard(const BoardT& board) {
-      std::array<std::vector<std::pair<ColorT, PieceT>>, 64> pieceMap = genPieceMap(board);
+      std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64> pieceMap = genPieceMap(board);
       
       printf("    A B C D E F G H\n");
       printf("    ---------------\n");
