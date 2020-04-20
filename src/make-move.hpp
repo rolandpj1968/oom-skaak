@@ -102,16 +102,16 @@ namespace Chess {
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
 	
 	const BoardT queenPromoBoard = capturePromoPieceWithPawnToPromo<BoardTraitsT::Color>(board, yourPieceMap, from, to, PromoQueen);
-	PosHandlerT::handlePos(state, queenPromoBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
+	PosHandlerT::handlePos(state, queenPromoBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
 	
 	const BoardT knightPromoBoard = capturePromoPieceWithPawnToPromo<BoardTraitsT::Color>(board, yourPieceMap, from, to, PromoKnight);
-	PosHandlerT::handlePos(state, knightPromoBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
+	PosHandlerT::handlePos(state, knightPromoBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
 	
 	const BoardT rookPromoBoard = capturePromoPieceWithPawnToPromo<BoardTraitsT::Color>(board, yourPieceMap, from, to, PromoRook);
-	PosHandlerT::handlePos(state, rookPromoBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
+	PosHandlerT::handlePos(state, rookPromoBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
 	
 	const BoardT bishopPromoBoard = capturePromoPieceWithPawnToPromo<BoardTraitsT::Color>(board, yourPieceMap, from, to, PromoBishop);
-	PosHandlerT::handlePos(state, bishopPromoBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
+	PosHandlerT::handlePos(state, bishopPromoBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
       }
     }
     
@@ -146,16 +146,16 @@ namespace Chess {
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
 	
 	const BoardT queenPromoBoard = captureWithPawnToPromo<BoardTraitsT::Color>(board, yourPieceMap, from, to, PromoQueen);
-	PosHandlerT::handlePos(state, queenPromoBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
+	PosHandlerT::handlePos(state, queenPromoBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
 	
 	const BoardT knightPromoBoard = captureWithPawnToPromo<BoardTraitsT::Color>(board, yourPieceMap, from, to, PromoKnight);
-	PosHandlerT::handlePos(state, knightPromoBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
+	PosHandlerT::handlePos(state, knightPromoBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
 	
 	const BoardT rookPromoBoard = captureWithPawnToPromo<BoardTraitsT::Color>(board, yourPieceMap, from, to, PromoRook);
-	PosHandlerT::handlePos(state, rookPromoBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
+	PosHandlerT::handlePos(state, rookPromoBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
 	
 	const BoardT bishopPromoBoard = captureWithPawnToPromo<BoardTraitsT::Color>(board, yourPieceMap, from, to, PromoBishop);
-	PosHandlerT::handlePos(state, bishopPromoBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
+	PosHandlerT::handlePos(state, bishopPromoBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck, /*isPromo*/true));
       }
     }
 

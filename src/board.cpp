@@ -45,7 +45,7 @@ namespace Chess {
       // Pieces
       addPiece(board, color, firstPieceSquare,       Rook1);
       addPiece(board, color, firstPieceSquare+B1-A1, Knight1);
-      addPiece(board, color, firstPieceSquare+C1-A1, Bishop1); // TODO - this is the white bishop for black side!!!! Change the name!
+      addPiece(board, color, firstPieceSquare+C1-A1, Bishop1);
       addPiece(board, color, firstPieceSquare+D1-A1, TheQueen);
       addPiece(board, color, firstPieceSquare+E1-A1, TheKing);
       addPiece(board, color, firstPieceSquare+F1-A1, Bishop2);
@@ -86,6 +86,18 @@ namespace Chess {
 	  pieceMap[square].push_back(std::pair<ColorT, PieceT>(color, piece));
 	}
       }
+
+      // Promo pieces - ugh the bit stuff operates on BitBoardT type
+      BitBoardT activePromos = (BitBoardT)colorState.activePromos;
+      while(activePromos) {
+	const int promoIndex = Bits::popLsb(activePromos);
+	const PromoPieceAndSquareT promoPieceAndSquare = colorState.promos[promoIndex];
+	const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
+	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
+
+	//pieceMap[promoPieceSq].push_back(std::pair<ColorT, PieceT>(color, piece)); // Grrr we want PieceTypeT in the map, not piece
+      }
+      
     }
 
     std::array<std::vector<std::pair<ColorT, PieceT>>, 64> genPieceMap(const BoardT& board) {

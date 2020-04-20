@@ -13,7 +13,7 @@ namespace Chess {
   namespace Board {
 
     struct ColorStateT {
-      // All pieces including strange promos.
+      // Pawns bitboard
       BitBoardT pawnsBb;
 
       // All pieces except pawns and strange promos.
