@@ -237,9 +237,7 @@ namespace Chess {
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece>
-    inline void handlePiecePushes(StateT state, const BoardT& board, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
-      const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
-      
+    inline void handlePiecePushes(StateT state, const BoardT& board, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
       while(toBb) {
 	const SquareT to = Bits::popLsb(toBb);
 	
@@ -252,9 +250,7 @@ namespace Chess {
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece>
-    inline void handlePieceCapturesOfPromoPieces(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
-      const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
-      
+    inline void handlePieceCapturesOfPromoPieces(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
       while(toBb) {
 	const SquareT to = Bits::popLsb(toBb);
 	
@@ -267,14 +263,12 @@ namespace Chess {
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece>
-    inline void handlePieceCaptures(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
+    inline void handlePieceCaptures(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
 
       const BitBoardT promoPieceCaptureBb = toBb & yourPieceMap.allPromoPiecesBb;
-      handlePieceCapturesOfPromoPieces<StateT, PosHandlerT, BoardTraitsT, Piece>(state, board, yourPieceMap, from, promoPieceCaptureBb, directChecksBb, discoveriesBb);
+      handlePieceCapturesOfPromoPieces<StateT, PosHandlerT, BoardTraitsT, Piece>(state, board, yourPieceMap, from, promoPieceCaptureBb, directChecksBb, isDiscoveredCheck);
       toBb &= ~promoPieceCaptureBb;
 
-      const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
-      
       while(toBb) {
 	const SquareT to = Bits::popLsb(toBb);
 	
@@ -290,15 +284,15 @@ namespace Chess {
     inline void handlePieceMoves(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb) {
       const ColorStateT& myState = board.pieces[(size_t)BoardTraitsT::Color];
       const SquareT from = myState.pieceSquares[Piece];
+      const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
 
-      handlePiecePushes<StateT, PosHandlerT, BoardTraitsT, Piece>(state, board, from, movesBb & ~allYourPiecesBb, directChecksBb, discoveriesBb);
+      handlePiecePushes<StateT, PosHandlerT, BoardTraitsT, Piece>(state, board, from, movesBb & ~allYourPiecesBb, directChecksBb, isDiscoveredCheck);
       
-      handlePieceCaptures<StateT, PosHandlerT, BoardTraitsT, Piece>(state, board, yourPieceMap, from, movesBb & allYourPiecesBb, directChecksBb, discoveriesBb);
+      handlePieceCaptures<StateT, PosHandlerT, BoardTraitsT, Piece>(state, board, yourPieceMap, from, movesBb & allYourPiecesBb, directChecksBb, isDiscoveredCheck);
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePromoPiecePushes(StateT state, const BoardT& board, const int promoIndex, const PromoPieceT promoPiece, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
-      const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
+    inline void handlePromoPiecePushes(StateT state, const BoardT& board, const int promoIndex, const PromoPieceT promoPiece, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
       
       while(toBb) {
 	const SquareT to = Bits::popLsb(toBb);
@@ -312,9 +306,8 @@ namespace Chess {
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePromoPieceCapturesOfPromoPieces(StateT state, const BoardT& board, const int promoIndex, const PromoPieceT promoPiece, const ColorPieceMapT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
-      const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
-      
+    inline void handlePromoPieceCapturesOfPromoPieces(StateT state, const BoardT& board, const int promoIndex, const PromoPieceT promoPiece, const ColorPieceMapT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
+
       while(toBb) {
 	const SquareT to = Bits::popLsb(toBb);
 	
@@ -327,13 +320,11 @@ namespace Chess {
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePromoPieceCaptures(StateT state, const BoardT& board, const int promoIndex, const PromoPieceT promoPiece, const ColorPieceMapT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
+    inline void handlePromoPieceCaptures(StateT state, const BoardT& board, const int promoIndex, const PromoPieceT promoPiece, const ColorPieceMapT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
 
       const BitBoardT promoPieceCaptureBb = toBb & yourPieceMap.allPromoPiecesBb;
-      handlePromoPieceCapturesOfPromoPieces<StateT, PosHandlerT, BoardTraitsT>(state, board, promoIndex, promoPiece, yourPieceMap, from, promoPieceCaptureBb, directChecksBb, discoveriesBb);
+      handlePromoPieceCapturesOfPromoPieces<StateT, PosHandlerT, BoardTraitsT>(state, board, promoIndex, promoPiece, yourPieceMap, from, promoPieceCaptureBb, directChecksBb, isDiscoveredCheck);
       toBb &= ~promoPieceCaptureBb;
-      
-      const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
       
       while(toBb) {
 	const SquareT to = Bits::popLsb(toBb);
@@ -348,10 +339,11 @@ namespace Chess {
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
     inline void handlePromoPieceMoves(StateT state, const BoardT& board, const int promoIndex, const PromoPieceT promoPiece, const SquareT from, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb) {
+      const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
 
-      handlePromoPiecePushes<StateT, PosHandlerT, BoardTraitsT>(state, board, promoIndex, promoPiece, from, movesBb & ~allYourPiecesBb, directChecksBb, discoveriesBb);
+      handlePromoPiecePushes<StateT, PosHandlerT, BoardTraitsT>(state, board, promoIndex, promoPiece, from, movesBb & ~allYourPiecesBb, directChecksBb, isDiscoveredCheck);
       
-      handlePromoPieceCaptures<StateT, PosHandlerT, BoardTraitsT>(state, board, promoIndex, promoPiece, yourPieceMap, from, movesBb & allYourPiecesBb, directChecksBb, discoveriesBb);
+      handlePromoPieceCaptures<StateT, PosHandlerT, BoardTraitsT>(state, board, promoIndex, promoPiece, yourPieceMap, from, movesBb & allYourPiecesBb, directChecksBb, isDiscoveredCheck);
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
