@@ -14,8 +14,25 @@ namespace Chess {
 
     // Note that typename PosHandlerT must take care of BoardTraitsT::ReverseT - I can't seem to make this explicit which maybe makes sense.
 
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn>
-    inline void handlePawnsPushToPromo(StateT state, const BoardT& board, BitBoardT pawnsPushBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
+    enum PromoMoveT {
+      PushPromo,
+      CapturePromo,
+      PromoCapturePromo
+    };
+
+    template <ColorT Color, PromoMoveT>
+    struct PromoMakeMoveFn {
+      static BoardT pushFn(const BoardT& board, const SquareT from, const SquareT to, PromoPieceT promoPiece);
+    };
+
+    template <ColorT Color> struct PromoMakeMoveFn<Color, PushPromo> {
+      static BoardT pushFn(const BoardT& board, const SquareT from, const SquareT to, PromoPieceT promoPiece) {
+	return pushPawnToPromo<Color>(board, from, to, PromoQueen);
+      }
+    };
+
+    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn, typename PromoMakeMoveFn>
+    inline void handlePawnsMoveToPromo(StateT state, const BoardT& board, BitBoardT pawnsPushBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
 
       const SquareT yourKingSq = board.pieces[(size_t)BoardTraitsT::OtherColor].pieceSquares[TheKing];
 	
@@ -28,22 +45,60 @@ namespace Chess {
 	const BitBoardT orthogCheckBb = toBb & yourKingRookAttacksBb;
 	const BitBoardT diagCheckBb = toBb & yourKingBishopAttacksBb;
 	
-	const BoardT queenPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoQueen);
+	//const BoardT queenPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoQueen);
+	const BoardT queenPromoBoard = PromoMakeMoveFn::pushFn(board, from, to, PromoQueen);
 	const bool isQueenCheck = (orthogCheckBb | diagCheckBb) != BbNone;
 	PosHandlerT::handlePos(state, queenPromoBoard, MoveInfoT(PushMove, from, to, isQueenCheck, isDiscoveredCheck, /*isPromo*/true));
 	
-	const BoardT knightPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoKnight);
+	//const BoardT knightPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoKnight);
+	const BoardT knightPromoBoard = PromoMakeMoveFn::pushFn(board, from, to, PromoKnight);
 	const bool isKnightCheck = (KnightAttacks[yourKingSq] & toBb) != BbNone;
 	PosHandlerT::handlePos(state, knightPromoBoard, MoveInfoT(PushMove, from, to, isKnightCheck, isDiscoveredCheck, /*isPromo*/true));
 	
-	const BoardT rookPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoRook);
+	//const BoardT rookPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoRook);
+	const BoardT rookPromoBoard = PromoMakeMoveFn::pushFn(board, from, to, PromoRook);
 	const bool isRookCheck = orthogCheckBb != BbNone;
 	PosHandlerT::handlePos(state, rookPromoBoard, MoveInfoT(PushMove, from, to, isRookCheck, isDiscoveredCheck, /*isPromo*/true));
 	
-	const BoardT bishopPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoBishop);
+	//const BoardT bishopPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoBishop);
+	const BoardT bishopPromoBoard = PromoMakeMoveFn::pushFn(board, from, to, PromoBishop);
 	const bool isBishopCheck = diagCheckBb != BbNone;
 	PosHandlerT::handlePos(state, bishopPromoBoard, MoveInfoT(PushMove, from, to, isBishopCheck, isDiscoveredCheck, /*isPromo*/true));
       }
+    }
+
+    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn>
+    inline void handlePawnsPushToPromo(StateT state, const BoardT& board, BitBoardT pawnsPushBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
+
+      handlePawnsMoveToPromo<StateT, PosHandlerT, BoardTraitsT, To2FromFn, PromoMakeMoveFn<BoardTraitsT::Color, PushPromo>>(state, board, pawnsPushBb, directChecksBb, discoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
+
+      // const SquareT yourKingSq = board.pieces[(size_t)BoardTraitsT::OtherColor].pieceSquares[TheKing];
+	
+      // while(pawnsPushBb) {
+      // 	const SquareT to = Bits::popLsb(pawnsPushBb);
+      // 	const SquareT from = To2FromFn::fn(to);
+
+      // 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
+      // 	const BitBoardT toBb = bbForSquare(to);
+      // 	const BitBoardT orthogCheckBb = toBb & yourKingRookAttacksBb;
+      // 	const BitBoardT diagCheckBb = toBb & yourKingBishopAttacksBb;
+	
+      // 	const BoardT queenPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoQueen);
+      // 	const bool isQueenCheck = (orthogCheckBb | diagCheckBb) != BbNone;
+      // 	PosHandlerT::handlePos(state, queenPromoBoard, MoveInfoT(PushMove, from, to, isQueenCheck, isDiscoveredCheck, /*isPromo*/true));
+	
+      // 	const BoardT knightPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoKnight);
+      // 	const bool isKnightCheck = (KnightAttacks[yourKingSq] & toBb) != BbNone;
+      // 	PosHandlerT::handlePos(state, knightPromoBoard, MoveInfoT(PushMove, from, to, isKnightCheck, isDiscoveredCheck, /*isPromo*/true));
+	
+      // 	const BoardT rookPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoRook);
+      // 	const bool isRookCheck = orthogCheckBb != BbNone;
+      // 	PosHandlerT::handlePos(state, rookPromoBoard, MoveInfoT(PushMove, from, to, isRookCheck, isDiscoveredCheck, /*isPromo*/true));
+	
+      // 	const BoardT bishopPromoBoard = pushPawnToPromo<BoardTraitsT::Color>(board, from, to, PromoBishop);
+      // 	const bool isBishopCheck = diagCheckBb != BbNone;
+      // 	PosHandlerT::handlePos(state, bishopPromoBoard, MoveInfoT(PushMove, from, to, isBishopCheck, isDiscoveredCheck, /*isPromo*/true));
+      // }
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn, bool IsPushTwo>
