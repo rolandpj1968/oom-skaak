@@ -105,8 +105,6 @@ namespace Chess {
     template <typename BoardTraitsT>
     inline void perft0Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
 
-      printBoard(board);
-
       // TODO get rid...
       if(false) {
 	static bool done = false;

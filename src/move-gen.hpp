@@ -154,6 +154,10 @@ namespace Chess {
 
       DirectCheckMasksT directChecks;
       DiscoveredCheckMasksT discoveredChecks;
+
+      // Used for promo check detection
+      BitBoardT yourKingRookAttacksBb;
+      BitBoardT yourKingBishopAttacksBb;
     };
 
 #include <boost/preprocessor/iteration/local.hpp>
@@ -1141,17 +1145,17 @@ namespace Chess {
 	const ColorStateT& myState = board.pieces[(size_t)Color];
 	const SquareT myKingSq = myState.pieceSquares[TheKing];
 	const BitBoardT myKingSqBb = bbForSquare(myKingSq);
-	const BitBoardT yourKingRookAttacks = rookAttacks(yourKingSq, (allPiecesBb & ~myKingSqBb));
+	const BitBoardT yourKingRookAttacksBb = rookAttacks(yourKingSq, (allPiecesBb & ~myKingSqBb));
 	if((canCastleFlags & CanCastleKingside) != NoCastlingRights) {
 	  const BitBoardT rookToBb = bbForSquare(CastlingTraitsT<Color, CanCastleKingside>::RookTo);
-	  if((yourKingRookAttacks & rookToBb) != BbNone) {
+	  if((yourKingRookAttacksBb & rookToBb) != BbNone) {
 	    isKingsideCastlingDiscovery = true;
 	  }
 	}
 	if((canCastleFlags & CanCastleQueenside) != NoCastlingRights) {
  	  const BitBoardT rookToBb = bbForSquare(CastlingTraitsT<Color, CanCastleQueenside>::RookTo);
 
-	  if((yourKingRookAttacks & rookToBb) != BbNone) {
+	  if((yourKingRookAttacksBb & rookToBb) != BbNone) {
 	    isQueensideCastlingDiscovery = true;
 	  }
 	}
@@ -1424,7 +1428,7 @@ namespace Chess {
       const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
       
-      // Generate moves
+      // Generate moves - TODO this and yourAttacks are interesting side-channel data to return in LegalMovesT
       const PieceAttacksT myAttacks = genPieceAttacks<MyColorTraitsT>(myState, allPiecesBb);
 
       // Is your king in check? If so we got here via an illegal move of the move-generator
@@ -1466,6 +1470,11 @@ namespace Chess {
 
       legalMoves.directChecks = genDirectCheckMasks<Color>(yourState, allPiecesBb);
       legalMoves.discoveredChecks = genDiscoveryMasks<BoardTraitsT>(board, pieceBbs, legalMoves.pawnMoves.epCaptures.epLeftCaptureBb, legalMoves.pawnMoves.epCaptures.epRightCaptureBb, legalMoves.canCastleFlags);
+
+      // Only for promos
+      const SquareT yourKingSq = yourState.pieceSquares[TheKing];
+      legalMoves.yourKingRookAttacksBb = rookAttacks(yourKingSq, allPiecesBb);
+      legalMoves.yourKingBishopAttacksBb = bishopAttacks(yourKingSq, allPiecesBb);
       
       return legalMoves;
     }
