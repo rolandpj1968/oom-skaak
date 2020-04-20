@@ -19,8 +19,7 @@ namespace Chess {
     //
     
     enum PawnMoveT {
-      PawnPushOne,
-      PawnPushTwo,
+      PawnPush, // Mmm, not sure how to plumb in push one and push two so unused
       PawnCapture,
       PawnPromoCapture
     };
@@ -32,21 +31,6 @@ namespace Chess {
     
     struct NoPieceMapT {};
     
-    template <ColorT Color> struct PawnMoveFn<Color, PawnPush, NoPieceMapT> {
-      typedef NoPieceMapT PieceMapImplT;
-      static BoardT fn(const BoardT& board, const NoPieceMapT&, const SquareT from, const SquareT to) {
-	return captureWithPawn<Color>(board, yourPieceMap, from, to);
-	const BoardT newBoard = pushPawn<BoardTraitsT::Color, IsPushTwo>(board, from, to);
-      }
-    };
-
-    // template <ColorT Color> struct PawnPromoMoveFn<Color, PawnPushToPromo, NoPieceMapT> {
-    //   typedef NoPieceMapT PieceMapImplT;
-    //   static BoardT fn(const BoardT& board, const NoPieceMapT&, const SquareT from, const SquareT to, PromoPieceT promoPiece) {
-    // 	return pushPawnToPromo<Color>(board, from, to, promoPiece);
-    //   }
-    // };
-
     template <ColorT Color> struct PawnMoveFn<Color, PawnCapture, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
