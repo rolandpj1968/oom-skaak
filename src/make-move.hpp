@@ -286,18 +286,18 @@ namespace Chess {
       }
     }
     
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece>
-    inline void handlePiecePushes(StateT state, const BoardT& board, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
-      while(toBb) {
-	const SquareT to = Bits::popLsb(toBb);
+    // template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece>
+    // inline void handlePiecePushes(StateT state, const BoardT& board, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
+    //   while(toBb) {
+    // 	const SquareT to = Bits::popLsb(toBb);
 	
-	const BoardT newBoard = pushPiece<BoardTraitsT::Color, Piece>(board, from, to);
+    // 	const BoardT newBoard = pushPiece<BoardTraitsT::Color, Piece>(board, from, to);
 
-	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
+    // 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck));
-      }
-    }
+    // 	PosHandlerT::handlePos(state, newBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck));
+    //   }
+    // }
     
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece>
     inline void handlePieceMoves(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb) {
@@ -305,7 +305,11 @@ namespace Chess {
       const SquareT from = myState.pieceSquares[Piece];
       const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
 
-      handlePiecePushes<StateT, PosHandlerT, BoardTraitsT, Piece>(state, board, from, movesBb & ~allYourPiecesBb, directChecksBb, isDiscoveredCheck);
+      const BitBoardT piecePushesBb = movesBb & ~allYourPiecesBb;
+
+      typedef PieceMoveFn<BoardTraitsT::Color, Piece, PiecePush, NoPieceMapT> PiecePushFn;
+      handlePieceMoves<StateT, PosHandlerT, BoardTraitsT, PiecePushFn, PushMove>(state, board, NoPieceMapT(), from, piecePushesBb, directChecksBb, isDiscoveredCheck);
+      //handlePiecePushes<StateT, PosHandlerT, BoardTraitsT, Piece>(state, board, from, piecePushesBb, directChecksBb, isDiscoveredCheck);
 
       BitBoardT pieceCapturesBb = movesBb & allYourPiecesBb;
       const BitBoardT promoPieceCapturesBb = pieceCapturesBb & yourPieceMap.allPromoPiecesBb;
