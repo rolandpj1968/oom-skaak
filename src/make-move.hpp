@@ -56,7 +56,7 @@ namespace Chess {
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
 	
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck));
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(MoveType, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
 
@@ -152,16 +152,6 @@ namespace Chess {
       }
     }
 
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePawnsPushOne(StateT state, const BoardT& board, BitBoardT pawnsPushOneBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
-      handlePawnsPush<StateT, PosHandlerT, BoardTraitsT, PawnPushOneTo2FromFn<BoardTraitsT::Color>, /*IsPushTwo =*/false>(state, board, pawnsPushOneBb, directChecksBb, discoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
-    }
-    
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePawnsPushTwo(StateT state, const BoardT& board, BitBoardT pawnsPushTwoBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
-      handlePawnsPush<StateT, PosHandlerT, BoardTraitsT, PawnPushTwoTo2FromFn<BoardTraitsT::Color>, /*IsPushTwo =*/true>(state, board, pawnsPushTwoBb, directChecksBb, discoveriesBb, BbNone/*unused*/, BbNone/*unused*/);
-    }
-
     template <ColorT Color>
     inline SquareT pawnAttackLeftTo2From(const SquareT square);
     template <> inline SquareT pawnAttackLeftTo2From<White>(const SquareT square) { return square - 7; }
@@ -210,16 +200,6 @@ namespace Chess {
       handlePawnsMove<StateT, PosHandlerT, BoardTraitsT, To2FromFn, PawnCaptureFn, CaptureMove>(state, board, yourPieceMap, pawnsCaptureBb, directChecksBb, discoveriesBb);
     }
 
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePawnsCaptureLeft(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureLeft, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
-      handlePawnsCapture<StateT, PosHandlerT, BoardTraitsT, PawnAttackLeftTo2FromFn<BoardTraitsT::Color>>(state, board, yourPieceMap, pawnsCaptureLeft, directChecksBb, discoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
-    }
-    
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePawnsCaptureRight(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureRight, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
-      handlePawnsCapture<StateT, PosHandlerT, BoardTraitsT, PawnAttackRightTo2FromFn<BoardTraitsT::Color>>(state, board, yourPieceMap, pawnsCaptureRight, directChecksBb, discoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
-    }
-
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn>
     inline void handlePawnEpCapture(StateT state, const BoardT& board, BitBoardT pawnsEpCaptureBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const bool isEpDiscovery) {
       // There can be only 1 en-passant capture, so no need to loop
@@ -238,29 +218,69 @@ namespace Chess {
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePawnEpCaptureLeft(StateT state, const BoardT& board, BitBoardT pawnsCaptureLeft, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const bool isEpDiscovery) {
-      handlePawnEpCapture<StateT, PosHandlerT, BoardTraitsT, PawnAttackLeftTo2FromFn<BoardTraitsT::Color>>(state, board, pawnsCaptureLeft, directChecksBb, discoveriesBb, isEpDiscovery);
-    }
-    
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handlePawnEpCaptureRight(StateT state, const BoardT& board, BitBoardT pawnsCaptureRight, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const bool isEpDiscovery) {
-      handlePawnEpCapture<StateT, PosHandlerT, BoardTraitsT, PawnAttackRightTo2FromFn<BoardTraitsT::Color>>(state, board, pawnsCaptureRight, directChecksBb, discoveriesBb, isEpDiscovery);
-    }
-
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
     inline void handlePawnMoves(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const PawnPushesAndCapturesT& pawnMoves, const BitBoardT directChecksBb, const BitBoardT pushDiscoveriesBb, const BitBoardT leftDiscoveriesBb, const BitBoardT rightDiscoveriesBb, const bool isLeftEpDiscovery, const bool isRightEpDiscovery, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
 
-      // Pawn pushes
-      handlePawnsPushOne<StateT, PosHandlerT, BoardTraitsT>(state, board, pawnMoves.pushesOneBb, directChecksBb, pushDiscoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
-      handlePawnsPushTwo<StateT, PosHandlerT, BoardTraitsT>(state, board, pawnMoves.pushesTwoBb, directChecksBb, pushDiscoveriesBb);
+      // Pawn pushes - one and two squares
+      handlePawnsPush<StateT, PosHandlerT, BoardTraitsT, PawnPushOneTo2FromFn<BoardTraitsT::Color>, /*IsPushTwo =*/false>(state, board, pawnMoves.pushesOneBb, directChecksBb, pushDiscoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
+      handlePawnsPush<StateT, PosHandlerT, BoardTraitsT, PawnPushTwoTo2FromFn<BoardTraitsT::Color>, /*IsPushTwo =*/true>(state, board, pawnMoves.pushesTwoBb, directChecksBb, pushDiscoveriesBb, BbNone/*unused*/, BbNone/*unused*/);
 	
-      // Pawn captures
-      handlePawnsCaptureLeft<StateT, PosHandlerT, BoardTraitsT>(state, board, yourPieceMap, pawnMoves.capturesLeftBb, directChecksBb, leftDiscoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
-      handlePawnsCaptureRight<StateT, PosHandlerT, BoardTraitsT>(state, board, yourPieceMap, pawnMoves.capturesRightBb, directChecksBb, rightDiscoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
-      
-      // Pawn en-passant captures
-      handlePawnEpCaptureLeft<StateT, PosHandlerT, BoardTraitsT>(state, board, pawnMoves.epCaptures.epLeftCaptureBb, directChecksBb, leftDiscoveriesBb, isLeftEpDiscovery);
-      handlePawnEpCaptureRight<StateT, PosHandlerT, BoardTraitsT>(state, board, pawnMoves.epCaptures.epRightCaptureBb, directChecksBb, rightDiscoveriesBb, isRightEpDiscovery);
+      // Pawn captures - left and right
+      handlePawnsCapture<StateT, PosHandlerT, BoardTraitsT, PawnAttackLeftTo2FromFn<BoardTraitsT::Color>>(state, board, yourPieceMap, pawnMoves.capturesLeftBb, directChecksBb, leftDiscoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
+      handlePawnsCapture<StateT, PosHandlerT, BoardTraitsT, PawnAttackRightTo2FromFn<BoardTraitsT::Color>>(state, board, yourPieceMap, pawnMoves.capturesRightBb, directChecksBb, rightDiscoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);      
+
+      // Pawn en-passant captures - left and right
+      handlePawnEpCapture<StateT, PosHandlerT, BoardTraitsT, PawnAttackLeftTo2FromFn<BoardTraitsT::Color>>(state, board, pawnMoves.epCaptures.epLeftCaptureBb, directChecksBb, leftDiscoveriesBb, isLeftEpDiscovery);
+      handlePawnEpCapture<StateT, PosHandlerT, BoardTraitsT, PawnAttackRightTo2FromFn<BoardTraitsT::Color>>(state, board, pawnMoves.epCaptures.epRightCaptureBb, directChecksBb, rightDiscoveriesBb, isRightEpDiscovery);
+    }
+    
+    //
+    // (Non-promo-)piece moves
+    //
+
+    enum PieceMoveT {
+      PiecePush, // Mmm, not sure how to plumb in push one and push two so unused
+      PieceCapture,
+      PiecePromoCapture
+    };
+
+    template <ColorT Color, PieceMoveT, typename PieceMapT>
+    struct PieceMoveFn {
+      static BoardT fn(const BoardT& board, const PieceMapT& yourPieceMap, const SquareT from, const SquareT to);
+    };
+    
+    template <ColorT Color> struct PieceMoveFn<Color, PiecePush, NoPieceMapT> {
+      typedef NoPieceMapT PieceMapImplT;
+      static BoardT fn(const BoardT& board, const NoPieceMapT&, const SquareT from, const SquareT to) {
+	return pushPiece<Color>(board, from, to);
+      }
+    };
+
+    template <ColorT Color> struct PieceMoveFn<Color, PieceCapture, ColorPieceMapT> {
+      typedef ColorPieceMapT PieceMapImplT;
+      static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
+	return captureWithPiece<Color>(board, yourPieceMap, from, to);
+      }
+    };
+
+    template <ColorT Color> struct PieceMoveFn<Color, PiecePromoCapture, ColorPieceMapT> {
+      typedef ColorPieceMapT PieceMapImplT;
+      static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
+	return capturePromoPieceWithPiece<Color>(board, yourPieceMap, from, to);
+      }
+    };
+
+    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename To2FromFn, typename PieceMoveFn, MoveTypeT MoveType>
+    inline void handlePieceMoves(StateT state, const BoardT& board, const typename PieceMoveFn::PieceMapImplT& yourPieceMap, BitBoardT pieceMovesBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
+      while(pieceMovesBb) {
+	const SquareT to = Bits::popLsb(pieceMovesBb);
+	const SquareT from = To2FromFn::fn(to);
+
+	const BoardT newBoard = PieceMoveFn::fn(board, yourPieceMap, from, to);
+
+	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
+	
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(MoveType, from, to, isDirectCheck, isDiscoveredCheck));
+      }
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece>
