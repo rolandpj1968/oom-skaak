@@ -445,29 +445,29 @@ namespace Chess {
       const BitBoardT piecePushesBb = movesBb & ~allYourPiecesBb;
 
       // Promo-piece pushes
-      printf("Promo pushes to:\n");
-      printBb(piecePushesBb);
-      printf("\n");
+      // printf("Promo pushes to:\n");
+      // printBb(piecePushesBb);
+      // printf("\n");
       typedef PromoPieceMoveFn<BoardTraitsT::Color, PromoPiecePush, NoPieceMapT> PromoPiecePushFn;
       handlePromoPieceMoves<StateT, PosHandlerT, BoardTraitsT, PromoPiecePushFn, PushMove>(state, board, NoPieceMapT(), promoIndex, promoPiece, from, piecePushesBb, directChecksBb, isDiscoveredCheck);
 
       BitBoardT pieceCapturesBb = movesBb & allYourPiecesBb;
       const BitBoardT promoPieceCapturesBb = pieceCapturesBb & yourPieceMap.allPromoPiecesBb;
       pieceCapturesBb &= ~promoPieceCapturesBb;
-      printf("All your promo pieces:\n");
-      printBb(yourPieceMap.allPromoPiecesBb);
+      // printf("All your promo pieces:\n");
+      // printBb(yourPieceMap.allPromoPiecesBb);
 
       // Promo-piece captures of promo pieces
-      printf("Promo captures of promos at:\n");
-      printBb(promoPieceCapturesBb);
-      printf("\n");
+      // printf("Promo captures of promos at:\n");
+      // printBb(promoPieceCapturesBb);
+      //printf("\n");
       typedef PromoPieceMoveFn<BoardTraitsT::Color, PromoPiecePromoCapture, ColorPieceMapT> PromoPiecePromoCaptureFn;
       handlePromoPieceMoves<StateT, PosHandlerT, BoardTraitsT, PromoPiecePromoCaptureFn, CaptureMove>(state, board, yourPieceMap, promoIndex, promoPiece, from, promoPieceCapturesBb, directChecksBb, isDiscoveredCheck);
 
       // Promo-piece captures of non-promo pieces
-      printf("Promo captures of non-promos at:\n");
-      printBb(pieceCapturesBb);
-      printf("\n");
+      // printf("Promo captures of non-promos at:\n");
+      // printBb(pieceCapturesBb);
+      //printf("\n");
       typedef PromoPieceMoveFn<BoardTraitsT::Color, PromoPieceCapture, ColorPieceMapT> PromoPieceCaptureFn;
       handlePromoPieceMoves<StateT, PosHandlerT, BoardTraitsT, PromoPieceCaptureFn, CaptureMove>(state, board, yourPieceMap, promoIndex, promoPiece, from, pieceCapturesBb, directChecksBb, isDiscoveredCheck);
     }

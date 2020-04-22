@@ -137,10 +137,10 @@ namespace Chess {
     template <ColorT Color>
     inline void removePromoPiece(BoardT& board, const int promoIndex) {
       ColorStateT &colorState = board.pieces[(size_t)Color];
-      printf("\n\n >>>>>> removePromoPiece promoIndex is %d, activePromos 0x%08x -> \n", promoIndex, colorState.activePromos);
+      //printf("\n\n >>>>>> removePromoPiece promoIndex is %d, activePromos 0x%02x -> \n", promoIndex, colorState.activePromos);
 
       colorState.activePromos &= ~((u8)1 << promoIndex);
-      printf("%08x\n\n", colorState.activePromos);
+      //printf("%02x\n\n", colorState.activePromos);
     }
 
     template <ColorT Color>

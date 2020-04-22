@@ -1367,7 +1367,7 @@ namespace Chess {
       // Promo pieces
       BitBoardT allPromoPiecesBb = BbNone;
       BitBoardT activePromos = (BitBoardT)colorState.activePromos;
-      printf("\nRPJ >>>>>> color ? activePromos is 0x%02x\n", (u8)activePromos);
+      //printf("\nRPJ >>>>>> color ? activePromos is 0x%02x\n", (u8)activePromos);
       while(activePromos) {
 	const int promoIndex = Bits::popLsb(activePromos);
 	const PromoPieceAndSquareT promoPieceAndSquare = colorState.promos[promoIndex];
@@ -1375,12 +1375,12 @@ namespace Chess {
 	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
 	const BitBoardT promoPieceSqBb = bbForSquare(promoPieceSq);
 	const PieceTypeT pieceType = PieceTypeForPromoPiece[promoPiece];
-	printf("                   promo piece index %d on square %s is piece type %d\n", promoIndex, SquareStr[promoPieceSq], (int)pieceType);
+	//printf("                   promo piece index %d on square %s is piece type %d\n", promoIndex, SquareStr[promoPieceSq], (int)pieceType);
 
 	pieceBbs.bbs[pieceType] |= promoPieceSqBb;
 	allPromoPiecesBb |= promoPieceSqBb;
       }
-      printf("\n");
+      //printf("\n");
       pieceBbs.allPromoPiecesBb = allPromoPiecesBb;
 
       pieceBbs.sliderBbs[Diagonal] = pieceBbs.bbs[Bishop] | pieceBbs.bbs[Queen];
@@ -1388,12 +1388,12 @@ namespace Chess {
 
       pieceBbs.bbs[AllPieceTypes] = pieceBbs.bbs[Pawn] | pieceBbs.bbs[Knight] | pieceBbs.bbs[Bishop] | pieceBbs.bbs[Rook] | pieceBbs.bbs[Queen] | pieceBbs.bbs[King];
 
-      printf("allPiecesBb:\n");
-      printBb(pieceBbs.bbs[AllPieceTypes]);
-      printf("\n");
-      printf("allPromoPiecesBb:\n");
-      printBb(pieceBbs.allPromoPiecesBb);
-      printf("\n");
+      // printf("allPiecesBb:\n");
+      // printBb(pieceBbs.bbs[AllPieceTypes]);
+      // printf("\n");
+      // printf("allPromoPiecesBb:\n");
+      // printBb(pieceBbs.allPromoPiecesBb);
+      // printf("\n");
 
       return pieceBbs;
     }
