@@ -105,8 +105,8 @@ namespace Chess {
     template <typename BoardTraitsT>
     inline void perft0Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
 
-      // printBoard(board);
-      // printf("%s\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
+      printBoard(board);
+      printf("%s\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
 
       // TODO get rid...
       if(false) {

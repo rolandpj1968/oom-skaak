@@ -24,9 +24,17 @@ int main(int argc, char* argv[]) {
     board = Board::startingPosition();
     colorToMove = White;
   } else {
+    if(std::string(argv[2]) == "RPJ") {
+      printf("\nRPJ special debug setup...\n\n");
+      board = emptyBoard();
+      colorToMove = White;
+      Board::addPromoPiece(board, White, 0, PromoRook, A8);
+      Board::addPromoPiece(board, Black, 0, PromoRook, A1);
+    } else {
     auto boardAndColor = Fen::parseFen(argv[2]);
     board = boardAndColor.first;
     colorToMove = boardAndColor.second;
+    }
   }
 
   printBoard(board);

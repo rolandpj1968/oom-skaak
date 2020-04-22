@@ -99,7 +99,6 @@ namespace Chess {
       pieceMap.board[colorState.pieceSquares[TheQueen]].piece = TheQueen;
       pieceMap.board[colorState.pieceSquares[TheKing]].piece = TheKing;
 
-      // Promo pieces
       // Promo pieces - ugh the bit stuff operates on BitBoardT type
       BitBoardT activePromos = (BitBoardT)colorState.activePromos;
       while(activePromos) {
@@ -109,6 +108,8 @@ namespace Chess {
 
 	pieceMap.board[promoPieceSq].promoIndex = promoIndex;
       }
+
+      pieceMap.allPromoPiecesBb = allPromoPiecesBb;
       
       return pieceMap;
     }
@@ -136,8 +137,10 @@ namespace Chess {
     template <ColorT Color>
     inline void removePromoPiece(BoardT& board, const int promoIndex) {
       ColorStateT &colorState = board.pieces[(size_t)Color];
+      printf("\n\n >>>>>> removePromoPiece promoIndex is %d, activePromos 0x%08x -> \n", promoIndex, colorState.activePromos);
 
       colorState.activePromos &= ~((u8)1 << promoIndex);
+      printf("%08x\n\n", colorState.activePromos);
     }
 
     template <ColorT Color>
