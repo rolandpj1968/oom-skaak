@@ -312,7 +312,7 @@ namespace Chess {
     }
 
     //
-    // (Non-promo-)piece moves
+    // Promo piece moves
     //
 
     enum PromoPieceMoveT {
@@ -383,45 +383,128 @@ namespace Chess {
       handlePromoPieceMoves<StateT, PosHandlerT, BoardTraitsT, PromoPieceCaptureFn, CaptureMove>(state, board, yourPieceMap, promoIndex, promoPiece, from, pieceCapturesBb, directChecksBb, isDiscoveredCheck);
     }
 
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handleKingPushes(StateT state, const BoardT& board, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRaysBb) {
+    //
+    // King moves - discovery detection is different for the king
+    //
+
+    enum KingMoveT {
+      KingPush,
+      KingCapture,
+      KingPromoCapture
+    };
+
+    // TODO - could actually specialise normal piece moves for king moves...
+    template <ColorT Color, KingMoveT, typename PieceMapT>
+    struct KingMoveFn {
+      static BoardT fn(const BoardT& board, const PieceMapT& yourPieceMap, const SquareT from, const SquareT to);
+    };
+    
+    template <ColorT Color> struct KingMoveFn<Color, KingPush, NoPieceMapT> {
+      typedef NoPieceMapT PieceMapImplT;
+      static BoardT fn(const BoardT& board, const NoPieceMapT&, const SquareT from, const SquareT to) {
+	return pushPiece<Color, TheKing>(board, from, to);
+      }
+    };
+
+    template <ColorT Color> struct KingMoveFn<Color, KingCapture, ColorPieceMapT> {
+      typedef ColorPieceMapT PieceMapImplT;
+      static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
+	return captureWithPiece<Color, TheKing>(board, yourPieceMap, from, to);
+      }
+    };
+
+    template <ColorT Color> struct KingMoveFn<Color, KingPromoCapture, ColorPieceMapT> {
+      typedef ColorPieceMapT PieceMapImplT;
+      static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
+	return capturePromoPieceWithPiece<Color, TheKing>(board, yourPieceMap, from, to);
+      }
+    };
+
+    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename KingMoveFn, MoveTypeT MoveType>
+    inline void handleKingMoves(StateT state, const BoardT& board, const typename KingMoveFn::PieceMapImplT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRaysBb) {
+      const BitBoardT fromBb = bbForSquare(from);
+      
       while(toBb) {
 	const SquareT to = Bits::popLsb(toBb);
-	
-	const BoardT newBoard = pushPiece<BoardTraitsT::Color, TheKing>(board, from, to);
+	const BitBoardT toBb = bbForSquare(to);
 
-	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
-	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone && (bbForSquare(to) & yourKingRaysBb) == BbNone;
+	const BoardT newBoard = KingMoveFn::fn(board, yourPieceMap, from, to);
+
+	const bool isDirectCheck = (toBb & directChecksBb) != BbNone;
+	const bool isDiscoveredCheck = (fromBb & discoveriesBb) != BbNone && (toBb & yourKingRaysBb) == BbNone;
 	
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck));
+	PosHandlerT::handlePos(state, newBoard, MoveInfoT(MoveType, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
     
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
-    inline void handleKingCaptures(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRaysBb) {
-      while(toBb) {
-	const SquareT to = Bits::popLsb(toBb);
-	
-	const BoardT newBoard = captureWithPiece<BoardTraitsT::Color, TheKing>(board, yourPieceMap, from, to);
-
-	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
-	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone && (bbForSquare(to) & yourKingRaysBb) == BbNone;
-	
-	PosHandlerT::handlePos(state, newBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck));
-      }
-    }
-
-    // We specialise king moves because discovery handling is different - we could probably factor tho - TODO
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
     inline void handleKingMoves(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb, const SquareT yourKingSq) {
       const ColorStateT& myState = board.pieces[(size_t)BoardTraitsT::Color];
       const SquareT from = myState.pieceSquares[TheKing];
       const BitBoardT yourKingRaysBb = BishopRays[yourKingSq] | RookRays[yourKingSq];
-
-      handleKingPushes<StateT, PosHandlerT, BoardTraitsT>(state, board, from, movesBb & ~allYourPiecesBb, directChecksBb, discoveriesBb, yourKingRaysBb);
       
-      handleKingCaptures<StateT, PosHandlerT, BoardTraitsT>(state, board, yourPieceMap, from, movesBb & allYourPiecesBb, directChecksBb, discoveriesBb, yourKingRaysBb);
+      const BitBoardT kingPushesBb = movesBb & ~allYourPiecesBb;
+
+      // King pushes
+      typedef KingMoveFn<BoardTraitsT::Color, KingPush, NoPieceMapT> KingPushFn;
+      handleKingMoves<StateT, PosHandlerT, BoardTraitsT, KingPushFn, PushMove>(state, board, NoPieceMapT(), from, kingPushesBb, directChecksBb, discoveriesBb, yourKingRaysBb);
+
+      BitBoardT kingCapturesBb = movesBb & allYourPiecesBb;
+      const BitBoardT promoPieceCapturesBb = kingCapturesBb & yourPieceMap.allPromoPiecesBb;
+      kingCapturesBb &= ~promoPieceCapturesBb;
+
+      // King captures of promo pieces
+      typedef KingMoveFn<BoardTraitsT::Color, KingPromoCapture, ColorPieceMapT> KingPromoCaptureFn;
+      handleKingMoves<StateT, PosHandlerT, BoardTraitsT, KingPromoCaptureFn, CaptureMove>(state, board, yourPieceMap, from, promoPieceCapturesBb, directChecksBb, discoveriesBb, yourKingRaysBb);
+
+      // King captures of non-promo pieces
+      typedef KingMoveFn<BoardTraitsT::Color, KingCapture, ColorPieceMapT> KingCaptureFn;
+      handleKingMoves<StateT, PosHandlerT, BoardTraitsT, KingCaptureFn, CaptureMove>(state, board, yourPieceMap, from, kingCapturesBb, directChecksBb, discoveriesBb, yourKingRaysBb);
     }
+
+    // template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
+    // inline void handleKingPushes(StateT state, const BoardT& board, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRaysBb) {
+    //   while(toBb) {
+    // 	const SquareT to = Bits::popLsb(toBb);
+	
+    // 	const BoardT newBoard = pushPiece<BoardTraitsT::Color, TheKing>(board, from, to);
+
+    // 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
+    // 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone && (bbForSquare(to) & yourKingRaysBb) == BbNone;
+	
+    // 	PosHandlerT::handlePos(state, newBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck));
+    //   }
+    // }
+    
+    // template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
+    // inline void handleKingCaptures(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRaysBb) {
+    //   while(toBb) {
+    // 	const SquareT to = Bits::popLsb(toBb);
+	
+    // 	const BoardT newBoard = captureWithPiece<BoardTraitsT::Color, TheKing>(board, yourPieceMap, from, to);
+
+    // 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
+    // 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone && (bbForSquare(to) & yourKingRaysBb) == BbNone;
+	
+    // 	PosHandlerT::handlePos(state, newBoard, MoveInfoT(CaptureMove, from, to, isDirectCheck, isDiscoveredCheck));
+    //   }
+    // }
+
+    // // We specialise king moves because discovery handling is different
+    // template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
+    // inline void handleKingMoves(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb, const SquareT yourKingSq) {
+    //   const ColorStateT& myState = board.pieces[(size_t)BoardTraitsT::Color];
+    //   const SquareT from = myState.pieceSquares[TheKing];
+    //   const BitBoardT yourKingRaysBb = BishopRays[yourKingSq] | RookRays[yourKingSq];
+
+    //   handleKingPushes<StateT, PosHandlerT, BoardTraitsT>(state, board, from, movesBb & ~allYourPiecesBb, directChecksBb, discoveriesBb, yourKingRaysBb);
+      
+    //   handleKingCaptures<StateT, PosHandlerT, BoardTraitsT>(state, board, yourPieceMap, from, movesBb & allYourPiecesBb, directChecksBb, discoveriesBb, yourKingRaysBb);
+    // }
+
+    //
+    // Castling moves
+    //
 
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, CastlingRightsT CastlingRight>
     inline void handleCastlingMove(StateT state, const BoardT& board, const bool isDiscoveredCheck) {
