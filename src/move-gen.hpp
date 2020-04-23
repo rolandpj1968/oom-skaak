@@ -592,6 +592,8 @@ namespace Chess {
     //   If we're in check then we must capture or block the checking piece.
     template <typename BoardTraitsT>
     inline BitBoardT genLegalMoveMaskBb(const BoardT& board, const int nChecks, const BitBoardT allMyKingAttackersBb, const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allYourPromoPiecesBb, const PieceAttacksT& yourAttacks) {
+      typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
+      
       BitBoardT legalMoveMaskBb = BbAll;
 	
       // When in check, limit moves to captures of the checking piece, and blockers of the checking piece
@@ -621,7 +623,7 @@ namespace Chess {
 	  BitBoardT checkingPieceAttacksBb = BbNone;
 	  
 	  const BitBoardT promoPieceAttackerBb = allMyKingAttackersBb & allYourPromoPiecesBb;
-	  if(promoPieceAttackerBb != BbNone) {
+	  if(YourColorTraitsT::HasPromos && promoPieceAttackerBb != BbNone) {
 	    const int checkingPromoIndex = yourPieceMap.board[checkingPieceSq].promoIndex;
 	    checkingPieceAttacksBb = yourAttacks.promoPieceAttacks[checkingPromoIndex];
 	  } else {
@@ -818,29 +820,32 @@ namespace Chess {
 
       attacks.allAttacks |= attacks.pieceAttacks[TheKing];
 
-      // Promo pieces - ugh the bit stuff operates on BitBoardT type
-      BitBoardT activePromos = (BitBoardT)colorState.activePromos;
-      while(activePromos) {
-	const int promoIndex = Bits::popLsb(activePromos);
-	const PromoPieceAndSquareT promoPieceAndSquare = colorState.promos[promoIndex];
-	const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
-	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
-
-	BitBoardT promoPieceAttacksBb = BbNone;
-
-	// Done as a multi-if rather than switch cos in real games it's almost always going to be a Queen
-	if(promoPiece == PromoQueen) {
-	  promoPieceAttacksBb = rookAttacks(promoPieceSq, allPiecesBb) | bishopAttacks(promoPieceSq, allPiecesBb);
-	} else if(promoPiece == PromoKnight) {
-	  promoPieceAttacksBb = KnightAttacks[promoPieceSq];
-	} else if(promoPiece == PromoRook) {
-	  promoPieceAttacksBb = rookAttacks(promoPieceSq, allPiecesBb);
-	} else if(promoPiece == PromoBishop) {
-	  promoPieceAttacksBb = bishopAttacks(promoPieceSq, allPiecesBb);
+      // Promo pieces
+      if(ColorTraitsT::HasPromos) {
+	// Ugh the bit stuff operates on BitBoardT type
+	BitBoardT activePromos = (BitBoardT)colorState.activePromos;
+	while(activePromos) {
+	  const int promoIndex = Bits::popLsb(activePromos);
+	  const PromoPieceAndSquareT promoPieceAndSquare = colorState.promos[promoIndex];
+	  const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
+	  const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
+	  
+	  BitBoardT promoPieceAttacksBb = BbNone;
+	  
+	  // Done as a multi-if rather than switch cos in real games it's almost always going to be a Queen
+	  if(promoPiece == PromoQueen) {
+	    promoPieceAttacksBb = rookAttacks(promoPieceSq, allPiecesBb) | bishopAttacks(promoPieceSq, allPiecesBb);
+	  } else if(promoPiece == PromoKnight) {
+	    promoPieceAttacksBb = KnightAttacks[promoPieceSq];
+	  } else if(promoPiece == PromoRook) {
+	    promoPieceAttacksBb = rookAttacks(promoPieceSq, allPiecesBb);
+	  } else if(promoPiece == PromoBishop) {
+	    promoPieceAttacksBb = bishopAttacks(promoPieceSq, allPiecesBb);
+	  }
+	  
+	  attacks.promoPieceAttacks[promoIndex] = promoPieceAttacksBb;
+	  attacks.allAttacks |= promoPieceAttacksBb;
 	}
-
-	attacks.promoPieceAttacks[promoIndex] = promoPieceAttacksBb;
-	attacks.allAttacks |= promoPieceAttacksBb;
       }
       
       return attacks;
@@ -966,11 +971,13 @@ namespace Chess {
       // Queens
       pinMasks.piecePinMasks[TheQueen] = BbAll;
 
-      // Promo pieces - it might actually be faster to just set all 8 to BbAll
-      BitBoardT activePromos = (BitBoardT)myState.activePromos;
-      while(activePromos) {
-	const int promoIndex = Bits::popLsb(activePromos);
-	pinMasks.promoPiecePinMasks[promoIndex] = BbAll;
+      if(MyColorTraitsT::HasPromos) {
+	// Promo pieces - it might actually be faster to just set all 8 to BbAll
+	BitBoardT activePromos = (BitBoardT)myState.activePromos;
+	while(activePromos) {
+	  const int promoIndex = Bits::popLsb(activePromos);
+	  pinMasks.promoPiecePinMasks[promoIndex] = BbAll;
+	}
       }
     }
     
@@ -1020,29 +1027,32 @@ namespace Chess {
       //   - orthogonally pinned queens can only move along the king's rook rays
       pinMasks.piecePinMasks[TheQueen] = genPinnedMoveMask<Queen>(myState.pieceSquares[TheQueen], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
 
-      // Promo pieces - ugh the bit stuff operates on BitBoardT type
-      BitBoardT activePromos = (BitBoardT)myState.activePromos;
-      while(activePromos) {
-	const int promoIndex = Bits::popLsb(activePromos);
-	const PromoPieceAndSquareT promoPieceAndSquare = myState.promos[promoIndex];
-	const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
-	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
-
-	BitBoardT promoPiecePinMasks = BbNone;
-
-	// Done as a multi-if rather than switch cos in real games it's almost always going to be a Queen
-	if(promoPiece == PromoQueen) {
-	  promoPiecePinMasks = genPinnedMoveMask<Queen>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-	} else if(promoPiece == PromoKnight) {
-	  promoPiecePinMasks = genPinnedMoveMask<Knight>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-	} else if(promoPiece == PromoRook) {
-	  promoPiecePinMasks = genPinnedMoveMask<Rook>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-	} else if(promoPiece == PromoBishop) {
-	  promoPiecePinMasks = genPinnedMoveMask<Bishop>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+      // Promo pieces
+      if(ColorTraitsT::HasPromos) {
+	// ugh the bit stuff operates on BitBoardT type
+	BitBoardT activePromos = (BitBoardT)myState.activePromos;
+	while(activePromos) {
+	  const int promoIndex = Bits::popLsb(activePromos);
+	  const PromoPieceAndSquareT promoPieceAndSquare = myState.promos[promoIndex];
+	  const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
+	  const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
+	  
+	  BitBoardT promoPiecePinMasks = BbNone;
+	  
+	  // Done as a multi-if rather than switch cos in real games it's almost always going to be a Queen
+	  if(promoPiece == PromoQueen) {
+	    promoPiecePinMasks = genPinnedMoveMask<Queen>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	  } else if(promoPiece == PromoKnight) {
+	    promoPiecePinMasks = genPinnedMoveMask<Knight>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	  } else if(promoPiece == PromoRook) {
+	    promoPiecePinMasks = genPinnedMoveMask<Rook>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	  } else if(promoPiece == PromoBishop) {
+	    promoPiecePinMasks = genPinnedMoveMask<Bishop>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	  }
+	  
+	  pinMasks.promoPiecePinMasks[promoIndex] = promoPiecePinMasks;
 	}
-
-	pinMasks.promoPiecePinMasks[promoIndex] = promoPiecePinMasks;
-      }      
+      }
     }
     
     template <typename BoardTraitsT>
@@ -1247,6 +1257,8 @@ namespace Chess {
     
     template <typename BoardTraitsT> 
     inline void genLegalNonKingMoves(LegalMovesT& legalMoves, const BoardT& board, const PieceBbsT& pieceBbs, const PieceAttacksT& myAttacks, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
+      typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
+      
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
@@ -1274,12 +1286,15 @@ namespace Chess {
 
       legalMoves.pieceMoves[TheQueen] = genLegalPieceMoves<TheQueen>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
       
-      // Promo pieces - ugh the bit stuff operates on BitBoardT type
-      BitBoardT activePromos = (BitBoardT)myState.activePromos;
-      while(activePromos) {
-	const int promoIndex = Bits::popLsb(activePromos);
-	legalMoves.promoPieceMoves[promoIndex] = genLegalPromoPieceMoves(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb, promoIndex);
-      }      
+      // Promo pieces
+      if(MyColorTraitsT::HasPromos) {
+	// Ugh the bit stuff operates on BitBoardT type
+	BitBoardT activePromos = (BitBoardT)myState.activePromos;
+	while(activePromos) {
+	  const int promoIndex = Bits::popLsb(activePromos);
+	  legalMoves.promoPieceMoves[promoIndex] = genLegalPromoPieceMoves(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb, promoIndex);
+	}
+      }
     }
 
     template <typename BoardTraitsT>
@@ -1366,17 +1381,19 @@ namespace Chess {
 
       // Promo pieces
       BitBoardT allPromoPiecesBb = BbNone;
-      BitBoardT activePromos = (BitBoardT)colorState.activePromos;
-      while(activePromos) {
-	const int promoIndex = Bits::popLsb(activePromos);
-	const PromoPieceAndSquareT promoPieceAndSquare = colorState.promos[promoIndex];
-	const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
-	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
-	const BitBoardT promoPieceSqBb = bbForSquare(promoPieceSq);
-	const PieceTypeT pieceType = PieceTypeForPromoPiece[promoPiece];
-
-	pieceBbs.bbs[pieceType] |= promoPieceSqBb;
-	allPromoPiecesBb |= promoPieceSqBb;
+      if(ColorTraitsT::HasPromos) {
+	BitBoardT activePromos = (BitBoardT)colorState.activePromos;
+	while(activePromos) {
+	  const int promoIndex = Bits::popLsb(activePromos);
+	  const PromoPieceAndSquareT promoPieceAndSquare = colorState.promos[promoIndex];
+	  const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
+	  const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
+	  const BitBoardT promoPieceSqBb = bbForSquare(promoPieceSq);
+	  const PieceTypeT pieceType = PieceTypeForPromoPiece[promoPiece];
+	  
+	  pieceBbs.bbs[pieceType] |= promoPieceSqBb;
+	  allPromoPiecesBb |= promoPieceSqBb;
+	}
       }
       pieceBbs.allPromoPiecesBb = allPromoPiecesBb;
 

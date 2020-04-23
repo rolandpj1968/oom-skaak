@@ -45,17 +45,13 @@ namespace Chess {
     // Board traits used for optimising move generation etc.
     // The compile-time traits can be false only if the run-time state is also false.
     //   On the other hand the code should handle compile-time traits being true even if run-time traits are false.
-    template <ColorT ColorVal, bool HasPromosVal, bool CanCastleVal = true, bool HasQueenVal = true, bool HasRooksVal = true, bool HasBishopsVal = true>
+    template <ColorT ColorVal, bool HasPromosVal>
     struct ColorTraitsImplT {
       static const ColorT Color = ColorVal;
       static const bool HasPromos = HasPromosVal;
-      static const bool CanCastle = CanCastleVal;
-      static const bool HasQueen = HasQueenVal;
-      static const bool HasRooks = HasRooksVal;
-      static const bool HasBishops = HasBishopsVal;
 
-      typedef ColorTraitsImplT<Color, DoesHavePromos, CanCastle, HasQueen, HasRooks, HasBishops> WithPromosT;
-      typedef ColorTraitsImplT<Color, DoesNotHavePromos, CanCastle, HasQueen, HasRooks, HasBishops> WithoutPromosT;
+      typedef ColorTraitsImplT<Color, DoesHavePromos> WithPromosT;
+      typedef ColorTraitsImplT<Color, DoesNotHavePromos> WithoutPromosT;
     };
 
     typedef ColorTraitsImplT<White, DoesNotHavePromos> WhiteStartingColorTraitsT;
@@ -69,7 +65,13 @@ namespace Chess {
       static const ColorT Color = MyColorTraitsT::Color;
       static const ColorT OtherColor = YourColorTraitsT::Color;
 
+      // Switch color to move
       typedef BoardTraitsImplT<YourColorTraitsT, MyColorTraitsT> ReverseT;
+
+      // We have some promo pieces.
+      typedef BoardTraitsImplT<typename MyColorTraitsT::WithPromosT, YourColorTraitsT> WithPromosT;
+      // We have no promo pieces.
+      typedef BoardTraitsImplT<typename MyColorTraitsT::WithoutPromosT, YourColorTraitsT> WithoutPromosT;
     };
 
     typedef BoardTraitsImplT<WhiteStartingColorTraitsT, BlackStartingColorTraitsT> StartingBoardTraitsT;
@@ -137,10 +139,8 @@ namespace Chess {
     template <ColorT Color>
     inline void removePromoPiece(BoardT& board, const int promoIndex) {
       ColorStateT &colorState = board.pieces[(size_t)Color];
-      //printf("\n\n >>>>>> removePromoPiece promoIndex is %d, activePromos 0x%02x -> \n", promoIndex, colorState.activePromos);
 
       colorState.activePromos &= ~((u8)1 << promoIndex);
-      //printf("%02x\n\n", colorState.activePromos);
     }
 
     template <ColorT Color>
