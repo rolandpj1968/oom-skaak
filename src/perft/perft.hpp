@@ -60,7 +60,7 @@ namespace Chess {
       inline static void validatePos(const BoardT& board, MoveInfoT moveInfo) {
 	static bool done = false;
 	if(ValidatePos && !done) {
-	  if(!isValid<BoardTraitsT>(board)) {
+	  if(!isValid<BoardT, BoardTraitsT>(board)) {
 	    printf("Invalid board - last move from %s to %s\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
 	    printBoard(board);
 	    //done = true;
@@ -77,7 +77,7 @@ namespace Chess {
     template <typename BoardTraitsT>
     inline bool hasLegalMoves(const BoardT& board, const MoveInfoT moveInfo) {
       // Generate (legal) moves
-      const LegalMovesT legalMoves = genLegalMoves<BoardTraitsT>(board);
+      const LegalMovesT legalMoves = genLegalMoves<BoardT, BoardTraitsT>(board);
 
       // Are there any?
       const BitBoardT anyLegalMovesBb =
@@ -143,7 +143,7 @@ namespace Chess {
       // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
       const bool CheckForInvalid = false;
       if(CheckForInvalid) {
-	if(!isValid<BoardTraitsT>(board)) {
+	if(!isValid<BoardT, BoardTraitsT>(board)) {
 	  // Illegal position - doesn't count
 	  stats.invalids++;
 	  static bool done = false;
@@ -160,7 +160,7 @@ namespace Chess {
       // Check that we detect check accurately
       const bool CheckChecks = false;
       if(CheckChecks) {
-	int nChecks = getNChecks<BoardTraitsT>(board);
+	int nChecks = getNChecks<BoardT, BoardTraitsT>(board);
 	bool isCheck = nChecks > 0;
 	bool isCheckDetected = moveInfo.isDirectCheck || moveInfo.isDiscoveredCheck;
 	

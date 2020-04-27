@@ -1387,7 +1387,7 @@ namespace Chess {
       return legalKingMovesBb & ~allMyPiecesBb;
     }
 
-    template <ColorT Color>
+    template <typename ColorStateT, ColorT Color>
     inline DirectCheckMasksT genDirectCheckMasks(const ColorStateT& yourState, const BitBoardT allPiecesBb) {
       const SquareT yourKingSq = yourState.pieceSquares[TheKing];
 
@@ -1399,7 +1399,7 @@ namespace Chess {
       return DirectCheckMasksT(pawnChecksBb, knightChecksBb, bishopChecksBb, rookChecksBb);
     }
     
-    template <typename ColorTraitsT>
+    template <typename ColorStateT, typename ColorTraitsT>
     inline ColorPieceBbsT genColorPieceBbs(const ColorStateT& colorState) {
       ColorPieceBbsT pieceBbs = {};
 
@@ -1439,10 +1439,13 @@ namespace Chess {
       return pieceBbs;
     }
     
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     inline PieceBbsT genPieceBbs(const BoardT& board) {
+      typedef typename BoardT::ColorStateT ColorStateT;
+
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
       typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
+
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
@@ -1451,16 +1454,19 @@ namespace Chess {
       
       PieceBbsT pieceBbs = {};
 
-      pieceBbs.colorPieceBbs[(size_t)Color] = genColorPieceBbs<MyColorTraitsT>(myState);
-      pieceBbs.colorPieceBbs[(size_t)OtherColor] = genColorPieceBbs<YourColorTraitsT>(yourState);
+      pieceBbs.colorPieceBbs[(size_t)Color] = genColorPieceBbs<ColorStateT, MyColorTraitsT>(myState);
+      pieceBbs.colorPieceBbs[(size_t)OtherColor] = genColorPieceBbs<ColorStateT, YourColorTraitsT>(yourState);
 
       return pieceBbs;
     }
     
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     inline LegalMovesT genLegalMoves(const BoardT& board) {
+      typedef typename BoardT::ColorStateT ColorStateT;
+      
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
       typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
+      
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
@@ -1469,7 +1475,7 @@ namespace Chess {
 
       LegalMovesT legalMoves = {};
       
-      legalMoves.pieceBbs = genPieceBbs<BoardTraitsT>(board);
+      legalMoves.pieceBbs = genPieceBbs<BoardT, BoardTraitsT>(board);
       const PieceBbsT& pieceBbs = legalMoves.pieceBbs;
 
       const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
@@ -1523,7 +1529,7 @@ namespace Chess {
 
       legalMoves.pieceMoves[TheKing] = genLegalKingMoves<BoardTraitsT>(board, pieceBbs, yourAttacks, allMyKingAttackersBb);
 
-      legalMoves.directChecks = genDirectCheckMasks<Color>(yourState, allPiecesBb);
+      legalMoves.directChecks = genDirectCheckMasks<ColorStateT, Color>(yourState, allPiecesBb);
       legalMoves.discoveredChecks = genDiscoveryMasks<BoardTraitsT>(board, pieceBbs, legalMoves.pawnMoves.epCaptures.epLeftCaptureBb, legalMoves.pawnMoves.epCaptures.epRightCaptureBb, legalMoves.canCastleFlags);
 
       // Only for promos
@@ -1539,15 +1545,16 @@ namespace Chess {
     int countAttacks(const PieceAttacksT& pieceAttacks, const BitBoardT filterOut = BbNone, const BitBoardT filterInPawnTakes = BbAll);
 
     // TODO - this shouldn't be in this header file but it has awkward dependencies
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     bool isValid(const BoardT& board) {
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
+      
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
 
       const ColorStateT& yourState = board.state[(size_t)OtherColor];
       
-      const PieceBbsT& pieceBbs = genPieceBbs<BoardTraitsT>(board);
+      const PieceBbsT& pieceBbs = genPieceBbs<BoardT, BoardTraitsT>(board);
       const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
       const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
       
@@ -1563,10 +1570,10 @@ namespace Chess {
     }
 
     // TODO - this shouldn't be in this header file but it has awkward dependencies
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     int getNChecks(const BoardT& board) {
       // Not the most efficient but fine for non-perf critical code
-      return genLegalMoves<BoardTraitsT>(board).nChecks;
+      return genLegalMoves<BoardT, BoardTraitsT>(board).nChecks;
     }
     
   } // namespace MoveGen

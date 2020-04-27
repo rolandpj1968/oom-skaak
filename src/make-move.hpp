@@ -547,7 +547,7 @@ namespace Chess {
       const ColorT OtherColor = BoardTraitsT::OtherColor;
 
       // Generate (legal) moves
-      const LegalMovesT legalMoves = genLegalMoves<BoardTraitsT>(board);
+      const LegalMovesT legalMoves = genLegalMoves<BoardT, BoardTraitsT>(board);
 
       const ColorPieceBbsT& yourPieceBbs = legalMoves.pieceBbs.colorPieceBbs[(size_t)OtherColor];
 

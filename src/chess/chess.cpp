@@ -59,7 +59,7 @@ int main(int argc, char* argv[]) {
   ColorStateT& w = board.state[(size_t)White];
   ColorStateT& b = board.state[(size_t)Black];
 
-  const PieceBbsT& pieceBbs = genPieceBbs<StartingBoardTraitsT>(board);
+  const PieceBbsT& pieceBbs = genPieceBbs<BoardT, StartingBoardTraitsT>(board);
 
   const ColorPieceBbsT& wPieceBbs = pieceBbs.colorPieceBbs[(size_t)White];
   const ColorPieceBbsT& bPieceBbs = pieceBbs.colorPieceBbs[(size_t)Black];
