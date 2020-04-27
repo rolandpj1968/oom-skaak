@@ -621,7 +621,7 @@ namespace Chess {
 
 	  const ColorT OtherColor = BoardTraitsT::OtherColor;
 
-	  const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+	  const ColorStateT& yourState = board.state[(size_t)OtherColor];
 	  const ColorPieceMapT& yourPieceMap = genColorPieceMap(yourState, allYourPromoPiecesBb);
 	  
 	  const SquareT checkingPieceSq = Bits::lsb(allMyKingAttackersBb);
@@ -1080,7 +1080,7 @@ namespace Chess {
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
-      const ColorStateT& myState = board.pieces[(size_t)Color];
+      const ColorStateT& myState = board.state[(size_t)Color];
       
       const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
       const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
@@ -1113,7 +1113,7 @@ namespace Chess {
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
-      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+      const ColorStateT& yourState = board.state[(size_t)OtherColor];
       
       const BitBoardT allMyPiecesBb = pieceBbs.colorPieceBbs[(size_t)Color].bbs[AllPieceTypes];
       const BitBoardT allYourPiecesBb = pieceBbs.colorPieceBbs[(size_t)OtherColor].bbs[AllPieceTypes];
@@ -1171,7 +1171,7 @@ namespace Chess {
       bool isQueensideCastlingDiscovery = false;
       if(canCastleFlags != NoCastlingRights) {
 	// Only have to remove our king in order to determine whether our rook will check your king after castling
-	const ColorStateT& myState = board.pieces[(size_t)Color];
+	const ColorStateT& myState = board.state[(size_t)Color];
 	const SquareT myKingSq = myState.pieceSquares[TheKing];
 	const BitBoardT myKingSqBb = bbForSquare(myKingSq);
 	const BitBoardT yourKingRookAttacksBb = rookAttacks(yourKingSq, (allPiecesBb & ~myKingSqBb));
@@ -1222,7 +1222,7 @@ namespace Chess {
       // En-passant is tricky because the captured pawn is not on the same square as the capturing piece, and might expose a discovered check itself.
       // Legal move mask handling is tricky because it applies to both the captured pawn (if the captured pawn is delivering check) and the to square.
       if((semiLegalEpCaptureLeftBb | semiLegalEpCaptureRightBb) != BbNone && ((captureSquareBb | epSquareBb) & legalMoveMaskBb) != BbNone ) {
-	const ColorStateT& myState = board.pieces[(size_t)Color];
+	const ColorStateT& myState = board.state[(size_t)Color];
 	const SquareT myKingSq = myState.pieceSquares[TheKing];
 
 	// Note that a discovered check can only be diagonal or horizontal, not vertical - because the capturing pawn ends up on the same file as the captured pawn.
@@ -1282,7 +1282,7 @@ namespace Chess {
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
-      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+      const ColorStateT& yourState = board.state[(size_t)OtherColor];
       
       const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
       const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
@@ -1309,7 +1309,7 @@ namespace Chess {
 #ifdef USE_PROMOS
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
       if(MyColorTraitsT::HasPromos) {
-	const ColorStateT& myState = board.pieces[(size_t)Color];
+	const ColorStateT& myState = board.state[(size_t)Color];
 	// Ugh the bit stuff operates on BitBoardT type
 	BitBoardT activePromos = (BitBoardT)myState.activePromos;
 	while(activePromos) {
@@ -1323,7 +1323,7 @@ namespace Chess {
     template <typename BoardTraitsT>
     inline CastlingRightsT genLegalCastlingFlags(const BoardT& board, const PieceAttacksT& yourAttacks, const BitBoardT allPiecesBb) {
       const ColorT Color = BoardTraitsT::Color;
-      const ColorStateT& myState = board.pieces[(size_t)Color];
+      const ColorStateT& myState = board.state[(size_t)Color];
 
       CastlingRightsT canCastleFlags = NoCastlingRights;
       
@@ -1347,7 +1347,7 @@ namespace Chess {
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
-      const ColorStateT& myState = board.pieces[(size_t)Color];
+      const ColorStateT& myState = board.state[(size_t)Color];
 
       const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
       const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
@@ -1437,8 +1437,8 @@ namespace Chess {
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
-      const ColorStateT& myState = board.pieces[(size_t)Color];
-      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+      const ColorStateT& myState = board.state[(size_t)Color];
+      const ColorStateT& yourState = board.state[(size_t)OtherColor];
       
       PieceBbsT pieceBbs = {};
 
@@ -1455,8 +1455,8 @@ namespace Chess {
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
-      const ColorStateT& myState = board.pieces[(size_t)Color];
-      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+      const ColorStateT& myState = board.state[(size_t)Color];
+      const ColorStateT& yourState = board.state[(size_t)OtherColor];
 
       LegalMovesT legalMoves = {};
       
@@ -1536,7 +1536,7 @@ namespace Chess {
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
 
-      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+      const ColorStateT& yourState = board.state[(size_t)OtherColor];
       
       const PieceBbsT& pieceBbs = genPieceBbs<BoardTraitsT>(board);
       const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];

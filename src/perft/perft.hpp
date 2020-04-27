@@ -115,7 +115,7 @@ namespace Chess {
       // TODO get rid...
       if(false) {
 	static bool done = false;
-	if(board.pieces[(size_t)otherColor(BoardTraitsT::Color)].epSquare != InvalidSquare) {
+	if(board.state[(size_t)otherColor(BoardTraitsT::Color)].epSquare != InvalidSquare) {
 	  stats.nposwitheps++;
 	  if(!done) {
 	    printf("\n============================================== EP set at Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
@@ -193,8 +193,8 @@ namespace Chess {
 	stats.eps++;
 	if(moveInfo.isDiscoveredCheck && !moveInfo.isDirectCheck) {
 	  stats.epdiscoveries++;
-	  const BitBoardT kingBishopRays = BishopRays[board.pieces[(size_t)BoardTraitsT::Color].pieceSquares[TheKing]];
-	  const BitBoardT kingRookRays = RookRays[board.pieces[(size_t)BoardTraitsT::Color].pieceSquares[TheKing]];
+	  const BitBoardT kingBishopRays = BishopRays[board.state[(size_t)BoardTraitsT::Color].pieceSquares[TheKing]];
+	  const BitBoardT kingRookRays = RookRays[board.state[(size_t)BoardTraitsT::Color].pieceSquares[TheKing]];
 	  const BitBoardT fromBb = bbForSquare(moveInfo.from);
 	  if(kingRookRays & fromBb) {
 	    stats.ephorizdiscoveries++;
@@ -252,9 +252,9 @@ namespace Chess {
       // TODO get rid...
       if(false && state.depthToGo == 1) {
 	static bool done = false;
-	if(board.pieces[(size_t)otherColor(BoardTraitsT::Color)].epSquare != InvalidSquare) {
+	if(board.state[(size_t)otherColor(BoardTraitsT::Color)].epSquare != InvalidSquare) {
 	  if(!done) {
-	    printf("\n============================================== EP sq %s set at Depth 1 ===================================\n\n", SquareStr[board.pieces[(size_t)otherColor(BoardTraitsT::Color)].epSquare]);
+	    printf("\n============================================== EP sq %s set at Depth 1 ===================================\n\n", SquareStr[board.state[(size_t)otherColor(BoardTraitsT::Color)].epSquare]);
 	    printBoard(board);
 	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
 	    //done = true;

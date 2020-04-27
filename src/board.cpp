@@ -17,7 +17,7 @@ namespace Chess {
     BoardT emptyBoard() {
       BoardT board = {};
       for(unsigned color = 0; color < NColors; color++) {
-	ColorStateT& colorState = board.pieces[color];
+	ColorStateT& colorState = board.state[color];
 	for(int i = 0; i < NPieces; i++) {
 	  colorState.pieceSquares[i] = InvalidSquare;
 	}
@@ -28,13 +28,13 @@ namespace Chess {
 
     // TODO - unusual promos
     static void addPiece(BoardT& board, const ColorT color, const SquareT square, const PieceT piece) {
-      ColorStateT& c = board.pieces[(size_t)color];
+      ColorStateT& c = board.state[(size_t)color];
 
       c.pieceSquares[piece] = square;
     }
 
     static void addPawn(BoardT& board, const ColorT color, const SquareT square) {
-      ColorStateT& c = board.pieces[(size_t)color];
+      ColorStateT& c = board.state[(size_t)color];
       
       const BitBoardT pieceBb = bbForSquare(square);
 
@@ -58,7 +58,7 @@ namespace Chess {
       }
 
       // Castling rights
-      board.pieces[(size_t)color].castlingRights = (CastlingRightsT)(CanCastleQueenside | CanCastleKingside);
+      board.state[(size_t)color].castlingRights = (CastlingRightsT)(CanCastleQueenside | CanCastleKingside);
     }
 
     BoardT startingPosition() {
@@ -105,8 +105,8 @@ namespace Chess {
     std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64> genPieceMap(const BoardT& board) {
       std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64> pieceMap;
 
-      addPiecesForColor(pieceMap, White, board.pieces[(size_t)White]);
-      addPiecesForColor(pieceMap, Black, board.pieces[(size_t)Black]);
+      addPiecesForColor(pieceMap, White, board.state[(size_t)White]);
+      addPiecesForColor(pieceMap, Black, board.state[(size_t)Black]);
 
       return pieceMap;
     }

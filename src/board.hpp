@@ -14,7 +14,7 @@ namespace Chess {
 
   namespace Board {
 
-    struct ColorStateT {
+    struct ColorCommonStateT {
       // Pawns bitboard
       BitBoardT pawnsBb;
 
@@ -27,20 +27,28 @@ namespace Chess {
 
       // Castling rights
       CastlingRightsT castlingRights;
-
-#ifdef USE_PROMOS
+    };
+    
+    struct ColorPromoStateT {
       // Bitmap of active promo pieces - index into promos array
       u8 activePromos;
 
       // Piece type and square of active promos - valid at indexes where activePromos bitmap is 1
       PromoPieceAndSquareT promos[NPawns];
-#endif //def USE_PROMOS
+    };
+    
+    struct ColorStateT {
+      ColorCommonStateT common;
+      
+// #ifdef USE_PROMOS
+      ColorPromoStateT promos;
+// #endif //def USE_PROMOS
     };
 
     // Don't use this directly with zero-initialisation or you'll be disappointed because some fields need InvalidSquare (!= 0) init.
     // Use emptyBoard() or startingPosition() or parseFen().
     struct BoardT {
-      ColorStateT pieces[NColors];
+      ColorStateT state[NColors];
     };
 
     const bool DoesNotHavePromos = false;
@@ -124,7 +132,7 @@ namespace Chess {
 
     template <ColorT Color>
     inline PieceT removePiece(BoardT& board, const SquareT square, const PieceT piece) {
-      ColorStateT &colorState = board.pieces[(size_t)Color];
+      ColorStateT &colorState = board.state[(size_t)Color];
 
       colorState.pieceSquares[piece] = InvalidSquare;
 
@@ -135,7 +143,7 @@ namespace Chess {
     
     template <ColorT Color>
     inline void removePawn(BoardT& board, const SquareT square) {
-      ColorStateT &colorState = board.pieces[(size_t)Color];
+      ColorStateT &colorState = board.state[(size_t)Color];
 
       const BitBoardT squareBb = bbForSquare(square);
 
@@ -145,7 +153,7 @@ namespace Chess {
 #ifdef USE_PROMOS
     template <ColorT Color>
     inline void removePromoPiece(BoardT& board, const int promoIndex) {
-      ColorStateT &colorState = board.pieces[(size_t)Color];
+      ColorStateT &colorState = board.state[(size_t)Color];
 
       colorState.activePromos &= ~((u8)1 << promoIndex);
     }
@@ -167,7 +175,7 @@ namespace Chess {
 
     template <ColorT Color>
     inline void removePieceOrPawn(BoardT& board, const ColorPieceMapT& pieceMap, const SquareT square) {
-      ColorStateT &pieces = board.pieces[(size_t)Color];
+      ColorStateT &pieces = board.state[(size_t)Color];
       const BitBoardT yourPawnsBb = pieces.pawnsBb;
 
       // Remove pawn (or no-op if it's a piece)
@@ -188,21 +196,21 @@ namespace Chess {
     }
 
     inline void placePiece(BoardT& board, const ColorT color, const SquareT square, const PieceT piece) {
-      ColorStateT &colorState = board.pieces[(size_t)color];
+      ColorStateT &colorState = board.state[(size_t)color];
 
       colorState.pieceSquares[piece] = square;
     }
 
 #ifdef USE_PROMOS
     inline void addPromoPiece(BoardT& board, const ColorT color, const int promoIndex, const PromoPieceT promoPiece, const SquareT square) {
-      ColorStateT &colorState = board.pieces[(size_t)color];
+      ColorStateT &colorState = board.state[(size_t)color];
 
       colorState.activePromos |= ((u8)1 << promoIndex);
       colorState.promos[promoIndex] = promoPieceAndSquareOf(promoPiece, square);
     }
     
     inline void movePromoPiece(BoardT& board, const ColorT color, const int promoIndex, const PromoPieceT promoPiece, const SquareT square) {
-      ColorStateT &colorState = board.pieces[(size_t)color];
+      ColorStateT &colorState = board.state[(size_t)color];
 
       colorState.promos[promoIndex] = promoPieceAndSquareOf(promoPiece, square);
     }
@@ -214,7 +222,7 @@ namespace Chess {
     }
 
     inline void placePawn(BoardT& board, const ColorT color, const SquareT square) {
-      ColorStateT &pieces = board.pieces[(size_t)color];
+      ColorStateT &pieces = board.state[(size_t)color];
 
       const BitBoardT squareBb = bbForSquare(square);
 
@@ -240,7 +248,7 @@ namespace Chess {
       placePiece<Color, Piece>(board, to);
 
       // Clear en-passant square
-      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      board.state[(size_t)Color].epSquare = InvalidSquare;
       
       return board;
     }
@@ -253,7 +261,7 @@ namespace Chess {
       movePromoPiece(board, Color, promoIndex, promoPiece, to);
 
       // Clear en-passant square
-      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      board.state[(size_t)Color].epSquare = InvalidSquare;
       
       return board;
     }
@@ -270,7 +278,7 @@ namespace Chess {
       placePiece<Color, Piece>(board, to);
 
       // Clear en-passant square
-      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      board.state[(size_t)Color].epSquare = InvalidSquare;
       
       return board;
     }
@@ -287,7 +295,7 @@ namespace Chess {
       placePiece<Color, Piece>(board, to);
 
       // Clear en-passant square
-      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      board.state[(size_t)Color].epSquare = InvalidSquare;
       
       return board;
     }
@@ -301,7 +309,7 @@ namespace Chess {
       movePromoPiece(board, Color, promoIndex, promoPiece, to);
 
       // Clear en-passant square
-      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      board.state[(size_t)Color].epSquare = InvalidSquare;
       
       return board;
     }
@@ -315,7 +323,7 @@ namespace Chess {
       movePromoPiece(board, Color, promoIndex, promoPiece, to);
 
       // Clear en-passant square
-      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      board.state[(size_t)Color].epSquare = InvalidSquare;
       
       return board;
     }
@@ -332,7 +340,7 @@ namespace Chess {
       placePawn<Color>(board, to);
 
       // Clear en-passant square
-      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      board.state[(size_t)Color].epSquare = InvalidSquare;
       
       return board;
     }
@@ -346,11 +354,11 @@ namespace Chess {
 
       removePawn<Color>(board, from);
 
-      const int promoIndex = Bits::lsb(~board.pieces[(size_t)Color].activePromos);
+      const int promoIndex = Bits::lsb(~board.state[(size_t)Color].activePromos);
       addPromoPiece(board, Color, promoIndex, promoPiece, to);
 
       // Clear en-passant square
-      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      board.state[(size_t)Color].epSquare = InvalidSquare;
       
       return board;
     }
@@ -366,7 +374,7 @@ namespace Chess {
       placePawn<Color>(board, to);
       
       // Clear en-passant square
-      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      board.state[(size_t)Color].epSquare = InvalidSquare;
       
       return board;
     }
@@ -379,11 +387,11 @@ namespace Chess {
 
       removePawn<Color>(board, from);
 
-      const int promoIndex = Bits::lsb(~board.pieces[(size_t)Color].activePromos);
+      const int promoIndex = Bits::lsb(~board.state[(size_t)Color].activePromos);
       addPromoPiece(board, Color, promoIndex, promoPiece, to);
       
       // Clear en-passant square
-      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      board.state[(size_t)Color].epSquare = InvalidSquare;
       
       return board;
     }
@@ -399,9 +407,9 @@ namespace Chess {
 
       // Set en-passant square
       if(IsPawnPushTwo) {
-      	board.pieces[(size_t)Color].epSquare = (SquareT)((from+to)/2);
+      	board.state[(size_t)Color].epSquare = (SquareT)((from+to)/2);
       } else {
-      	board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      	board.state[(size_t)Color].epSquare = InvalidSquare;
       }	
       
       return board;
@@ -414,11 +422,11 @@ namespace Chess {
 
       removePawn<Color>(board, from);
 
-      const int promoIndex = Bits::lsb(~board.pieces[(size_t)Color].activePromos);
+      const int promoIndex = Bits::lsb(~board.state[(size_t)Color].activePromos);
       addPromoPiece(board, Color, promoIndex, promoPiece, to);
 
       // Clear en-passant square
-      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      board.state[(size_t)Color].epSquare = InvalidSquare;
       
       return board;
     }
@@ -435,7 +443,7 @@ namespace Chess {
       placePawn<Color>(board, to);
 
       // Clear en-passant square
-      board.pieces[(size_t)Color].epSquare = InvalidSquare;
+      board.state[(size_t)Color].epSquare = InvalidSquare;
       
       return board;
     }

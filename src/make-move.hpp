@@ -327,7 +327,7 @@ namespace Chess {
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT, PieceT Piece>
     inline void handlePieceMoves(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb) {
 
-      const ColorStateT& myState = board.pieces[(size_t)BoardTraitsT::Color];
+      const ColorStateT& myState = board.state[(size_t)BoardTraitsT::Color];
       const SquareT from = myState.pieceSquares[Piece];
       const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
 
@@ -416,7 +416,7 @@ namespace Chess {
     template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
     inline void handleKingMoves(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb, const SquareT yourKingSq) {
 
-      const ColorStateT& myState = board.pieces[(size_t)BoardTraitsT::Color];
+      const ColorStateT& myState = board.state[(size_t)BoardTraitsT::Color];
       const SquareT from = myState.pieceSquares[TheKing];
       const BitBoardT yourKingRaysBb = BishopRays[yourKingSq] | RookRays[yourKingSq];
       
@@ -549,7 +549,7 @@ namespace Chess {
 
       const ColorPieceBbsT& yourPieceBbs = legalMoves.pieceBbs.colorPieceBbs[(size_t)OtherColor];
 
-      const ColorStateT& yourState = board.pieces[(size_t)OtherColor];
+      const ColorStateT& yourState = board.state[(size_t)OtherColor];
 #ifdef USE_PROMOS
       const ColorPieceMapT& yourPieceMap = genColorPieceMap(yourState, yourPieceBbs.allPromoPiecesBb);
 #else
@@ -601,7 +601,7 @@ namespace Chess {
 	// Promo pieces
 #ifdef USE_PROMOS
 	typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
-	const ColorStateT& myState = board.pieces[(size_t)Color];
+	const ColorStateT& myState = board.state[(size_t)Color];
 	if(MyColorTraitsT::HasPromos) {
 	  // Ugh the bit stuff operates on BitBoardT type
 	  BitBoardT activePromos = (BitBoardT)myState.activePromos;
