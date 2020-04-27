@@ -88,6 +88,7 @@ namespace Chess {
       }
 
       // Promo pieces - ugh the bit stuff operates on BitBoardT type
+#ifdef USE_PROMOS
       BitBoardT activePromos = (BitBoardT)colorState.activePromos;
       while(activePromos) {
 	const int promoIndex = Bits::popLsb(activePromos);
@@ -97,6 +98,7 @@ namespace Chess {
 
 	pieceMap[promoPieceSq].push_back(std::pair<ColorT, PieceTypeT>(color, PieceTypeForPromoPiece[promoPiece]));
       }
+#endif //def USE_PROMOS
       
     }
 

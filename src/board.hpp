@@ -8,8 +8,10 @@
 #include "bits.hpp"
 #include "types.hpp"
 
+#undef USE_PROMOS
+
 namespace Chess {
-  
+
   namespace Board {
 
     struct ColorStateT {
@@ -20,17 +22,19 @@ namespace Chess {
       // MUST be InvalidSquare if a piece is not present - see emptyBoard()
       SquareT pieceSquares[NPieces];
 
-      // Bitmap of active promo pieces - index into promos array
-      u8 activePromos;
-
-      // Piece type and square of active promos - valid at indexes where activePromos bitmap is 1
-      PromoPieceAndSquareT promos[NPawns];
-
       // InvalidSquare, or else en-passant square of the last move - i.e. the square behind a pawn two-square push.
       SquareT epSquare;
 
       // Castling rights
       CastlingRightsT castlingRights;
+
+#ifdef USE_PROMOS
+      // Bitmap of active promo pieces - index into promos array
+      u8 activePromos;
+
+      // Piece type and square of active promos - valid at indexes where activePromos bitmap is 1
+      PromoPieceAndSquareT promos[NPawns];
+#endif //def USE_PROMOS
     };
 
     // Don't use this directly with zero-initialisation or you'll be disappointed because some fields need InvalidSquare (!= 0) init.
@@ -102,6 +106,7 @@ namespace Chess {
       pieceMap.board[colorState.pieceSquares[TheKing]].piece = TheKing;
 
       // Promo pieces - ugh the bit stuff operates on BitBoardT type
+#ifdef USE_PROMOS
       BitBoardT activePromos = (BitBoardT)colorState.activePromos;
       while(activePromos) {
 	const int promoIndex = Bits::popLsb(activePromos);
@@ -112,6 +117,7 @@ namespace Chess {
       }
 
       pieceMap.allPromoPiecesBb = allPromoPiecesBb;
+#endif //def USE_PROMOS
       
       return pieceMap;
     }
@@ -135,13 +141,15 @@ namespace Chess {
 
       colorState.pawnsBb &= ~squareBb;
     }
-    
+
+#ifdef USE_PROMOS
     template <ColorT Color>
     inline void removePromoPiece(BoardT& board, const int promoIndex) {
       ColorStateT &colorState = board.pieces[(size_t)Color];
 
       colorState.activePromos &= ~((u8)1 << promoIndex);
     }
+#endif //def USE_PROMOS
 
     template <ColorT Color>
     inline PieceT removePiece(BoardT& board, const ColorPieceMapT& pieceMap, const SquareT square) {
@@ -184,7 +192,8 @@ namespace Chess {
 
       colorState.pieceSquares[piece] = square;
     }
-    
+
+#ifdef USE_PROMOS
     inline void addPromoPiece(BoardT& board, const ColorT color, const int promoIndex, const PromoPieceT promoPiece, const SquareT square) {
       ColorStateT &colorState = board.pieces[(size_t)color];
 
@@ -197,6 +206,7 @@ namespace Chess {
 
       colorState.promos[promoIndex] = promoPieceAndSquareOf(promoPiece, square);
     }
+#endif //def USE_PROMOS
     
     template <ColorT Color>
     inline void placePiece(BoardT& board, const SquareT square, const PieceT piece) {
@@ -234,7 +244,8 @@ namespace Chess {
       
       return board;
     }
-    
+
+#ifdef USE_PROMOS
     template <ColorT Color>
     inline BoardT pushPromoPiece(const BoardT& oldBoard, const int promoIndex, const PromoPieceT promoPiece, const SquareT to) {
       BoardT board = oldBoard;
@@ -246,6 +257,7 @@ namespace Chess {
       
       return board;
     }
+#endif // USE_PROMOS
     
     template <ColorT Color, PieceT Piece>
     inline BoardT captureWithPiece(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
@@ -262,7 +274,8 @@ namespace Chess {
       
       return board;
     }
-    
+
+#ifdef USE_PROMOS
     template <ColorT Color, PieceT Piece>
     inline BoardT capturePromoPieceWithPiece(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
       BoardT board = oldBoard;
@@ -306,6 +319,7 @@ namespace Chess {
       
       return board;
     }
+#endif //def USE_PROMOS
     
     template <ColorT Color>
     inline BoardT captureWithPawn(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
@@ -322,7 +336,8 @@ namespace Chess {
       
       return board;
     }
-    
+
+#ifdef USE_PROMOS
     template <ColorT Color>
     inline BoardT captureWithPawnToPromo(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to, PromoPieceT promoPiece) {
       BoardT board = oldBoard;
@@ -372,6 +387,7 @@ namespace Chess {
       
       return board;
     }
+#endif //def USE_PROMOS
     
     template <ColorT Color, bool IsPawnPushTwo = false>
     inline BoardT pushPawn(const BoardT& oldBoard, const SquareT from, const SquareT to) {
@@ -390,7 +406,8 @@ namespace Chess {
       
       return board;
     }
-    
+
+#ifdef USE_PROMOS
     template <ColorT Color>
     inline BoardT pushPawnToPromo(const BoardT& oldBoard, const SquareT from, const SquareT to, PromoPieceT promoPiece) {
       BoardT board = oldBoard;
@@ -405,6 +422,7 @@ namespace Chess {
       
       return board;
     }
+#endif //def USE_PROMOS
     
     template <ColorT Color>
     inline BoardT captureEp(const BoardT& oldBoard, const SquareT from, const SquareT to, const SquareT captureSquare) {
