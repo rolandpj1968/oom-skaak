@@ -370,19 +370,19 @@ namespace Chess {
       KingPromoCapture
     };
 
-    template <ColorT Color, KingMoveT, typename PieceMapT>
+    template <typename BoardT, ColorT Color, KingMoveT, typename PieceMapT>
     struct KingMoveFn {
       static BoardT fn(const BoardT& board, const PieceMapT& yourPieceMap, const SquareT from, const SquareT to);
     };
     
-    template <ColorT Color> struct KingMoveFn<Color, KingPush, NoPieceMapT> {
+    template <typename BoardT, ColorT Color> struct KingMoveFn<BoardT, Color, KingPush, NoPieceMapT> {
       typedef NoPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const NoPieceMapT&, const SquareT from, const SquareT to) {
 	return pushPiece<BoardT, Color, TheKing>(board, from, to);
       }
     };
 
-    template <ColorT Color> struct KingMoveFn<Color, KingCapture, ColorPieceMapT> {
+    template <typename BoardT, ColorT Color> struct KingMoveFn<BoardT, Color, KingCapture, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
 	return captureWithPiece<BoardT, Color, TheKing>(board, yourPieceMap, from, to);
@@ -398,7 +398,7 @@ namespace Chess {
     };
 #endif //def USE_PROMOS
 
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, typename KingMoveFn, MoveTypeT MoveType>
+    template <typename StateT, typename PosHandlerT, typename BoardT, typename BoardTraitsT, typename KingMoveFn, MoveTypeT MoveType>
     inline void handleKingMoves(StateT state, const BoardT& board, const typename KingMoveFn::PieceMapImplT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRaysBb) {
       typedef typename PosHandlerT::ReverseT ReversePosHandlerT;
 	
@@ -417,8 +417,9 @@ namespace Chess {
       }
     }
     
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
+    template <typename StateT, typename PosHandlerT, typename BoardT, typename BoardTraitsT>
     inline void handleKingMoves(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb, const SquareT yourKingSq) {
+      typedef typename BoardT::ColorStateT ColorStateT;
 
       const ColorStateT& myState = board.state[(size_t)BoardTraitsT::Color];
       const SquareT from = myState.pieceSquares[TheKing];
@@ -427,8 +428,8 @@ namespace Chess {
       const BitBoardT kingPushesBb = movesBb & ~allYourPiecesBb;
 
       // King pushes
-      typedef KingMoveFn<BoardTraitsT::Color, KingPush, NoPieceMapT> KingPushFn;
-      handleKingMoves<StateT, PosHandlerT, BoardTraitsT, KingPushFn, PushMove>(state, board, NoPieceMapT(), from, kingPushesBb, directChecksBb, discoveriesBb, yourKingRaysBb);
+      typedef KingMoveFn<BoardT, BoardTraitsT::Color, KingPush, NoPieceMapT> KingPushFn;
+      handleKingMoves<StateT, PosHandlerT, BoardT, BoardTraitsT, KingPushFn, PushMove>(state, board, NoPieceMapT(), from, kingPushesBb, directChecksBb, discoveriesBb, yourKingRaysBb);
 
       BitBoardT kingCapturesBb = movesBb & allYourPiecesBb;
 
@@ -445,8 +446,8 @@ namespace Chess {
 #endif //def USE_PROMOS
 
       // King captures of non-promo pieces
-      typedef KingMoveFn<BoardTraitsT::Color, KingCapture, ColorPieceMapT> KingCaptureFn;
-      handleKingMoves<StateT, PosHandlerT, BoardTraitsT, KingCaptureFn, CaptureMove>(state, board, yourPieceMap, from, kingCapturesBb, directChecksBb, discoveriesBb, yourKingRaysBb);
+      typedef KingMoveFn<BoardT, BoardTraitsT::Color, KingCapture, ColorPieceMapT> KingCaptureFn;
+      handleKingMoves<StateT, PosHandlerT, BoardT, BoardTraitsT, KingCaptureFn, CaptureMove>(state, board, yourPieceMap, from, kingCapturesBb, directChecksBb, discoveriesBb, yourKingRaysBb);
     }
     
     //
@@ -653,7 +654,7 @@ namespace Chess {
       } // nChecks < 2
       
       // King - discoveries from king moves are a pain in the butt because each move direction is potentially different.
-      handleKingMoves<StateT, PosHandlerT, BoardTraitsT>(state, board, yourPieceMap, legalMoves.pieceMoves[TheKing], /*directChecksBb = */BbNone, (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb, yourState.pieceSquares[TheKing]); 
+      handleKingMoves<StateT, PosHandlerT, BoardT, BoardTraitsT>(state, board, yourPieceMap, legalMoves.pieceMoves[TheKing], /*directChecksBb = */BbNone, (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb, yourState.pieceSquares[TheKing]); 
     }
      
   } // namespace MakeMove
