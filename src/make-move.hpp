@@ -357,9 +357,6 @@ namespace Chess {
       handlePieceMoves<StateT, PosHandlerT, BoardT, BoardTraitsT, PieceCaptureFn, CaptureMove>(state, board, yourPieceMap, from, pieceCapturesBb, directChecksBb, isDiscoveredCheck);
     }
 
-    typedef BasicBoardT BoardT;
-    typedef typename BoardT::ColorStateT ColorStateT;
-  
     //
     // King moves - discovery detection is different for the king
     //
@@ -530,7 +527,7 @@ namespace Chess {
     // Castling moves
     //
 
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT, CastlingRightsT CastlingRight>
+    template <typename StateT, typename PosHandlerT, typename BoardT, typename BoardTraitsT, CastlingRightsT CastlingRight>
     inline void handleCastlingMove(StateT state, const BoardT& board, const bool isDiscoveredCheck) {
       typedef typename PosHandlerT::ReverseT ReversePosHandlerT;
       
@@ -543,8 +540,9 @@ namespace Chess {
       ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(CastlingMove, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo, /*isDirectCheck*/false, isDiscoveredCheck));
     }
 
-    template <typename StateT, typename PosHandlerT, typename BoardTraitsT>
+    template <typename StateT, typename PosHandlerT, typename BoardT, typename BoardTraitsT>
     inline void makeAllLegalMoves(StateT state, const BoardT& board) {
+      typedef typename BoardT::ColorStateT ColorStateT;
       
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
@@ -643,11 +641,11 @@ namespace Chess {
 	CastlingRightsT canCastleFlags = legalMoves.canCastleFlags;
 	if(canCastleFlags) {
 	  if((canCastleFlags & CanCastleKingside)) {
-	    handleCastlingMove<StateT, PosHandlerT, BoardTraitsT, CanCastleKingside>(state, board, legalMoves.discoveredChecks.isKingsideCastlingDiscovery);
+	    handleCastlingMove<StateT, PosHandlerT, BoardT, BoardTraitsT, CanCastleKingside>(state, board, legalMoves.discoveredChecks.isKingsideCastlingDiscovery);
 	  }	
 
 	  if((canCastleFlags & CanCastleQueenside)) {
-	    handleCastlingMove<StateT, PosHandlerT, BoardTraitsT, CanCastleQueenside>(state, board, legalMoves.discoveredChecks.isQueensideCastlingDiscovery);
+	    handleCastlingMove<StateT, PosHandlerT, BoardT, BoardTraitsT, CanCastleQueenside>(state, board, legalMoves.discoveredChecks.isQueensideCastlingDiscovery);
 	  }
 	}
 

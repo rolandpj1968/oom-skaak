@@ -43,17 +43,17 @@ namespace Chess {
 	stats(stats), depthToGo(depthToGo) {}
     };
 
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     inline PerftStatsT perft(const BoardT& board, const int depthToGo);
     
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     inline void perftImpl(const PerftStateT state, const BoardT& board, const MoveInfoT moveInfo);
   
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     struct PerftPosHandlerT {
-      typedef PerftPosHandlerT<typename BoardTraitsT::ReverseT> ReverseT;
-      typedef PerftPosHandlerT<typename BoardTraitsT::WithPromosT> WithPromosT;
-      typedef PerftPosHandlerT<typename BoardTraitsT::WithoutPromosT> WithoutPromosT;
+      typedef PerftPosHandlerT<BoardT, typename BoardTraitsT::ReverseT> ReverseT;
+      typedef PerftPosHandlerT<BoardT, typename BoardTraitsT::WithPromosT> WithPromosT;
+      typedef PerftPosHandlerT<BoardT, typename BoardTraitsT::WithoutPromosT> WithoutPromosT;
       
       static const bool ValidatePos = false;
       
@@ -70,11 +70,11 @@ namespace Chess {
       
       inline static void handlePos(const PerftStateT state, const BoardT& board, MoveInfoT moveInfo) {
 	validatePos(board, moveInfo);
-	perftImpl<BoardTraitsT>(state, board, moveInfo);
+	perftImpl<BoardT, BoardTraitsT>(state, board, moveInfo);
       }
     };
 
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     inline bool hasLegalMoves(const BoardT& board, const MoveInfoT moveInfo) {
       // Generate (legal) moves
       const LegalMovesT legalMoves = genLegalMoves<BoardT, BoardTraitsT>(board);
@@ -106,7 +106,7 @@ namespace Chess {
       return anyLegalMovesBb != BbNone;
     }
 
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     inline void perft0Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
 
       // printBoard(board);
@@ -239,14 +239,14 @@ namespace Chess {
 	if(DoCheckMateStats) {
 	  // Only bother if it is check
 	  // It's checkmate if there are no legal moves
-	  if(!hasLegalMoves<BoardTraitsT>(board, moveInfo)) {
+	  if(!hasLegalMoves<BoardT, BoardTraitsT>(board, moveInfo)) {
 	    stats.checkmates++;
 	  }
 	}
       }
     }
 
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     inline void perftImplFull(const PerftStateT state, const BoardT& board) {
 
       // TODO get rid...
@@ -264,26 +264,26 @@ namespace Chess {
       
       const PerftStateT newState(state.stats, state.depthToGo-1);
 
-      makeAllLegalMoves<const PerftStateT, PerftPosHandlerT<BoardTraitsT>, BoardTraitsT>(newState, board);
+      makeAllLegalMoves<const PerftStateT, PerftPosHandlerT<BoardT, BoardTraitsT>, BoardT, BoardTraitsT>(newState, board);
     }
 
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     inline void perftImpl(const PerftStateT state, const BoardT& board, const MoveInfoT moveInfo) {
       // If this is a leaf node, gather stats.
       if(state.depthToGo == 0) {
-	perft0Impl<BoardTraitsT>(state.stats, board, moveInfo);
+	perft0Impl<BoardT, BoardTraitsT>(state.stats, board, moveInfo);
       } else {
-	perftImplFull<BoardTraitsT>(state, board);
+	perftImplFull<BoardT, BoardTraitsT>(state, board);
       }
     }
       
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
       PerftStatsT stats = {};
       MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/false, /*isDiscoveredCheck*/false);
       const PerftStateT state(stats, depthToGo);
 
-      perftImpl<BoardTraitsT>(state, board, dummyMoveInfo);
+      perftImpl<BoardT, BoardTraitsT>(state, board, dummyMoveInfo);
 
       return stats;
     }

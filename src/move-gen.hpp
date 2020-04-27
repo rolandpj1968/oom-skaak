@@ -597,15 +597,6 @@ namespace Chess {
       return RookMagicBbTable[square][magicBbKey];
     }
 
-    // // Generate a legal move mask for non-king moves - only valid for no check or single check.
-    // //   If we're not in check then all moves are legal.
-    // //   If we're in check then we must capture or block the checking piece.
-    // template <typename BoardTraitsT, typename BoardT>
-    // inline BitBoardT genLegalMoveMaskBb(const BoardT& board, const int nChecks, const BitBoardT allMyKingAttackersBb, const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allYourPromoPiecesBb, const PieceAttacksT& yourAttacks);
-
-    // typedef BasicBoardT BoardT;
-    // typedef BasicColorStateT ColorStateT;
-    
     // Generate a legal move mask for non-king moves - only valid for no check or single check.
     //   If we're not in check then all moves are legal.
     //   If we're in check then we must capture or block the checking piece.
