@@ -597,20 +597,21 @@ namespace Chess {
       return RookMagicBbTable[square][magicBbKey];
     }
 
-    // Generate a legal move mask for non-king moves - only valid for no check or single check.
-    //   If we're not in check then all moves are legal.
-    //   If we're in check then we must capture or block the checking piece.
-    template <typename BoardTraitsT, typename BoardT>
-    inline BitBoardT genLegalMoveMaskBb(const BoardT& board, const int nChecks, const BitBoardT allMyKingAttackersBb, const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allYourPromoPiecesBb, const PieceAttacksT& yourAttacks);
+    // // Generate a legal move mask for non-king moves - only valid for no check or single check.
+    // //   If we're not in check then all moves are legal.
+    // //   If we're in check then we must capture or block the checking piece.
+    // template <typename BoardTraitsT, typename BoardT>
+    // inline BitBoardT genLegalMoveMaskBb(const BoardT& board, const int nChecks, const BitBoardT allMyKingAttackersBb, const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allYourPromoPiecesBb, const PieceAttacksT& yourAttacks);
 
-    typedef BasicBoardT BoardT;
-    typedef BasicColorStateT ColorStateT;
+    // typedef BasicBoardT BoardT;
+    // typedef BasicColorStateT ColorStateT;
     
     // Generate a legal move mask for non-king moves - only valid for no check or single check.
     //   If we're not in check then all moves are legal.
     //   If we're in check then we must capture or block the checking piece.
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     inline BitBoardT genLegalMoveMaskBb(const BoardT& board, const int nChecks, const BitBoardT allMyKingAttackersBb, const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allYourPromoPiecesBb, const PieceAttacksT& yourAttacks) {
+      typedef typename BoardT::ColorStateT ColorStateT;
       
       BitBoardT legalMoveMaskBb = BbAll;
 	
@@ -769,7 +770,7 @@ namespace Chess {
     // Generate attacks/defenses for all pieces.
     // Note that move gen for a piece on InvalidSquare MUST always generate BbNone (and not SIGSEGV :P).
     // TODO - missing support for unusual promos.
-    template <typename ColorTraitsT>
+    template <typename ColorStateT, typename ColorTraitsT>
     inline PieceAttacksT genPieceAttacks(const ColorStateT& colorState, const BitBoardT allPiecesBb) {
       const ColorT Color = ColorTraitsT::Color;
       
@@ -972,7 +973,7 @@ namespace Chess {
     }
     
     // Fill a pin mask structure with BbAll for all pieces.
-    template <typename MyColorTraitsT>
+    template <typename ColorStateT, typename MyColorTraitsT>
     inline void genDefaultPiecePinMasks(PiecePinMasksT& pinMasks, const ColorStateT& myState) {
       // Pawns
       pinMasks.pawnsPushOnePinMask = BbAll;
@@ -1008,7 +1009,7 @@ namespace Chess {
     }
     
     // Generate the pin masks for all pieces
-    template <typename ColorTraitsT>
+    template <typename ColorStateT, typename ColorTraitsT>
     inline void genPiecePinMasks(PiecePinMasksT& pinMasks, const ColorStateT& myState, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
       const ColorT Color = ColorTraitsT::Color;
       
@@ -1083,9 +1084,12 @@ namespace Chess {
 #endif //def USE_PROMOS
     }
     
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     inline PiecePinMasksT genPinMasks(const BoardT& board, const PieceBbsT& pieceBbs) {
+      typedef typename BoardT::ColorStateT ColorStateT;
+      
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
+      
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
@@ -1109,16 +1113,18 @@ namespace Chess {
       PiecePinMasksT pinMasks = {};
       // Majority of positions have no pins
       if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) == BbNone) {
-	genDefaultPiecePinMasks<MyColorTraitsT>(pinMasks, myState);
+	genDefaultPiecePinMasks<ColorStateT, MyColorTraitsT>(pinMasks, myState);
       } else {
-	genPiecePinMasks<MyColorTraitsT>(pinMasks, myState, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	genPiecePinMasks<ColorStateT, MyColorTraitsT>(pinMasks, myState, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
       }
       
       return pinMasks;
     }
 
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     inline DiscoveredCheckMasksT genDiscoveryMasks(const BoardT& board, const PieceBbsT& pieceBbs, const BitBoardT legalEpCaptureLeftBb, const BitBoardT legalEpCaptureRightBb, const CastlingRightsT canCastleFlags) {
+      typedef typename BoardT::ColorStateT ColorStateT;
+      
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
@@ -1213,8 +1219,10 @@ namespace Chess {
     }
 #endif //def USE_PROMOS
 
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     inline EpPawnCapturesT genLegalPawnEpCaptures(const BoardT& board, const ColorPieceBbsT& yourPieceBbs, const PieceAttacksT myAttacks, const SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT nonPinnedPawnsLeftBb, const BitBoardT nonPinnedPawnsRightBb, const BitBoardT legalMoveMaskBb) {
+      typedef typename BoardT::ColorStateT ColorStateT;
+      
       const ColorT Color = BoardTraitsT::Color;
       const BitBoardT epSquareBb = bbForSquare(epSquare);
 
@@ -1266,7 +1274,7 @@ namespace Chess {
       return EpPawnCapturesT(legalEpCaptureLeftBb, legalEpCaptureRightBb);
     }
     
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     inline PawnPushesAndCapturesT genLegalPawnMoves(const BoardT& board, const ColorPieceBbsT& yourPieceBbs, const PieceAttacksT myAttacks, const SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
       const BitBoardT legalPawnsPushOneBb = myAttacks.pawnsPushOne & pinMasks.pawnsPushOnePinMask & legalMoveMaskBb;
       const BitBoardT legalPawnsPushTwoBb = myAttacks.pawnsPushTwo & pinMasks.pawnsPushTwoPinMask & legalMoveMaskBb;
@@ -1280,13 +1288,14 @@ namespace Chess {
       const BitBoardT legalPawnsRightBb = nonPinnedPawnsRightBb & legalMoveMaskBb & allYourPiecesBb;
 
       // Pawn en-passant captures
-      const EpPawnCapturesT legalEpPawnCaptures = (epSquare == InvalidSquare) ? EpPawnCapturesT() : genLegalPawnEpCaptures<BoardTraitsT>(board, yourPieceBbs, myAttacks, epSquare, allYourPiecesBb, allPiecesBb, nonPinnedPawnsLeftBb, nonPinnedPawnsRightBb, legalMoveMaskBb);
+      const EpPawnCapturesT legalEpPawnCaptures = (epSquare == InvalidSquare) ? EpPawnCapturesT() : genLegalPawnEpCaptures<BoardT, BoardTraitsT>(board, yourPieceBbs, myAttacks, epSquare, allYourPiecesBb, allPiecesBb, nonPinnedPawnsLeftBb, nonPinnedPawnsRightBb, legalMoveMaskBb);
 
       return PawnPushesAndCapturesT(legalPawnsPushOneBb, legalPawnsPushTwoBb, legalPawnsLeftBb, legalPawnsRightBb, legalEpPawnCaptures);
     }
     
-    template <typename BoardTraitsT> 
+    template <typename BoardT, typename BoardTraitsT> 
     inline void genLegalNonKingMoves(LegalMovesT& legalMoves, const BoardT& board, const PieceBbsT& pieceBbs, const PieceAttacksT& myAttacks, const BitBoardT legalMoveMaskBb, const PiecePinMasksT& pinMasks) {
+      typedef typename BoardT::ColorStateT ColorStateT;
       
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
@@ -1301,7 +1310,7 @@ namespace Chess {
       
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 
-      legalMoves.pawnMoves = genLegalPawnMoves<BoardTraitsT>(board, yourPieceBbs, myAttacks, yourState.epSquare, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
+      legalMoves.pawnMoves = genLegalPawnMoves<BoardT, BoardTraitsT>(board, yourPieceBbs, myAttacks, yourState.epSquare, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMasks);
       
       legalMoves.pieceMoves[Knight1] = genLegalPieceMoves<Knight1>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
       legalMoves.pieceMoves[Knight2] = genLegalPieceMoves<Knight2>(myAttacks, legalMoveMaskBb, pinMasks, allMyPiecesBb);
@@ -1329,8 +1338,10 @@ namespace Chess {
 #endif //def USE_PROMOS
     }
 
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     inline CastlingRightsT genLegalCastlingFlags(const BoardT& board, const PieceAttacksT& yourAttacks, const BitBoardT allPiecesBb) {
+      typedef typename BoardT::ColorStateT ColorStateT;
+      
       const ColorT Color = BoardTraitsT::Color;
       const ColorStateT& myState = board.state[(size_t)Color];
 
@@ -1351,8 +1362,10 @@ namespace Chess {
       return canCastleFlags;
     }
     
-    template <typename BoardTraitsT>
+    template <typename BoardT, typename BoardTraitsT>
     inline BitBoardT genLegalKingMoves(const BoardT& board, const PieceBbsT& pieceBbs, const PieceAttacksT& yourAttacks, const BitBoardT allMyKingAttackersBb) {
+      typedef typename BoardT::ColorStateT ColorStateT;
+      
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
       
@@ -1486,7 +1499,7 @@ namespace Chess {
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
       
       // Generate moves - TODO this and yourAttacks are interesting side-channel data to return in LegalMovesT
-      const PieceAttacksT myAttacks = genPieceAttacks<MyColorTraitsT>(myState, allPiecesBb);
+      const PieceAttacksT myAttacks = genPieceAttacks<ColorStateT, MyColorTraitsT>(myState, allPiecesBb);
 
       // Is your king in check? If so we got here via an illegal move of the move-generator
       if((myAttacks.allAttacks & yourPieceBbs.bbs[King]) != 0) {
@@ -1503,7 +1516,7 @@ namespace Chess {
       const BitBoardT allMyKingAttackersBb = myKingAttackers.pieceAttackers[AllPieceTypes];
 
       // Needed for castling and for king moves so evaluate this here.
-      const PieceAttacksT yourAttacks = genPieceAttacks<YourColorTraitsT>(yourState, allPiecesBb);
+      const PieceAttacksT yourAttacks = genPieceAttacks<ColorStateT, YourColorTraitsT>(yourState, allPiecesBb);
 
       legalMoves.nChecks = Bits::count(allMyKingAttackersBb);
 
@@ -1514,23 +1527,23 @@ namespace Chess {
 #ifdef USE_PROMOS
 	const BitBoardT legalMoveMaskBb = genLegalMoveMaskBb<BoardTraitsT>(board, legalMoves.nChecks, allMyKingAttackersBb, myKingSq, allPiecesBb, yourPieceBbs.allPromoPiecesBb, yourAttacks);
 #else
-	const BitBoardT legalMoveMaskBb = genLegalMoveMaskBb<BoardTraitsT>(board, legalMoves.nChecks, allMyKingAttackersBb, myKingSq, allPiecesBb, BbNone, yourAttacks);
+	const BitBoardT legalMoveMaskBb = genLegalMoveMaskBb<BoardT, BoardTraitsT>(board, legalMoves.nChecks, allMyKingAttackersBb, myKingSq, allPiecesBb, BbNone, yourAttacks);
 #endif //def USE_PROMOS
 	  
 	// Calculate pinned piece move restrictions.
-	const PiecePinMasksT pinMasks = genPinMasks<BoardTraitsT>(board, pieceBbs);
+	const PiecePinMasksT pinMasks = genPinMasks<BoardT, BoardTraitsT>(board, pieceBbs);
 
 	// Filter legal non-king moves
-	genLegalNonKingMoves<BoardTraitsT>(legalMoves, board, pieceBbs, myAttacks, legalMoveMaskBb, pinMasks);
+	genLegalNonKingMoves<BoardT, BoardTraitsT>(legalMoves, board, pieceBbs, myAttacks, legalMoveMaskBb, pinMasks);
 
 	// Castling
-	legalMoves.canCastleFlags = genLegalCastlingFlags<BoardTraitsT>(board, yourAttacks, allPiecesBb);
+	legalMoves.canCastleFlags = genLegalCastlingFlags<BoardT, BoardTraitsT>(board, yourAttacks, allPiecesBb);
       }
 
-      legalMoves.pieceMoves[TheKing] = genLegalKingMoves<BoardTraitsT>(board, pieceBbs, yourAttacks, allMyKingAttackersBb);
+      legalMoves.pieceMoves[TheKing] = genLegalKingMoves<BoardT, BoardTraitsT>(board, pieceBbs, yourAttacks, allMyKingAttackersBb);
 
       legalMoves.directChecks = genDirectCheckMasks<ColorStateT, Color>(yourState, allPiecesBb);
-      legalMoves.discoveredChecks = genDiscoveryMasks<BoardTraitsT>(board, pieceBbs, legalMoves.pawnMoves.epCaptures.epLeftCaptureBb, legalMoves.pawnMoves.epCaptures.epRightCaptureBb, legalMoves.canCastleFlags);
+      legalMoves.discoveredChecks = genDiscoveryMasks<BoardT, BoardTraitsT>(board, pieceBbs, legalMoves.pawnMoves.epCaptures.epLeftCaptureBb, legalMoves.pawnMoves.epCaptures.epRightCaptureBb, legalMoves.canCastleFlags);
 
       // Only for promos
 #ifdef USE_PROMOS
@@ -1547,6 +1560,7 @@ namespace Chess {
     // TODO - this shouldn't be in this header file but it has awkward dependencies
     template <typename BoardT, typename BoardTraitsT>
     bool isValid(const BoardT& board) {
+      typedef typename BoardT::ColorStateT ColorStateT;
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
       
       const ColorT Color = BoardTraitsT::Color;

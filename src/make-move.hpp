@@ -11,6 +11,7 @@ namespace Chess {
   using namespace MoveGen;
   
   typedef BasicBoardT BoardT;
+  typedef typename BoardT::ColorStateT ColorStateT;
   
   namespace MakeMove {
 

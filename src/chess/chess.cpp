@@ -44,6 +44,9 @@ int main(int argc, char* argv[]) {
   printf("Hallo again RPJ - sizeof(a) is %zu, sizeof(a)/sizeof(a[0]) = %zu, a[4] = %d, a[0] = %d\n", sizeof(a), sizeof(a)/sizeof(a[0]), a[4], a[0]);
   printf("H8 is %u\n", H8);
 
+  typedef BasicBoardT BoardT;
+  typedef typename BoardT::ColorStateT ColorStateT;
+  
   BoardT board;
 
   if(argc > 1) {
@@ -68,14 +71,14 @@ int main(int argc, char* argv[]) {
   const BitBoardT allBPiecesBb = bPieceBbs.bbs[AllPieceTypes];
   const BitBoardT allPiecesBb = allWPiecesBb | allBPiecesBb;
   
-  auto whiteAttacks = genPieceAttacks<WhiteStartingColorTraitsT>(w, allPiecesBb);
+  auto whiteAttacks = genPieceAttacks<ColorStateT, WhiteStartingColorTraitsT>(w, allPiecesBb);
 
   printf("\nWhite:\n");
   dumpAttacks(whiteAttacks);
 
   printf("\n%d attacks, %d valid moves, all white pieces %016lx\n", countAttacks(whiteAttacks), countAttacks(whiteAttacks, allWPiecesBb, allBPiecesBb), allPiecesBb);
   
-  auto blackAttacks = genPieceAttacks<BlackStartingColorTraitsT>(b, allPiecesBb);
+  auto blackAttacks = genPieceAttacks<ColorStateT, BlackStartingColorTraitsT>(b, allPiecesBb);
 
   printf("\nBlack:\n");
   dumpAttacks(blackAttacks);
