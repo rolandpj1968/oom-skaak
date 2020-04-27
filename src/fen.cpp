@@ -20,12 +20,12 @@ static std::vector<std::string> split(const std::string& s) {
   return results;
 }
 
-using Chess::Board::BoardT;
-
 namespace Chess {
 
   using namespace Board;
   
+  typedef BasicBoardT BoardT;
+    
   namespace Fen {
 
     struct PieceTypeAndColorT {

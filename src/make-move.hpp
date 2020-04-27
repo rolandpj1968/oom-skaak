@@ -10,6 +10,8 @@ namespace Chess {
   using namespace Board;
   using namespace MoveGen;
   
+  typedef BasicBoardT BoardT;
+  
   namespace MakeMove {
 
     //
@@ -49,7 +51,7 @@ namespace Chess {
     template <ColorT Color> struct PawnMoveFn<Color, PawnCapture, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
-	return captureWithPawn<Color>(board, yourPieceMap, from, to);
+	return captureWithPawn<BoardT, Color>(board, yourPieceMap, from, to);
       }
     };
 
@@ -57,7 +59,7 @@ namespace Chess {
     template <ColorT Color> struct PawnMoveFn<Color, PawnPromoCapture, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
-	return capturePromoPieceWithPawn<Color>(board, yourPieceMap, from, to);
+	return capturePromoPieceWithPawn<BoardT, Color>(board, yourPieceMap, from, to);
       }
     };
 #endif //def USE_PROMOS
@@ -98,21 +100,21 @@ namespace Chess {
     template <ColorT Color> struct PawnPromoMoveFn<Color, PawnPushToPromo, NoPieceMapT> {
       typedef NoPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const NoPieceMapT&, const SquareT from, const SquareT to, PromoPieceT promoPiece) {
-	return pushPawnToPromo<Color>(board, from, to, promoPiece);
+	return pushPawnToPromo<BoardT, Color>(board, from, to, promoPiece);
       }
     };
 
     template <ColorT Color> struct PawnPromoMoveFn<Color, PawnCaptureToPromo, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to, PromoPieceT promoPiece) {
-	return captureWithPawnToPromo<Color>(board, yourPieceMap, from, to, promoPiece);
+	return captureWithPawnToPromo<BoardT, Color>(board, yourPieceMap, from, to, promoPiece);
       }
     };
 
     template <ColorT Color> struct PawnPromoMoveFn<Color, PawnPromoCaptureToPromo, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to, PromoPieceT promoPiece) {
-	return capturePromoPieceWithPawnToPromo<Color>(board, yourPieceMap, from, to, promoPiece);
+	return capturePromoPieceWithPawnToPromo<BoardT, Color>(board, yourPieceMap, from, to, promoPiece);
       }
     };
 
@@ -170,7 +172,7 @@ namespace Chess {
 	const SquareT to = Bits::popLsb(pawnsPushBb);
 	const SquareT from = To2FromFn::fn(to);
 
-	const BoardT newBoard = pushPawn<BoardTraitsT::Color, IsPushTwo>(board, from, to);
+	const BoardT newBoard = pushPawn<BoardT, BoardTraitsT::Color, IsPushTwo>(board, from, to);
 
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
@@ -243,7 +245,7 @@ namespace Chess {
 	const SquareT from = To2FromFn::fn(to);
 	const SquareT captureSq = pawnPushOneTo2From<BoardTraitsT::Color>(to);
 
-	const BoardT newBoard = captureEp<BoardTraitsT::Color>(board, from, to, captureSq);
+	const BoardT newBoard = captureEp<BoardT, BoardTraitsT::Color>(board, from, to, captureSq);
 
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = isEpDiscovery || (bbForSquare(from) & discoveriesBb) != BbNone;
@@ -289,14 +291,14 @@ namespace Chess {
     template <ColorT Color, PieceT Piece> struct PieceMoveFn<Color, Piece, PiecePush, NoPieceMapT> {
       typedef NoPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const NoPieceMapT&, const SquareT from, const SquareT to) {
-	return pushPiece<Color, Piece>(board, from, to);
+	return pushPiece<BoardT, Color, Piece>(board, from, to);
       }
     };
 
     template <ColorT Color, PieceT Piece> struct PieceMoveFn<Color, Piece, PieceCapture, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
-	return captureWithPiece<Color, Piece>(board, yourPieceMap, from, to);
+	return captureWithPiece<BoardT, Color, Piece>(board, yourPieceMap, from, to);
       }
     };
 
@@ -304,7 +306,7 @@ namespace Chess {
     template <ColorT Color, PieceT Piece> struct PieceMoveFn<Color, Piece, PiecePromoCapture, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
-	return capturePromoPieceWithPiece<Color, Piece>(board, yourPieceMap, from, to);
+	return capturePromoPieceWithPiece<BoardT, Color, Piece>(board, yourPieceMap, from, to);
       }
     };
 #endif //USE_PROMOS
@@ -374,14 +376,14 @@ namespace Chess {
     template <ColorT Color> struct KingMoveFn<Color, KingPush, NoPieceMapT> {
       typedef NoPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const NoPieceMapT&, const SquareT from, const SquareT to) {
-	return pushPiece<Color, TheKing>(board, from, to);
+	return pushPiece<BoardT, Color, TheKing>(board, from, to);
       }
     };
 
     template <ColorT Color> struct KingMoveFn<Color, KingCapture, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
-	return captureWithPiece<Color, TheKing>(board, yourPieceMap, from, to);
+	return captureWithPiece<BoardT, Color, TheKing>(board, yourPieceMap, from, to);
       }
     };
 
@@ -389,7 +391,7 @@ namespace Chess {
     template <ColorT Color> struct KingMoveFn<Color, KingPromoCapture, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
-	return capturePromoPieceWithPiece<Color, TheKing>(board, yourPieceMap, from, to);
+	return capturePromoPieceWithPiece<BoardT, Color, TheKing>(board, yourPieceMap, from, to);
       }
     };
 #endif //def USE_PROMOS
@@ -464,21 +466,21 @@ namespace Chess {
     template <ColorT Color> struct PromoPieceMoveFn<Color, PromoPiecePush, NoPieceMapT> {
       typedef NoPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const int promoIndex, const PromoPieceT promoPiece, const NoPieceMapT&, const SquareT from, const SquareT to) {
-	return pushPromoPiece<Color>(board, promoIndex, promoPiece, to);
+	return pushPromoPiece<BoardT, Color>(board, promoIndex, promoPiece, to);
       }
     };
 
     template <ColorT Color> struct PromoPieceMoveFn<Color, PromoPieceCapture, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const int promoIndex, const PromoPieceT promoPiece, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
-	return captureWithPromoPiece<Color>(board, promoIndex, promoPiece, yourPieceMap, from, to);
+	return captureWithPromoPiece<BoardT, Color>(board, promoIndex, promoPiece, yourPieceMap, from, to);
       }
     };
 
     template <ColorT Color> struct PromoPieceMoveFn<Color, PromoPiecePromoCapture, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const int promoIndex, const PromoPieceT promoPiece, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
-	return capturePromoPieceWithPromoPiece<Color>(board, promoIndex, promoPiece, yourPieceMap, from, to);
+	return capturePromoPieceWithPromoPiece<BoardT, Color>(board, promoIndex, promoPiece, yourPieceMap, from, to);
       }
     };
 
@@ -531,8 +533,8 @@ namespace Chess {
       
       const ColorT Color = BoardTraitsT::Color;
       
-      const BoardT newBoard1 = pushPiece<Color, TheKing>(board, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo);
-      const BoardT newBoard = pushPiece<Color, CastlingTraitsT<Color, CastlingRight>::TheRook>(newBoard1, CastlingTraitsT<Color, CastlingRight>::RookFrom, CastlingTraitsT<Color, CastlingRight>::RookTo);
+      const BoardT newBoard1 = pushPiece<BoardT, Color, TheKing>(board, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo);
+      const BoardT newBoard = pushPiece<BoardT, Color, CastlingTraitsT<Color, CastlingRight>::TheRook>(newBoard1, CastlingTraitsT<Color, CastlingRight>::RookFrom, CastlingTraitsT<Color, CastlingRight>::RookTo);
 
       // We use the king (from and) to square by convention
       ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(CastlingMove, CastlingTraitsT<Color, CastlingRight>::KingFrom, CastlingTraitsT<Color, CastlingRight>::KingTo, /*isDirectCheck*/false, isDiscoveredCheck));
