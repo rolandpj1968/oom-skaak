@@ -24,7 +24,7 @@ namespace Chess {
 
   using namespace Board;
   
-  typedef BasicBoardT BoardT;
+  typedef SimpleBoardT BoardT;
     
   namespace Fen {
 

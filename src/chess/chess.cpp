@@ -44,8 +44,10 @@ int main(int argc, char* argv[]) {
   printf("Hallo again RPJ - sizeof(a) is %zu, sizeof(a)/sizeof(a[0]) = %zu, a[4] = %d, a[0] = %d\n", sizeof(a), sizeof(a)/sizeof(a[0]), a[4], a[0]);
   printf("H8 is %u\n", H8);
 
-  typedef BasicBoardT BoardT;
+  typedef SimpleBoardT BoardT;
   typedef typename BoardT::ColorStateT ColorStateT;
+  typedef typename PieceBbsImplType<BoardT>::PieceBbsT PieceBbsT;
+  typedef typename ColorPieceBbsImplType<BoardT>::ColorPieceBbsT ColorPieceBbsT;
   
   BoardT board;
 

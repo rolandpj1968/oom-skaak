@@ -14,7 +14,7 @@ namespace Chess {
 
     using namespace MoveGen;
 
-    typedef BasicBoardT BoardT;
+    typedef SimpleBoardT BoardT;
     typedef typename BoardT::ColorStateT ColorStateT;
     
     BoardT emptyBoard() {

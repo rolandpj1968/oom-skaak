@@ -14,7 +14,7 @@ namespace Chess {
 
   namespace Board {
 
-    struct BasicColorStateT {
+    struct SimpleColorStateImplT {
       // Pawns bitboard
       BitBoardT pawnsBb;
 
@@ -29,7 +29,7 @@ namespace Chess {
       CastlingRightsT castlingRights;
     };
 
-    struct BasicColorStateWithPromosT : BasicColorStateT {
+    struct SimpleColorStateWithPromosImplT : SimpleColorStateImplT {
       // Bitmap of active promo pieces - index into promos array
       u8 activePromos;
 
@@ -40,14 +40,14 @@ namespace Chess {
     // Don't use this directly with zero-initialisation or you'll be disappointed because some fields need InvalidSquare (!= 0) init.
     // Use emptyBoard() or startingPosition() or parseFen().
     template <typename ColorStateImplT>
-    struct BoardImplT {
+    struct SimpleBoardImplT {
       typedef ColorStateImplT ColorStateT;
       
       ColorStateImplT state[NColors];
     };
 
-    typedef BoardImplT<BasicColorStateT> BasicBoardT;
-    typedef BoardImplT<BasicColorStateWithPromosT> BasicBoardWithPromosT;
+    typedef SimpleBoardImplT<SimpleColorStateImplT> SimpleBoardT;
+    typedef SimpleBoardImplT<SimpleColorStateWithPromosImplT> SimpleBoardWithPromosT;
 
     const bool DoesNotHavePromos = false;
     const bool DoesHavePromos = true;
@@ -452,21 +452,21 @@ namespace Chess {
     }
 
     // Note - MUST use this rather than zero-initialisation because piece squares need to be InvalidSquare
-    BasicBoardT emptyBoard();
+    SimpleBoardT emptyBoard();
     
-    BasicBoardT startingPosition();
+    SimpleBoardT startingPosition();
 
     //template <typename BoardT>
-    bool isValid(const BasicBoardT& board, const BitBoardT allYourKingAttackersBb);
+    bool isValid(const SimpleBoardT& board, const BitBoardT allYourKingAttackersBb);
 
     // These are used for FEN output
     char pieceChar(const std::vector<std::pair<ColorT, PieceTypeT>>& squarePieces);
     
     //template <typename BoardT>
-    std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64> genPieceMap(const BasicBoardT& board);
+    std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64> genPieceMap(const SimpleBoardT& board);
 
     //template <typename BoardT>
-    void printBoard(const BasicBoardT& board);
+    void printBoard(const SimpleBoardT& board);
     
     void printBb(BitBoardT bb);
   }
