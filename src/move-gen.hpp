@@ -78,9 +78,9 @@ namespace Chess {
       typedef SimplePieceAttackBbsWithPromosImplT PieceAttackBbsT;
     };
 
-    struct SquareAttackersT {
+    struct SquareAttackerBbsT {
       // Attacks on a particular square for each piece type (of a particular color).
-      BitBoardT pieceAttackers[NPieceTypes];
+      BitBoardT pieceAttackerBbs[NPieceTypes];
     };
 
     struct PiecePinMasksT {
@@ -97,8 +97,6 @@ namespace Chess {
       // Uncommon promo piece moves - one for each pawn
       BitBoardT promoPiecePinMasks[NPawns];
 #endif //def USE_PROMOS
-      
-      // BitBoardT allPinMasks;
     };
 
     struct DirectCheckMasksT {
@@ -323,7 +321,7 @@ namespace Chess {
     // Static attack tables for pawn, knight and king attacks
     //
 
-    const BitBoardT PawnAttackers[NColors][64+1] = {
+    const BitBoardT PawnAttackerBbs[NColors][64+1] = {
       // White pawn attackers
       {
 	0x0000000000000000ull, 0x0000000000000000ull, 0x0000000000000000ull, 0x0000000000000000ull,
@@ -903,55 +901,55 @@ namespace Chess {
     // Generate attackers/defenders of a particular square.
     // Useful for check detection.
     template <typename BoardT, typename ColorTraitsT>
-    inline SquareAttackersT genSquareAttackers(const SquareT square, const typename ColorPieceBbsImplType<BoardT>::ColorPieceBbsT& colorPieceBbs, const BitBoardT allPiecesBb) {
+    inline SquareAttackerBbsT genSquareAttackerBbs(const SquareT square, const typename ColorPieceBbsImplType<BoardT>::ColorPieceBbsT& colorPieceBbs, const BitBoardT allPiecesBb) {
       const ColorT Color = ColorTraitsT::Color;
       
-      SquareAttackersT attackers = {};
+      SquareAttackerBbsT attackerBbs = {};
 
       // Pawns
       
-      BitBoardT pawnAttackersBb = PawnAttackers[(size_t)Color][square] & colorPieceBbs.bbs[Pawn];
-      attackers.pieceAttackers[Pawn] = pawnAttackersBb;
-      attackers.pieceAttackers[AllPieceTypes] |= pawnAttackersBb;
+      BitBoardT pawnAttackersBb = PawnAttackerBbs[(size_t)Color][square] & colorPieceBbs.bbs[Pawn];
+      attackerBbs.pieceAttackerBbs[Pawn] = pawnAttackersBb;
+      attackerBbs.pieceAttackerBbs[AllPieceTypes] |= pawnAttackersBb;
 
       // Knights
       
       BitBoardT knightAttackersBb = KnightAttacks[square] & colorPieceBbs.bbs[Knight];
-      attackers.pieceAttackers[Knight] = knightAttackersBb;
-      attackers.pieceAttackers[AllPieceTypes] |= knightAttackersBb;
+      attackerBbs.pieceAttackerBbs[Knight] = knightAttackersBb;
+      attackerBbs.pieceAttackerBbs[AllPieceTypes] |= knightAttackersBb;
 
       // Diagonal sliders
       
       BitBoardT diagonalAttackerSquaresBb = bishopAttacks(square, allPiecesBb);
 
-      BitBoardT bishopAttackers = diagonalAttackerSquaresBb & colorPieceBbs.bbs[Bishop];
-      attackers.pieceAttackers[Bishop] = bishopAttackers;
+      BitBoardT bishopAttackerBbs = diagonalAttackerSquaresBb & colorPieceBbs.bbs[Bishop];
+      attackerBbs.pieceAttackerBbs[Bishop] = bishopAttackerBbs;
 
-      BitBoardT diagonalQueenAttackers = diagonalAttackerSquaresBb & colorPieceBbs.bbs[Queen];
-      attackers.pieceAttackers[Queen] |= diagonalQueenAttackers;
+      BitBoardT diagonalQueenAttackerBbs = diagonalAttackerSquaresBb & colorPieceBbs.bbs[Queen];
+      attackerBbs.pieceAttackerBbs[Queen] |= diagonalQueenAttackerBbs;
 
-      attackers.pieceAttackers[AllPieceTypes] |= bishopAttackers | diagonalQueenAttackers;
+      attackerBbs.pieceAttackerBbs[AllPieceTypes] |= bishopAttackerBbs | diagonalQueenAttackerBbs;
 
       // Orthogonal sliders
 
       BitBoardT orthogonalAttackerSquaresBb = rookAttacks(square, allPiecesBb);
 
-      BitBoardT rookAttackers = orthogonalAttackerSquaresBb & colorPieceBbs.bbs[Rook];
-      attackers.pieceAttackers[Rook] = rookAttackers;
+      BitBoardT rookAttackerBbs = orthogonalAttackerSquaresBb & colorPieceBbs.bbs[Rook];
+      attackerBbs.pieceAttackerBbs[Rook] = rookAttackerBbs;
 
-      BitBoardT orthogonalQueenAttackers = orthogonalAttackerSquaresBb & colorPieceBbs.bbs[Queen];
-      attackers.pieceAttackers[Queen] |= orthogonalQueenAttackers;
+      BitBoardT orthogonalQueenAttackerBbs = orthogonalAttackerSquaresBb & colorPieceBbs.bbs[Queen];
+      attackerBbs.pieceAttackerBbs[Queen] |= orthogonalQueenAttackerBbs;
 
-      attackers.pieceAttackers[AllPieceTypes] |= rookAttackers | orthogonalQueenAttackers;
+      attackerBbs.pieceAttackerBbs[AllPieceTypes] |= rookAttackerBbs | orthogonalQueenAttackerBbs;
 	
       // King attacker
 
-      BitBoardT kingAttackers = KingAttacks[square] & colorPieceBbs.bbs[King];
-      attackers.pieceAttackers[King] = kingAttackers;
+      BitBoardT kingAttackerBbs = KingAttacks[square] & colorPieceBbs.bbs[King];
+      attackerBbs.pieceAttackerBbs[King] = kingAttackerBbs;
 
-      attackers.pieceAttackers[AllPieceTypes] |= kingAttackers;
+      attackerBbs.pieceAttackerBbs[AllPieceTypes] |= kingAttackerBbs;
       
-      return attackers;
+      return attackerBbs;
     }
 
     // Pinned move mask generation
@@ -1437,7 +1435,7 @@ namespace Chess {
     inline DirectCheckMasksT genDirectCheckMasks(const ColorStateT& yourState, const BitBoardT allPiecesBb) {
       const SquareT yourKingSq = yourState.pieceSquares[TheKing];
 
-      const BitBoardT pawnChecksBb = PawnAttackers[(size_t)Color][yourKingSq];
+      const BitBoardT pawnChecksBb = PawnAttackerBbs[(size_t)Color][yourKingSq];
       const BitBoardT knightChecksBb = KnightAttacks[yourKingSq];
       const BitBoardT bishopChecksBb = bishopAttacks(yourKingSq, allPiecesBb);
       const BitBoardT rookChecksBb = rookAttacks(yourKingSq, allPiecesBb);
@@ -1554,8 +1552,8 @@ namespace Chess {
       // Evaluate check - eventually do this in the parent
 
       const SquareT myKingSq = myState.pieceSquares[TheKing];
-      const SquareAttackersT myKingAttackers = genSquareAttackers<BoardT, YourColorTraitsT>(myKingSq, yourPieceBbs, allPiecesBb);
-      const BitBoardT allMyKingAttackersBb = myKingAttackers.pieceAttackers[AllPieceTypes];
+      const SquareAttackerBbsT myKingAttackerBbs = genSquareAttackerBbs<BoardT, YourColorTraitsT>(myKingSq, yourPieceBbs, allPiecesBb);
+      const BitBoardT allMyKingAttackersBb = myKingAttackerBbs.pieceAttackerBbs[AllPieceTypes];
 
       // Needed for castling and for king moves so evaluate this here.
       const PieceAttackBbsT yourAttackBbs = genPieceAttackBbs<BoardT, YourColorTraitsT>(yourState, allPiecesBb);
@@ -1623,8 +1621,8 @@ namespace Chess {
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
       
       const SquareT yourKingSq = yourState.pieceSquares[TheKing];
-      const SquareAttackersT yourKingAttackers = genSquareAttackers<BoardT, MyColorTraitsT>(yourKingSq, myPieceBbs, allPiecesBb);
-      const BitBoardT allYourKingAttackersBb = yourKingAttackers.pieceAttackers[AllPieceTypes];
+      const SquareAttackerBbsT yourKingAttackerBbs = genSquareAttackerBbs<BoardT, MyColorTraitsT>(yourKingSq, myPieceBbs, allPiecesBb);
+      const BitBoardT allYourKingAttackersBb = yourKingAttackerBbs.pieceAttackerBbs[AllPieceTypes];
 
       return Board::isValid(board, allYourKingAttackersBb);
     }
