@@ -280,6 +280,7 @@ namespace Chess {
     template <typename BoardT, typename BoardTraitsT>
     inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
       PerftStatsT stats = {};
+      // TODO - fill in isDirectCheck and isDiscoveredCheck in order to hoist check detection out of genLegalMoves
       MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/false, /*isDiscoveredCheck*/false);
       const PerftStateT state(stats, depthToGo);
 

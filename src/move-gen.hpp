@@ -637,65 +637,59 @@ namespace Chess {
       return RookMagicBbTable[square][magicBbKey];
     }
 
-    // Generate a legal move mask for non-king moves - only valid for no check or single check.
-    //   If we're not in check then all moves are legal.
-    //   If we're in check then we must capture or block the checking piece.
+    // Generate a legal move mask for non-king moves - only valid for single check.
+    //   We must capture or block the checking piece.
     template <typename BoardT, typename BoardTraitsT>
-    inline BitBoardT genLegalMoveMaskBb(const BoardT& board, const int nChecks, const BitBoardT allMyKingAttackersBb, const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allYourPromoPiecesBb, const typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT& yourAttackBbs) {
+    inline BitBoardT genLegalMoveMaskBbForSingleCheck(const BoardT& board, const BitBoardT allMyKingAttackersBb, const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allYourPromoPiecesBb, const typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT& yourAttackBbs) {
       typedef typename BoardT::ColorStateT ColorStateT;
       
-      BitBoardT legalMoveMaskBb = BbAll;
+      // We can evade check by capturing the checking piece
+      BitBoardT legalMoveMaskBb = allMyKingAttackersBb;
+      
+      // There can be only one piece delivering check in this path (nChecks < 2)
+      // If it is a contact check (including knight check) then only a capture (or king move) will evade check.
+      if(((KingAttacks[myKingSq] | KnightAttacks[myKingSq]) & allMyKingAttackersBb) == BbNone) {
+	// Distant check by a slider - we can also block the check.
+	// So here we want to generate all (open) squares between your checking piece and the king.
+	// Work backwards from the king
+	// Compute the check-blocking squares as the intersection of my king's slider 'view' and the checking piece's attack squares.
+	// Note for queens we need to restrict to the slider direction otherwise we get bogus 'blocking' squares in the other queen direction.
 	
-      // When in check, limit moves to captures of the checking piece, and blockers of the checking piece
-      if(nChecks != 0) {
-	// We can evade check by capturing the checking piece
-	legalMoveMaskBb = allMyKingAttackersBb;
-	  
-	// There can be only one piece delivering check in this path (nChecks < 2)
-	// If it is a contact check (including knight check) then only a capture (or king move) will evade check.
-	if(((KingAttacks[myKingSq] | KnightAttacks[myKingSq]) & allMyKingAttackersBb) == BbNone) {
-	  // Distant check by a slider - we can also block the check.
-	  // So here we want to generate all (open) squares between your checking piece and the king.
-	  // Work backwards from the king
-	  // Compute the check-blocking squares as the intersection of my king's slider 'view' and the checking piece's attack squares.
-	  // Note for queens we need to restrict to the slider direction otherwise we get bogus 'blocking' squares in the other queen direction.
-
-	  const ColorT OtherColor = BoardTraitsT::OtherColor;
-
-	  const ColorStateT& yourState = board.state[(size_t)OtherColor];
-	  const ColorPieceMapT& yourPieceMap = genColorPieceMap(yourState, allYourPromoPiecesBb);
-	  
-	  const SquareT checkingPieceSq = Bits::lsb(allMyKingAttackersBb);
-
-	  const BitBoardT diagAttacksFromMyKingBb = bishopAttacks(myKingSq, allPiecesBb);
-	  const BitBoardT orthogAttacksFromMyKingBb = rookAttacks(myKingSq, allPiecesBb);
-
-	  BitBoardT checkingPieceAttacksBb = BbNone;
-
+	const ColorT OtherColor = BoardTraitsT::OtherColor;
+	
+	const ColorStateT& yourState = board.state[(size_t)OtherColor];
+	const ColorPieceMapT& yourPieceMap = genColorPieceMap(yourState, allYourPromoPiecesBb);
+	
+	const SquareT checkingPieceSq = Bits::lsb(allMyKingAttackersBb);
+	
+	const BitBoardT diagAttacksFromMyKingBb = bishopAttacks(myKingSq, allPiecesBb);
+	const BitBoardT orthogAttacksFromMyKingBb = rookAttacks(myKingSq, allPiecesBb);
+	
+	BitBoardT checkingPieceAttacksBb = BbNone;
+	
 #ifdef USE_PROMOS
-	  typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
-	  const BitBoardT promoPieceAttackerBb = allMyKingAttackersBb & allYourPromoPiecesBb;
-	  if(YourColorTraitsT::HasPromos && promoPieceAttackerBb != BbNone) {
-	    const int checkingPromoIndex = yourPieceMap.board[checkingPieceSq].promoIndex;
-	    checkingPieceAttacksBb = yourAttackBbs.promoPieceAttacks[checkingPromoIndex];
-	  } else
+	typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
+	const BitBoardT promoPieceAttackerBb = allMyKingAttackersBb & allYourPromoPiecesBb;
+	if(YourColorTraitsT::HasPromos && promoPieceAttackerBb != BbNone) {
+	  const int checkingPromoIndex = yourPieceMap.board[checkingPieceSq].promoIndex;
+	  checkingPieceAttacksBb = yourAttackBbs.promoPieceAttacks[checkingPromoIndex];
+	} else
 #endif //def USE_PROMOS
-	  {
-	    const BitBoardT pawnAttackerBb = allMyKingAttackersBb & yourState.pawnsBb;
-	    const PieceT checkingPiece = pawnAttackerBb != BbNone ? SomePawns : yourPieceMap.board[checkingPieceSq].piece;
-
-	    checkingPieceAttacksBb = yourAttackBbs.pieceAttackBbs[checkingPiece];
-	  }
-	    
-	  if(allMyKingAttackersBb & diagAttacksFromMyKingBb) {
-	    legalMoveMaskBb |= diagAttacksFromMyKingBb & checkingPieceAttacksBb & BishopRays[checkingPieceSq];
-	  }
-	  if(allMyKingAttackersBb & orthogAttacksFromMyKingBb) {
-	    legalMoveMaskBb |= orthogAttacksFromMyKingBb & checkingPieceAttacksBb & RookRays[checkingPieceSq];
-	  }
+	{
+	  const BitBoardT pawnAttackerBb = allMyKingAttackersBb & yourState.pawnsBb;
+	  const PieceT checkingPiece = pawnAttackerBb != BbNone ? SomePawns : yourPieceMap.board[checkingPieceSq].piece;
+	  
+	  checkingPieceAttacksBb = yourAttackBbs.pieceAttackBbs[checkingPiece];
+	}
+	
+	if(allMyKingAttackersBb & diagAttacksFromMyKingBb) {
+	  legalMoveMaskBb |= diagAttacksFromMyKingBb & checkingPieceAttacksBb & BishopRays[checkingPieceSq];
+	}
+	if(allMyKingAttackersBb & orthogAttacksFromMyKingBb) {
+	  legalMoveMaskBb |= orthogAttacksFromMyKingBb & checkingPieceAttacksBb & RookRays[checkingPieceSq];
 	}
       }
-
+      
       return legalMoveMaskBb;
     }
 
@@ -1557,20 +1551,21 @@ namespace Chess {
       if((myAttackBbs.allAttacksBb & yourPieceBbs.bbs[King]) != 0) {
 	// Illegal position - doesn't count
 	legalMoves.isIllegalPos = true;
+	return legalMoves;
       }
 
       // This is now a legal position.
 
-      // Evaluate check - eventually do this in the parent
+      // Evaluate check - TODO eventually do this in the parent ??? Can we? We actually have direct and discovered check in MoveInfoT
 
       const SquareT myKingSq = myState.pieceSquares[TheKing];
       const SquareAttackerBbsT myKingAttackerBbs = genSquareAttackerBbs<BoardT, YourColorTraitsT>(myKingSq, yourPieceBbs, allPiecesBb);
       const BitBoardT allMyKingAttackersBb = myKingAttackerBbs.pieceAttackerBbs[AllPieceTypes];
 
+      legalMoves.nChecks = Bits::count(allMyKingAttackersBb);
+
       // Needed for castling and for king moves so evaluate this here.
       const PieceAttackBbsT yourAttackBbs = genPieceAttackBbs<BoardT, YourColorTraitsT>(yourState, allPiecesBb);
-
-      legalMoves.nChecks = Bits::count(allMyKingAttackersBb);
 
       // Double check can only be evaded by moving the king so only bother with other pieces if nChecks < 2
       if(legalMoves.nChecks < 2) {
@@ -1579,7 +1574,7 @@ namespace Chess {
 #ifdef USE_PROMOS
 	const BitBoardT legalMoveMaskBb = genLegalMoveMaskBb<BoardTraitsT>(board, legalMoves.nChecks, allMyKingAttackersBb, myKingSq, allPiecesBb, yourPieceBbs.allPromoPiecesBb, yourAttackBbs);
 #else
-	const BitBoardT legalMoveMaskBb = genLegalMoveMaskBb<BoardT, BoardTraitsT>(board, legalMoves.nChecks, allMyKingAttackersBb, myKingSq, allPiecesBb, BbNone, yourAttackBbs);
+	const BitBoardT legalMoveMaskBb = legalMoves.nChecks == 0 ? BbAll : genLegalMoveMaskBbForSingleCheck<BoardT, BoardTraitsT>(board, allMyKingAttackersBb, myKingSq, allPiecesBb, BbNone, yourAttackBbs);
 #endif //def USE_PROMOS
 	  
 	// Calculate pinned piece move restrictions.
@@ -1599,6 +1594,7 @@ namespace Chess {
 
       // Only for promos
 #ifdef USE_PROMOS
+      // I reckon this stuff should be done as required on the make-move side
       const SquareT yourKingSq = yourState.pieceSquares[TheKing];
       legalMoves.yourKingRookAttacksBb = rookAttacks(yourKingSq, allPiecesBb);
       legalMoves.yourKingBishopAttacksBb = bishopAttacks(yourKingSq, allPiecesBb);
@@ -1642,8 +1638,32 @@ namespace Chess {
     // TODO - this shouldn't be in this header file but it has awkward dependencies
     template <typename BoardT, typename BoardTraitsT>
     int getNChecks(const BoardT& board) {
-      // Not the most efficient but fine for non-perf critical code
-      return genLegalMoves<BoardT, BoardTraitsT>(board).nChecks;
+      typedef typename BoardT::ColorStateT ColorStateT;
+      
+      typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
+
+      typedef typename PieceBbsImplType<BoardT>::PieceBbsT PieceBbsT;
+      typedef typename ColorPieceBbsImplType<BoardT>::ColorPieceBbsT ColorPieceBbsT;
+      
+      const ColorT Color = BoardTraitsT::Color;
+      const ColorT OtherColor = BoardTraitsT::OtherColor;
+      
+      const ColorStateT& myState = board.state[(size_t)Color];
+
+      const PieceBbsT pieceBbs = genPieceBbs<BoardT, BoardTraitsT>(board);
+
+      const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
+      const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
+      
+      const BitBoardT allMyPiecesBb = myPieceBbs.bbs[AllPieceTypes];
+      const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
+      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
+      
+      const SquareT myKingSq = myState.pieceSquares[TheKing];
+      const SquareAttackerBbsT myKingAttackerBbs = genSquareAttackerBbs<BoardT, YourColorTraitsT>(myKingSq, yourPieceBbs, allPiecesBb);
+      const BitBoardT allMyKingAttackersBb = myKingAttackerBbs.pieceAttackerBbs[AllPieceTypes];
+
+      return Bits::count(allMyKingAttackersBb);
     }
     
   } // namespace MoveGen
