@@ -144,26 +144,29 @@ namespace Chess {
       }
     } magicBbInit;
     
+    template <typename BoardT>
     static int countFilteredOut(const BitBoardT attacks, const BitBoardT filterOut) {
       printf("             %016lx filtered out %016lx -> %016lx count %d\n", attacks, filterOut, attacks & ~filterOut, Bits::count(attacks & ~filterOut));
       return Bits::count(attacks & ~filterOut);
     }
 
+    template <typename BoardT>
     static int countFilteredIn(const BitBoardT attacks, const BitBoardT filterIn) {
       printf("             %016lx filtered in %016lx -> %016lx count %d\n", attacks, filterIn, attacks & filterIn, Bits::count(attacks & filterIn));
       return Bits::count(attacks & filterIn);
     }
 
     // Hrm, this ignores in-check
-    int countAttacks(const PieceAttacksT& pieceAttacks, const BitBoardT filterOut /*= BbNone*/, const BitBoardT filterInPawnTakes /*= BbAll*/) {
+    template <typename BoardT>
+    int countAttacks(const typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT& pieceAttacks, const BitBoardT filterOut /*= BbNone*/, const BitBoardT filterInPawnTakes /*= BbAll*/) {
       int nAttacks =
-	countFilteredIn(pieceAttacks.pawnsLeftAttacks, filterInPawnTakes) +
-	countFilteredIn(pieceAttacks.pawnsRightAttacks, filterInPawnTakes) +
-	countFilteredOut(pieceAttacks.pawnsPushOne, filterOut) +
-	countFilteredOut(pieceAttacks.pawnsPushTwo, filterOut);
+    	countFilteredIn<BoardT>(pieceAttacks.pawnsLeftAttacks, filterInPawnTakes) +
+    	countFilteredIn<BoardT>(pieceAttacks.pawnsRightAttacks, filterInPawnTakes) +
+    	countFilteredOut<BoardT>(pieceAttacks.pawnsPushOne, filterOut) +
+    	countFilteredOut<BoardT>(pieceAttacks.pawnsPushTwo, filterOut);
       
       for(PieceT piece = Knight1; piece <= TheKing; piece = PieceT(piece + 1)) {
-	nAttacks += countFilteredOut(pieceAttacks.pieceAttacks[piece], filterOut);
+    	nAttacks += countFilteredOut<BoardT>(pieceAttacks.pieceAttacks[piece], filterOut);
       }
 
       return nAttacks;
