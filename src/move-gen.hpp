@@ -1551,16 +1551,15 @@ namespace Chess {
       if((myAttackBbs.allAttacksBb & yourPieceBbs.bbs[King]) != 0) {
 	// Illegal position - doesn't count
 	legalMoves.isIllegalPos = true;
-	return legalMoves;
       }
 
       // This is now a legal position.
 
-      // Evaluate check - TODO eventually do this in the parent ??? Can we? We actually have direct and discovered check in MoveInfoT
-
       legalMoves.nChecks = nChecks;
-      BitBoardT allMyKingAttackersBb = BbNone;
+
       const SquareT myKingSq = myState.pieceSquares[TheKing];
+      
+      BitBoardT allMyKingAttackersBb = BbNone;
       
       if(nChecks != 0) {
 	const SquareAttackerBbsT myKingAttackerBbs = genSquareAttackerBbs<BoardT, YourColorTraitsT>(myKingSq, yourPieceBbs, allPiecesBb);
@@ -1571,13 +1570,13 @@ namespace Chess {
       const PieceAttackBbsT yourAttackBbs = genPieceAttackBbs<BoardT, YourColorTraitsT>(yourState, allPiecesBb);
 
       // Double check can only be evaded by moving the king so only bother with other pieces if nChecks < 2
-      if(legalMoves.nChecks < 2) {
+      if(nChecks < 2) {
 
 	// If we're in check then the only legal moves are capture or blocking of the checking piece.
 #ifdef USE_PROMOS
 	const BitBoardT legalMoveMaskBb = genLegalMoveMaskBb<BoardTraitsT>(board, legalMoves.nChecks, allMyKingAttackersBb, myKingSq, allPiecesBb, yourPieceBbs.allPromoPiecesBb, yourAttackBbs);
 #else
-	const BitBoardT legalMoveMaskBb = legalMoves.nChecks == 0 ? BbAll : genLegalMoveMaskBbForSingleCheck<BoardT, BoardTraitsT>(board, allMyKingAttackersBb, myKingSq, allPiecesBb, BbNone, yourAttackBbs);
+	const BitBoardT legalMoveMaskBb = nChecks == 0 ? BbAll : genLegalMoveMaskBbForSingleCheck<BoardT, BoardTraitsT>(board, allMyKingAttackersBb, myKingSq, allPiecesBb, BbNone, yourAttackBbs);
 #endif //def USE_PROMOS
 	  
 	// Calculate pinned piece move restrictions.
@@ -1668,18 +1667,7 @@ namespace Chess {
 
       return Bits::count(allMyKingAttackersBb);
     }
-
-    template <typename BoardT, typename BoardTraitsT>
-    inline LegalMovesT<BoardT> genLegalMoves(const BoardT& board) {
-      return genLegalMoves<BoardT, BoardTraitsT>(board, getNChecks<BoardT, BoardTraitsT>(board));
-    }
     
-    template <typename BoardT, typename BoardTraitsT>
-    inline LegalMovesT<BoardT> genLegalMoves(const BoardT& board, const MoveInfoT moveInfo) {
-      const int nChecks = (int)moveInfo.isDirectCheck + (int)moveInfo.isDiscoveredCheck;
-      
-      return genLegalMoves<BoardT, BoardTraitsT>(board, nChecks);
-    }
   } // namespace MoveGen
   
 } // namespace Chess
