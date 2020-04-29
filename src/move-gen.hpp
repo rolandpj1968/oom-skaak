@@ -996,9 +996,9 @@ namespace Chess {
       return diagPinnedMoveMask & orthogPinnedMoveMaskBb;
     }
     
-    // Fill a pin mask structure with BbAll for all pieces.
-    template <typename BoardT, typename MyColorTraitsT>
-    inline void genDefaultPiecePinMaskBbs(typename PiecePinMaskBbsImplType<BoardT>::PiecePinMaskBbsT& pinMaskBbs, const typename BoardT::ColorStateT& myState) {
+    // Fill a pin mask structure with BbAll for all non-promo pieces.
+    template <typename BoardT>
+    inline void genDefaultSimplePiecePinMaskBbs(typename PiecePinMaskBbsImplType<BoardT>::PiecePinMaskBbsT& pinMaskBbs, const typename BoardT::ColorStateT& myState) {
       // Pawns
       pinMaskBbs.pawnsPushOnePinMaskBb = BbAll;
       pinMaskBbs.pawnsPushTwoPinMaskBb = BbAll;
@@ -1019,22 +1019,33 @@ namespace Chess {
 
       // Queens
       pinMaskBbs.piecePinMaskBbs[TheQueen] = BbAll;
-
-#ifdef USE_PROMOS
-      if(MyColorTraitsT::HasPromos) {
-	// Promo pieces - it might actually be faster to just set all 8 to BbAll
-	BitBoardT activePromos = (BitBoardT)myState.activePromos;
-	while(activePromos) {
-	  const int promoIndex = Bits::popLsb(activePromos);
-	  pinMaskBbs.promoPiecePinMaskBbs[promoIndex] = BbAll;
-	}
-      }
-#endif //def USE_PROMOS
     }
     
-    // Generate the pin masks for all pieces
+    // Fill a pin mask structure with BbAll for all pieces.
+    // I would prefer template partial specialisation here but C++ doesn't allow it, hence use overloading which is uglier IMHO.
+    template <typename BoardT>
+    inline void genDefaultPiecePinMaskBbs(SimplePiecePinMaskBbsImplT& pinMaskBbs, const typename BoardT::ColorStateT& myState) {
+      genDefaultSimplePiecePinMaskBbs<BoardT>(pinMaskBbs, myState);
+    }
+
+    
+    // Fill a pin mask structure with BbAll for all pieces with promos.
+    // I would prefer template partial specialisation here but C++ doesn't allow it, hence use overloading which is uglier IMHO.
+    template <typename BoardT>
+    inline void genDefaultPiecePinMaskBbs(SimplePiecePinMaskBbsWithPromosImplT& pinMaskBbs, const typename BoardT::ColorStateT& myState) {
+      genDefaultSimplePiecePinMaskBbs<BoardT>(pinMaskBbs, myState);
+
+      // Promo pieces - it might actually be faster to just set all 8 to BbAll
+      BitBoardT activePromos = (BitBoardT)myState.activePromos;
+      while(activePromos) {
+	const int promoIndex = Bits::popLsb(activePromos);
+	pinMaskBbs.promoPiecePinMaskBbs[promoIndex] = BbAll;
+      }
+    }
+    
+    // Generate the pin masks for all non-promo pieces
     template <typename BoardT, typename ColorTraitsT>
-    inline void genPiecePinMaskBbs(typename PiecePinMaskBbsImplType<BoardT>::PiecePinMaskBbsT& pinMaskBbs, const typename BoardT::ColorStateT& myState, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
+    inline void genSimplePiecePinMaskBbs(typename PiecePinMaskBbsImplType<BoardT>::PiecePinMaskBbsT& pinMaskBbs, const typename BoardT::ColorStateT& myState, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
       const ColorT Color = ColorTraitsT::Color;
       
       const SquareT myKingSq = myState.pieceSquares[TheKing];
@@ -1077,35 +1088,48 @@ namespace Chess {
       //   - diagonally pinned queens can only move along the king's bishop rays
       //   - orthogonally pinned queens can only move along the king's rook rays
       pinMaskBbs.piecePinMaskBbs[TheQueen] = genPinnedMoveMask<Queen>(myState.pieceSquares[TheQueen], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+    }
+    
+    // Generate the pin masks for all pieces
+    // I would prefer template partial specialisation here but C++ doesn't allow it, hence use overloading which is uglier IMHO.
+    template <typename BoardT, typename ColorTraitsT>
+    inline void genPiecePinMaskBbs(SimplePiecePinMaskBbsImplT& pinMaskBbs, const typename BoardT::ColorStateT& myState, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
+      genSimplePiecePinMaskBbs<BoardT, ColorTraitsT>(pinMaskBbs, myState, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+    }
+    
+    // Generate the pin masks for all pieces
+    // I would prefer template partial specialisation here but C++ doesn't allow it, hence use overloading which is uglier IMHO.
+    template <typename BoardT, typename ColorTraitsT>
+    inline void genPiecePinMaskBbs(SimplePiecePinMaskBbsWithPromosImplT& pinMaskBbs, const typename BoardT::ColorStateT& myState, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
 
+      genSimplePiecePinMaskBbs<BoardT, ColorTraitsT>(pinMaskBbs, myState, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+
+      const SquareT myKingSq = myState.pieceSquares[TheKing];
+      
       // Promo pieces
-#ifdef USE_PROMOS
-      if(ColorTraitsT::HasPromos) {
-	// ugh the bit stuff operates on BitBoardT type
-	BitBoardT activePromos = (BitBoardT)myState.activePromos;
-	while(activePromos) {
-	  const int promoIndex = Bits::popLsb(activePromos);
-	  const PromoPieceAndSquareT promoPieceAndSquare = myState.promos[promoIndex];
-	  const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
-	  const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
-	  
-	  BitBoardT promoPiecePinMaskBbs = BbNone;
-	  
-	  // Done as a multi-if rather than switch cos in real games it's almost always going to be a Queen
-	  if(promoPiece == PromoQueen) {
-	    promoPiecePinMaskBbs = genPinnedMoveMask<Queen>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-	  } else if(promoPiece == PromoKnight) {
-	    promoPiecePinMaskBbs = genPinnedMoveMask<Knight>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-	  } else if(promoPiece == PromoRook) {
-	    promoPiecePinMaskBbs = genPinnedMoveMask<Rook>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-	  } else if(promoPiece == PromoBishop) {
-	    promoPiecePinMaskBbs = genPinnedMoveMask<Bishop>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
-	  }
-	  
-	  pinMaskBbs.promoPiecePinMaskBbs[promoIndex] = promoPiecePinMaskBbs;
+      // ugh the bit stuff operates on BitBoardT type
+      BitBoardT activePromos = (BitBoardT)myState.activePromos;
+      while(activePromos) {
+	const int promoIndex = Bits::popLsb(activePromos);
+	const PromoPieceAndSquareT promoPieceAndSquare = myState.promos[promoIndex];
+	const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
+	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
+	
+	BitBoardT promoPiecePinMaskBbs = BbNone;
+	
+	// Done as a multi-if rather than switch cos in real games it's almost always going to be a Queen
+	if(promoPiece == PromoQueen) {
+	  promoPiecePinMaskBbs = genPinnedMoveMask<Queen>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	} else if(promoPiece == PromoKnight) {
+	  promoPiecePinMaskBbs = genPinnedMoveMask<Knight>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	} else if(promoPiece == PromoRook) {
+	  promoPiecePinMaskBbs = genPinnedMoveMask<Rook>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
+	} else if(promoPiece == PromoBishop) {
+	  promoPiecePinMaskBbs = genPinnedMoveMask<Bishop>(myState.pieceSquares[promoPieceSq], myKingSq, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
 	}
+	
+	pinMaskBbs.promoPiecePinMaskBbs[promoIndex] = promoPiecePinMaskBbs;
       }
-#endif //def USE_PROMOS
     }
     
     template <typename BoardT, typename BoardTraitsT>
@@ -1140,7 +1164,7 @@ namespace Chess {
       PiecePinMaskBbsT pinMaskBbs = {};
       // Majority of positions have no pins
       if((myDiagPinnedPiecesBb | myOrthogPinnedPiecesBb) == BbNone) {
-	genDefaultPiecePinMaskBbs<BoardT, MyColorTraitsT>(pinMaskBbs, myState);
+	genDefaultPiecePinMaskBbs<BoardT>(pinMaskBbs, myState);
       } else {
 	genPiecePinMaskBbs<BoardT, MyColorTraitsT>(pinMaskBbs, myState, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
       }
