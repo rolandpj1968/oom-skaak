@@ -790,10 +790,10 @@ namespace Chess {
 
     // Attack generation
 
-    // Generate attacks/defenses for all pieces.
+    // Generate attacks/defenses for all non-promo pieces.
     // Note that move gen for a piece on InvalidSquare MUST always generate BbNone (and not SIGSEGV :P).
     template <typename BoardT, typename ColorTraitsT>
-    inline typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT genPieceAttackBbs(const typename BoardT::ColorStateT& colorState, const BitBoardT allPiecesBb) {
+    inline typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT genSimplePieceAttackBbs(const typename BoardT::ColorStateT& colorState, const BitBoardT allPiecesBb) {
       const ColorT Color = ColorTraitsT::Color;
 
       typedef typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT PieceAttackBbsT;
@@ -867,35 +867,52 @@ namespace Chess {
 
       attacks.allAttacksBb |= attacks.pieceAttackBbs[TheKing];
 
+      return attacks;
+    }
+
+    // Generate attacks/defenses for all pieces.
+    // Note that move gen for a piece on InvalidSquare MUST always generate BbNone (and not SIGSEGV :P).
+    // I would prefer template partial specialisation here but C++ doesn't allow it, hence use opportunistic overloading which is uglier IMHO.
+    template <typename BoardT, typename ColorTraitsT>
+    inline typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT genPieceAttackBbs(const SimpleColorStateImplT& colorState, const BitBoardT allPiecesBb) {
+      return genSimplePieceAttackBbs<BoardT, ColorTraitsT>(colorState, allPiecesBb);
+    }
+      
+    // Generate attacks/defenses for all pieces.
+    // Note that move gen for a piece on InvalidSquare MUST always generate BbNone (and not SIGSEGV :P).
+    // I would prefer template partial specialisation here but C++ doesn't allow it, hence use opportunistic overloading which is uglier IMHO.
+    template <typename BoardT, typename ColorTraitsT>
+    inline typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT genPieceAttackBbs(const SimpleColorStateWithPromosImplT& colorState, const BitBoardT allPiecesBb) {
+      typedef typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT PieceAttackBbsT;
+
+      // Non-promo pieces
+      PieceAttackBbsT attacks = genSimplePieceAttackBbs<BoardT, ColorTraitsT>(colorState, allPiecesBb);
+      
       // Promo pieces
-#ifdef USE_PROMOS
-      if(ColorTraitsT::HasPromos) {
-	// Ugh the bit stuff operates on BitBoardT type
-	BitBoardT activePromos = (BitBoardT)colorState.activePromos;
-	while(activePromos) {
-	  const int promoIndex = Bits::popLsb(activePromos);
-	  const PromoPieceAndSquareT promoPieceAndSquare = colorState.promos[promoIndex];
-	  const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
-	  const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
-	  
-	  BitBoardT promoPieceAttacksBb = BbNone;
-	  
-	  // Done as a multi-if rather than switch cos in real games it's almost always going to be a Queen
-	  if(promoPiece == PromoQueen) {
-	    promoPieceAttacksBb = rookAttacks(promoPieceSq, allPiecesBb) | bishopAttacks(promoPieceSq, allPiecesBb);
-	  } else if(promoPiece == PromoKnight) {
-	    promoPieceAttacksBb = KnightAttacks[promoPieceSq];
-	  } else if(promoPiece == PromoRook) {
-	    promoPieceAttacksBb = rookAttacks(promoPieceSq, allPiecesBb);
-	  } else if(promoPiece == PromoBishop) {
-	    promoPieceAttacksBb = bishopAttacks(promoPieceSq, allPiecesBb);
-	  }
-	  
-	  attacks.promoPieceAttacks[promoIndex] = promoPieceAttacksBb;
-	  attacks.allAttacksBb |= promoPieceAttacksBb;
+      // Ugh the bit stuff operates on BitBoardT type
+      BitBoardT activePromos = (BitBoardT)colorState.activePromos;
+      while(activePromos) {
+	const int promoIndex = Bits::popLsb(activePromos);
+	const PromoPieceAndSquareT promoPieceAndSquare = colorState.promos[promoIndex];
+	const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
+	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
+	
+	BitBoardT promoPieceAttacksBb = BbNone;
+	
+	// Done as a multi-if rather than switch cos in real games it's almost always going to be a Queen
+	if(promoPiece == PromoQueen) {
+	  promoPieceAttacksBb = rookAttacks(promoPieceSq, allPiecesBb) | bishopAttacks(promoPieceSq, allPiecesBb);
+	} else if(promoPiece == PromoKnight) {
+	  promoPieceAttacksBb = KnightAttacks[promoPieceSq];
+	} else if(promoPiece == PromoRook) {
+	  promoPieceAttacksBb = rookAttacks(promoPieceSq, allPiecesBb);
+	} else if(promoPiece == PromoBishop) {
+	  promoPieceAttacksBb = bishopAttacks(promoPieceSq, allPiecesBb);
 	}
+	
+	attacks.promoPieceAttacks[promoIndex] = promoPieceAttacksBb;
+	attacks.allAttacksBb |= promoPieceAttacksBb;
       }
-#endif //def USE_PROMOS
       
       return attacks;
     }
