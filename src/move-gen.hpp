@@ -637,23 +637,22 @@ namespace Chess {
       return RookMagicBbTable[square][magicBbKey];
     }
 
-    // Generate a legal move mask for non-king moves - only valid for single check.
-    //   We must capture or block the checking piece.
+    // Generate a legal move mask for non-king moves - only valid for single check - we must capture or block the checking piece.
     template <typename BoardT, typename BoardTraitsT>
     inline BitBoardT genLegalMoveMaskBbForSingleCheck(const BoardT& board, const BitBoardT allMyKingAttackersBb, const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allYourPromoPiecesBb, const typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT& yourAttackBbs) {
       typedef typename BoardT::ColorStateT ColorStateT;
       
-      // We can evade check by capturing the checking piece
+      // We can always evade check by capturing the (one single) checking piece
       BitBoardT legalMoveMaskBb = allMyKingAttackersBb;
       
-      // There can be only one piece delivering check in this path (nChecks < 2)
+      // There can be only one piece delivering check in this path (nChecks == 1)
       // If it is a contact check (including knight check) then only a capture (or king move) will evade check.
       if(((KingAttacks[myKingSq] | KnightAttacks[myKingSq]) & allMyKingAttackersBb) == BbNone) {
 	// Distant check by a slider - we can also block the check.
-	// So here we want to generate all (open) squares between your checking piece and the king.
-	// Work backwards from the king
-	// Compute the check-blocking squares as the intersection of my king's slider 'view' and the checking piece's attack squares.
-	// Note for queens we need to restrict to the slider direction otherwise we get bogus 'blocking' squares in the other queen direction.
+	// So here we want to generate all (open) squares between your checking piece and the king, which block the check.
+	// Work backwards from the king:
+	//   Compute the check-blocking squares as the intersection of my king's slider 'view' and the checking piece's attack squares.
+	//   Note for queens we need to restrict to the slider direction otherwise we get bogus 'blocking' squares in the other queen direction.
 	
 	const ColorT OtherColor = BoardTraitsT::OtherColor;
 	
@@ -661,10 +660,6 @@ namespace Chess {
 	const ColorPieceMapT& yourPieceMap = genColorPieceMap(yourState, allYourPromoPiecesBb);
 	
 	const SquareT checkingPieceSq = Bits::lsb(allMyKingAttackersBb);
-	
-	const BitBoardT diagAttacksFromMyKingBb = bishopAttacks(myKingSq, allPiecesBb);
-	const BitBoardT orthogAttacksFromMyKingBb = rookAttacks(myKingSq, allPiecesBb);
-	
 	BitBoardT checkingPieceAttacksBb = BbNone;
 	
 #ifdef USE_PROMOS
@@ -676,18 +671,20 @@ namespace Chess {
 	} else
 #endif //def USE_PROMOS
 	{
-	  const BitBoardT pawnAttackerBb = allMyKingAttackersBb & yourState.pawnsBb;
-	  const PieceT checkingPiece = pawnAttackerBb != BbNone ? SomePawns : yourPieceMap.board[checkingPieceSq].piece;
-	  
+	  // Can't be a pawn cos that is a contact check so must be a (non-pawn) piece
+	  const PieceT checkingPiece = yourPieceMap.board[checkingPieceSq].piece;
 	  checkingPieceAttacksBb = yourAttackBbs.pieceAttackBbs[checkingPiece];
 	}
-	
-	if(allMyKingAttackersBb & diagAttacksFromMyKingBb) {
+
+	if((allMyKingAttackersBb & BishopRays[myKingSq]) != BbNone) {
+	  // Diagonal slider distance check
+	  const BitBoardT diagAttacksFromMyKingBb = bishopAttacks(myKingSq, allPiecesBb);
 	  legalMoveMaskBb |= diagAttacksFromMyKingBb & checkingPieceAttacksBb & BishopRays[checkingPieceSq];
-	}
-	if(allMyKingAttackersBb & orthogAttacksFromMyKingBb) {
+	} else {
+	  // Orthogonal slider distance check
+	  const BitBoardT orthogAttacksFromMyKingBb = rookAttacks(myKingSq, allPiecesBb);
 	  legalMoveMaskBb |= orthogAttacksFromMyKingBb & checkingPieceAttacksBb & RookRays[checkingPieceSq];
-	}
+	}	
       }
       
       return legalMoveMaskBb;
