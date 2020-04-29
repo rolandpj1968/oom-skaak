@@ -1283,11 +1283,10 @@ namespace Chess {
       return myAttackBbs.pieceAttackBbs[Piece] & legalMoveMaskBb & pinMaskBbs.piecePinMaskBbs[Piece] & ~allMyPiecesBb;
     }
 
-#ifdef USE_PROMOS
-    inline BitBoardT genLegalPromoPieceMoves(const PieceAttacksT myAttackBbs, const BitBoardT legalMoveMaskBb, const typename PiecePinMaskBbsImplType<BoardT>::PiecePinMaskBbsT& pinMaskBbs, const BitBoardT allMyPiecesBb, const int promoPieceIndex) {
+    template <typename BoardT>
+    inline BitBoardT genLegalPromoPieceMoves(const typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT myAttackBbs, const BitBoardT legalMoveMaskBb, const typename PiecePinMaskBbsImplType<BoardT>::PiecePinMaskBbsT& pinMaskBbs, const BitBoardT allMyPiecesBb, const int promoPieceIndex) {
       return myAttackBbs.promoPieceAttacks[promoPieceIndex] & legalMoveMaskBb & pinMaskBbs.promoPiecePinMaskBbs[promoPieceIndex] & ~allMyPiecesBb;
     }
-#endif //def USE_PROMOS
 
     template <typename BoardT, typename BoardTraitsT>
     inline EpPawnCapturesT genLegalPawnEpCaptures(const BoardT& board, const typename ColorPieceBbsImplType<BoardT>::ColorPieceBbsT& yourPieceBbs, const typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT myAttackBbs, const SquareT epSquare, const BitBoardT allYourPiecesBb, const BitBoardT allPiecesBb, const BitBoardT nonPinnedPawnsLeftBb, const BitBoardT nonPinnedPawnsRightBb, const BitBoardT legalMoveMaskBb) {
