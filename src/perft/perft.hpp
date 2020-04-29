@@ -77,7 +77,7 @@ namespace Chess {
     template <typename BoardT, typename BoardTraitsT>
     inline bool hasLegalMoves(const BoardT& board, const MoveInfoT moveInfo) {
       // Generate (legal) moves
-      const LegalMovesT<BoardT> legalMoves = genLegalMoves<BoardT, BoardTraitsT>(board);
+      const LegalMovesT<BoardT> legalMoves = genLegalMoves<BoardT, BoardTraitsT>(board, moveInfo);
 
       // Are there any?
       const BitBoardT anyLegalMovesBb =
@@ -247,7 +247,7 @@ namespace Chess {
     }
 
     template <typename BoardT, typename BoardTraitsT>
-    inline void perftImplFull(const PerftStateT state, const BoardT& board) {
+    inline void perftImplFull(const PerftStateT state, const BoardT& board, const MoveInfoT moveInfo) {
 
       // TODO get rid...
       if(false && state.depthToGo == 1) {
@@ -264,7 +264,7 @@ namespace Chess {
       
       const PerftStateT newState(state.stats, state.depthToGo-1);
 
-      makeAllLegalMoves<const PerftStateT, PerftPosHandlerT<BoardT, BoardTraitsT>, BoardT, BoardTraitsT>(newState, board);
+      makeAllLegalMoves<const PerftStateT, PerftPosHandlerT<BoardT, BoardTraitsT>, BoardT, BoardTraitsT>(newState, board, moveInfo);
     }
 
     template <typename BoardT, typename BoardTraitsT>
@@ -273,7 +273,7 @@ namespace Chess {
       if(state.depthToGo == 0) {
 	perft0Impl<BoardT, BoardTraitsT>(state.stats, board, moveInfo);
       } else {
-	perftImplFull<BoardT, BoardTraitsT>(state, board);
+	perftImplFull<BoardT, BoardTraitsT>(state, board, moveInfo);
       }
     }
       
@@ -281,7 +281,8 @@ namespace Chess {
     inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
       PerftStatsT stats = {};
       // TODO - fill in isDirectCheck and isDiscoveredCheck in order to hoist check detection out of genLegalMoves
-      MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/false, /*isDiscoveredCheck*/false);
+      const int nChecks = getNChecks<BoardT, BoardTraitsT>(board);
+      MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
       const PerftStateT state(stats, depthToGo);
 
       perftImpl<BoardT, BoardTraitsT>(state, board, dummyMoveInfo);

@@ -541,7 +541,7 @@ namespace Chess {
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardT, typename BoardTraitsT>
-    inline void makeAllLegalMoves(StateT state, const BoardT& board) {
+    inline void makeAllLegalMoves(StateT state, const BoardT& board, const MoveInfoT moveInfo) {
       typedef typename BoardT::ColorStateT ColorStateT;
 
       typedef typename ColorPieceBbsImplType<BoardT>::ColorPieceBbsT ColorPieceBbsT;
@@ -550,7 +550,7 @@ namespace Chess {
       const ColorT OtherColor = BoardTraitsT::OtherColor;
 
       // Generate (legal) moves
-      const LegalMovesT<BoardT> legalMoves = genLegalMoves<BoardT, BoardTraitsT>(board);
+      const LegalMovesT<BoardT> legalMoves = genLegalMoves<BoardT, BoardTraitsT>(board, moveInfo);
 
       const ColorPieceBbsT& yourPieceBbs = legalMoves.pieceBbs.colorPieceBbs[(size_t)OtherColor];
 

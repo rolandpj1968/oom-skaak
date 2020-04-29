@@ -1515,7 +1515,7 @@ namespace Chess {
     }
     
     template <typename BoardT, typename BoardTraitsT>
-    inline LegalMovesT<BoardT> genLegalMoves(const BoardT& board) {
+    inline LegalMovesT<BoardT> genLegalMoves(const BoardT& board, const int nChecks) {
       typedef typename BoardT::ColorStateT ColorStateT;
       
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
@@ -1558,12 +1558,15 @@ namespace Chess {
 
       // Evaluate check - TODO eventually do this in the parent ??? Can we? We actually have direct and discovered check in MoveInfoT
 
+      legalMoves.nChecks = nChecks;
+      BitBoardT allMyKingAttackersBb = BbNone;
       const SquareT myKingSq = myState.pieceSquares[TheKing];
-      const SquareAttackerBbsT myKingAttackerBbs = genSquareAttackerBbs<BoardT, YourColorTraitsT>(myKingSq, yourPieceBbs, allPiecesBb);
-      const BitBoardT allMyKingAttackersBb = myKingAttackerBbs.pieceAttackerBbs[AllPieceTypes];
-
-      legalMoves.nChecks = Bits::count(allMyKingAttackersBb);
-
+      
+      if(nChecks != 0) {
+	const SquareAttackerBbsT myKingAttackerBbs = genSquareAttackerBbs<BoardT, YourColorTraitsT>(myKingSq, yourPieceBbs, allPiecesBb);
+	allMyKingAttackersBb = myKingAttackerBbs.pieceAttackerBbs[AllPieceTypes];
+      }
+      
       // Needed for castling and for king moves so evaluate this here.
       const PieceAttackBbsT yourAttackBbs = genPieceAttackBbs<BoardT, YourColorTraitsT>(yourState, allPiecesBb);
 
@@ -1665,9 +1668,19 @@ namespace Chess {
 
       return Bits::count(allMyKingAttackersBb);
     }
-    
-  } // namespace MoveGen
 
+    template <typename BoardT, typename BoardTraitsT>
+    inline LegalMovesT<BoardT> genLegalMoves(const BoardT& board) {
+      return genLegalMoves<BoardT, BoardTraitsT>(board, getNChecks<BoardT, BoardTraitsT>(board));
+    }
+    
+    template <typename BoardT, typename BoardTraitsT>
+    inline LegalMovesT<BoardT> genLegalMoves(const BoardT& board, const MoveInfoT moveInfo) {
+      const int nChecks = (int)moveInfo.isDirectCheck + (int)moveInfo.isDiscoveredCheck;
+      
+      return genLegalMoves<BoardT, BoardTraitsT>(board, nChecks);
+    }
+  } // namespace MoveGen
   
 } // namespace Chess
 
