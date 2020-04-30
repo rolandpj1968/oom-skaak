@@ -1508,6 +1508,25 @@ namespace Chess {
 
       return DirectCheckMasksT(pawnChecksBb, knightChecksBb, bishopChecksBb, rookChecksBb);
     }
+
+    inline void addPromoPiecesToPieceBbs(SimpleColorPieceBbsImplT& pieceBbs, const typename SimpleBoardT::ColorStateT& colorState) {
+      // no promo pieces
+    }
+    
+    inline void addPromoPiecesToPieceBbs(SimpleColorPieceBbsWithPromosImplT& pieceBbs, const typename SimpleBoardWithPromosT::ColorStateT& colorState) {
+      BitBoardT activePromos = (BitBoardT)colorState.activePromos;
+      while(activePromos) {
+	const int promoIndex = Bits::popLsb(activePromos);
+	const PromoPieceAndSquareT promoPieceAndSquare = colorState.promos[promoIndex];
+	const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
+	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
+	const BitBoardT promoPieceSqBb = bbForSquare(promoPieceSq);
+	const PieceTypeT pieceType = PieceTypeForPromoPiece[promoPiece];
+	
+	pieceBbs.bbs[pieceType] |= promoPieceSqBb;
+	pieceBbs.allPromoPiecesBb |= promoPieceSqBb;
+      }
+    }
     
     template <typename BoardT, typename ColorTraitsT>
     inline typename ColorPieceBbsImplType<BoardT>::ColorPieceBbsT genColorPieceBbs(const typename BoardT::ColorStateT& colorState) {
@@ -1524,24 +1543,7 @@ namespace Chess {
       pieceBbs.bbs[King] = bbForSquare(colorState.pieceSquares[TheKing]);
 
       // Promo pieces
-#ifdef USE_PROMOS
-      BitBoardT allPromoPiecesBb = BbNone;
-      if(ColorTraitsT::HasPromos) {
-	BitBoardT activePromos = (BitBoardT)colorState.activePromos;
-	while(activePromos) {
-	  const int promoIndex = Bits::popLsb(activePromos);
-	  const PromoPieceAndSquareT promoPieceAndSquare = colorState.promos[promoIndex];
-	  const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
-	  const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
-	  const BitBoardT promoPieceSqBb = bbForSquare(promoPieceSq);
-	  const PieceTypeT pieceType = PieceTypeForPromoPiece[promoPiece];
-	  
-	  pieceBbs.bbs[pieceType] |= promoPieceSqBb;
-	  allPromoPiecesBb |= promoPieceSqBb;
-	}
-      }
-      pieceBbs.allPromoPiecesBb = allPromoPiecesBb;
-#endif //def USE_PROMOS
+      addPromoPiecesToPieceBbs(pieceBbs, colorState);
 
       pieceBbs.sliderBbs[Diagonal] = pieceBbs.bbs[Bishop] | pieceBbs.bbs[Queen];
       pieceBbs.sliderBbs[Orthogonal] = pieceBbs.bbs[Rook] | pieceBbs.bbs[Queen];
