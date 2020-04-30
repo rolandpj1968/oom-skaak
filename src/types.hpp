@@ -61,6 +61,10 @@ namespace Chess {
 
   const BitBoardT EdgeSquaresBb = FileA | FileH | Rank1 | Rank8;
 
+  template <ColorT Color> struct LastRankBbT {};
+  template <> struct LastRankBbT<White> { static const BitBoardT LastRankBb = Rank8; };
+  template <> struct LastRankBbT<Black> { static const BitBoardT LastRankBb = Rank1; };
+
   typedef u8 SquareT;
 
   const SquareT A1 = 0,    B1 = A1+1, C1 = A1+2, D1 = A1+3, E1 = A1+4, F1 = A1+5, G1 = A1+6, H1 = A1+7;

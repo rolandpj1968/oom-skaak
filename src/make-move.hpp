@@ -152,13 +152,13 @@ namespace Chess {
 #endif //def USE_PROMOS
 
     template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color, typename To2FromFn, bool IsPushTwo>
-    inline void handlePawnsPush(StateT state, const BoardT& board, BitBoardT pawnsPushBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
+    inline void handleNonPromoPawnsPush(StateT state, const BoardT& board, BitBoardT pawnsPushBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb/*, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb*/) {
       typedef typename PosHandlerT::ReverseT ReversePosHandlerT;
 
       // Can't reach promotion on the first move
 #ifdef USE_PROMOS
       if(!IsPushTwo) {
-	const BitBoardT pawnsPushToPromoBb = pawnsPushBb & (Color == White ? Rank8 : Rank1);
+	const BitBoardT pawnsPushToPromoBb = pawnsPushBb & LastRankBbT<Color>::LastRankBb; //(Color == White ? Rank8 : Rank1);
 	typedef PawnPromoMoveFn<Color, PawnPushToPromo, NoPieceMapT> PawnPushToPromoFn;
 	handlePawnsMoveToPromo<StateT, PosHandlerT, Color, To2FromFn, PawnPushToPromoFn, PushMove>(state, board, NoPieceMapT(), pawnsPushToPromoBb, directChecksBb, discoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
 	pawnsPushBb &= ~pawnsPushToPromoBb;
@@ -199,14 +199,14 @@ namespace Chess {
     };
 
     template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color, typename To2FromFn>
-    inline void handlePawnsCapture(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
+    inline void handleNonPromoPawnsCapture(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb/*, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb*/) {
 
 #ifdef USE_PROMOS
       if(YourColorTraitsT::HasPromos) {
 	BitBoardT promoPieceCapturesBb = pawnsCaptureBb & yourPieceMap.allPromoPiecesBb;
 	pawnsCaptureBb &= ~promoPieceCapturesBb;
 	
-	const BitBoardT promoPieceCapturesToPromoBb = promoPieceCapturesBb & (Color == White ? Rank8 : Rank1);
+	const BitBoardT promoPieceCapturesToPromoBb = promoPieceCapturesBb & LastRankBbT<Color>::LastRankBb; //(Color == White ? Rank8 : Rank1);
 	promoPieceCapturesBb &= ~promoPieceCapturesToPromoBb;
 
 	// Promo piece capture with pawn promo
@@ -218,7 +218,7 @@ namespace Chess {
 	handlePawnsMove<StateT, PosHandlerT, Color, To2FromFn, PawnPromoCaptureFn, CaptureMove>(state, board, yourPieceMap, promoPieceCapturesBb, directChecksBb, discoveriesBb);
       }
 
-      const BitBoardT pawnsCaptureToPromoBb = pawnsCaptureBb & (Color == White ? Rank8 : Rank1);
+      const BitBoardT pawnsCaptureToPromoBb = pawnsCaptureBb & LastRankBbT<Color>::LastRankBb; //(Color == White ? Rank8 : Rank1);
       pawnsCaptureBb &= ~pawnsCaptureToPromoBb;
 
       // (Non-promo-piece) capture with pawn promo
@@ -251,17 +251,17 @@ namespace Chess {
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color>
-    inline void handlePawnMoves(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const PawnPushesAndCapturesT& pawnMoves, const BitBoardT directChecksBb, const BitBoardT pushDiscoveriesBb, const BitBoardT leftDiscoveriesBb, const BitBoardT rightDiscoveriesBb, const bool isLeftEpDiscovery, const bool isRightEpDiscovery, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
+    inline void handleNonPromoPawnMoves(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const PawnPushesAndCapturesT& pawnMoves, const BitBoardT directChecksBb, const BitBoardT pushDiscoveriesBb, const BitBoardT leftDiscoveriesBb, const BitBoardT rightDiscoveriesBb, const bool isLeftEpDiscovery, const bool isRightEpDiscovery/*, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb*/) {
 
       // Pawn pushes one square forward
-      handlePawnsPush<StateT, PosHandlerT, BoardT, Color, PawnPushOneTo2FromFn<Color>, /*IsPushTwo =*/false>(state, board, pawnMoves.pushesOneBb, directChecksBb, pushDiscoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
+      handleNonPromoPawnsPush<StateT, PosHandlerT, BoardT, Color, PawnPushOneTo2FromFn<Color>, /*IsPushTwo =*/false>(state, board, pawnMoves.pushesOneBb & ~LastRankBbT<Color>::LastRankBb, directChecksBb, pushDiscoveriesBb/*, yourKingRookAttacksBb, yourKingBishopAttacksBb*/);
       // Pawn pushes two squares forward
-      handlePawnsPush<StateT, PosHandlerT, BoardT, Color, PawnPushTwoTo2FromFn<Color>, /*IsPushTwo =*/true>(state, board, pawnMoves.pushesTwoBb, directChecksBb, pushDiscoveriesBb, BbNone/*unused*/, BbNone/*unused*/);
+      handleNonPromoPawnsPush<StateT, PosHandlerT, BoardT, Color, PawnPushTwoTo2FromFn<Color>, /*IsPushTwo =*/true>(state, board, pawnMoves.pushesTwoBb, directChecksBb, pushDiscoveriesBb/*, BbNone/unused/, BbNone/unused/*/);
 	
       // Pawn captures left
-      handlePawnsCapture<StateT, PosHandlerT, BoardT, Color, PawnAttackLeftTo2FromFn<Color>>(state, board, yourPieceMap, pawnMoves.capturesLeftBb, directChecksBb, leftDiscoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
+      handleNonPromoPawnsCapture<StateT, PosHandlerT, BoardT, Color, PawnAttackLeftTo2FromFn<Color>>(state, board, yourPieceMap, pawnMoves.capturesLeftBb & ~LastRankBbT<Color>::LastRankBb, directChecksBb, leftDiscoveriesBb/*, yourKingRookAttacksBb, yourKingBishopAttacksBb*/);
       // Pawn captures right
-      handlePawnsCapture<StateT, PosHandlerT, BoardT, Color, PawnAttackRightTo2FromFn<Color>>(state, board, yourPieceMap, pawnMoves.capturesRightBb, directChecksBb, rightDiscoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);      
+      handleNonPromoPawnsCapture<StateT, PosHandlerT, BoardT, Color, PawnAttackRightTo2FromFn<Color>>(state, board, yourPieceMap, pawnMoves.capturesRightBb & ~LastRankBbT<Color>::LastRankBb, directChecksBb, rightDiscoveriesBb/*, yourKingRookAttacksBb, yourKingBishopAttacksBb*/);      
 
       // Pawn en-passant capture left
       handlePawnEpCapture<StateT, PosHandlerT, BoardT, Color, PawnAttackLeftTo2FromFn<Color>>(state, board, pawnMoves.epCaptures.epLeftCaptureBb, directChecksBb, leftDiscoveriesBb, isLeftEpDiscovery);
@@ -577,11 +577,11 @@ namespace Chess {
 	// Evaluate moves
 
 	// Pawns
-#ifdef USE_PROMOS
-	handlePawnMoves<StateT, PosHandlerT, Color>(state, board, yourPieceMap, legalMoves.pawnMoves, legalMoves.directChecks.pawnChecksBb, legalMoves.discoveredChecks.pawnPushDiscoveryMasksBb, legalMoves.discoveredChecks.pawnLeftDiscoveryMasksBb, legalMoves.discoveredChecks.pawnRightDiscoveryMasksBb, legalMoves.discoveredChecks.isLeftEpDiscovery, legalMoves.discoveredChecks.isRightEpDiscovery, legalMoves.yourKingRookAttacksBb, legalMoves.yourKingBishopAttacksBb);
-#else
-	handlePawnMoves<StateT, PosHandlerT, BoardT, Color>(state, board, yourPieceMap, legalMoves.pawnMoves, legalMoves.directChecks.pawnChecksBb, legalMoves.discoveredChecks.pawnPushDiscoveryMasksBb, legalMoves.discoveredChecks.pawnLeftDiscoveryMasksBb, legalMoves.discoveredChecks.pawnRightDiscoveryMasksBb, legalMoves.discoveredChecks.isLeftEpDiscovery, legalMoves.discoveredChecks.isRightEpDiscovery, BbNone, BbNone);
-#endif //def USE_PROMOS
+// #ifdef USE_PROMOS
+// 	handlePawnMoves<StateT, PosHandlerT, Color>(state, board, yourPieceMap, legalMoves.pawnMoves, legalMoves.directChecks.pawnChecksBb, legalMoves.discoveredChecks.pawnPushDiscoveryMasksBb, legalMoves.discoveredChecks.pawnLeftDiscoveryMasksBb, legalMoves.discoveredChecks.pawnRightDiscoveryMasksBb, legalMoves.discoveredChecks.isLeftEpDiscovery, legalMoves.discoveredChecks.isRightEpDiscovery, legalMoves.yourKingRookAttacksBb, legalMoves.yourKingBishopAttacksBb);
+// #else
+	handleNonPromoPawnMoves<StateT, PosHandlerT, BoardT, Color>(state, board, yourPieceMap, legalMoves.pawnMoves, legalMoves.directChecks.pawnChecksBb, legalMoves.discoveredChecks.pawnPushDiscoveryMasksBb, legalMoves.discoveredChecks.pawnLeftDiscoveryMasksBb, legalMoves.discoveredChecks.pawnRightDiscoveryMasksBb, legalMoves.discoveredChecks.isLeftEpDiscovery, legalMoves.discoveredChecks.isRightEpDiscovery/*, BbNone, BbNone*/);
+// #endif //def USE_PROMOS
 
 #ifdef USE_PROMOS
       // I reckon this stuff should be done as required on the make-move side
