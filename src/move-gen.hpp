@@ -1576,7 +1576,7 @@ namespace Chess {
     }
     
     template <typename BoardT, typename BoardTraitsT>
-    inline typename LegalMovesImplType<BoardT>::LegalMovesT genLegalMoves(const BoardT& board, const int nChecks) {
+    inline typename LegalMovesImplType<BoardT>::LegalMovesT genLegalMoves(const BoardT& board) {
       typedef typename BoardT::ColorStateT ColorStateT;
       
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
@@ -1612,16 +1612,12 @@ namespace Chess {
       // Is your king in check? If so this is an illegal position
       legalMoves.isIllegalPos = (myAttackBbs.allAttacksBb & yourPieceBbs.bbs[King]) != 0;
 
-      legalMoves.nChecks = nChecks;
-
       const SquareT myKingSq = myState.pieceSquares[TheKing];
-      
-      BitBoardT allMyKingAttackersBb = BbNone;
-      
-      if(nChecks != 0) {
-	const SquareAttackerBbsT myKingAttackerBbs = genSquareAttackerBbs<BoardT, YourColorTraitsT>(myKingSq, yourPieceBbs, allPiecesBb);
-	allMyKingAttackersBb = myKingAttackerBbs.pieceAttackerBbs[AllPieceTypes];
-      }
+      // I have made several attempts to pass nChecks as a parameter into genLegalMoves since we can get it from MoveInfoT but somehow it doesn't help      
+      const SquareAttackerBbsT myKingAttackerBbs = genSquareAttackerBbs<BoardT, YourColorTraitsT>(myKingSq, yourPieceBbs, allPiecesBb);
+      const BitBoardT allMyKingAttackersBb = myKingAttackerBbs.pieceAttackerBbs[AllPieceTypes];
+      const int nChecks = Bits::count(allMyKingAttackersBb);
+      legalMoves.nChecks = nChecks;
       
       // Needed for castling and for king moves so evaluate this here.
       const PieceAttackBbsT yourAttackBbs = genPieceAttackBbs<BoardT, YourColorTraitsT>(yourState, allPiecesBb);

@@ -75,12 +75,11 @@ namespace Chess {
     };
 
     template <typename BoardT, typename BoardTraitsT>
-    inline bool hasLegalMoves(const BoardT& board, const MoveInfoT moveInfo) {
+    inline bool hasLegalMoves(const BoardT& board) {
       typedef typename LegalMovesImplType<BoardT>::LegalMovesT LegalMovesT;
       
       // Generate (legal) moves
-      const int nChecks = (int)moveInfo.isDirectCheck + (int)moveInfo.isDiscoveredCheck;
-      const LegalMovesT legalMoves = genLegalMoves<BoardT, BoardTraitsT>(board, nChecks);
+      const LegalMovesT legalMoves = genLegalMoves<BoardT, BoardTraitsT>(board);
 
       // Are there any?
       const BitBoardT anyLegalMovesBb =
@@ -104,7 +103,7 @@ namespace Chess {
 
 	(BitBoardT)legalMoves.canCastleFlags;
 
-      // TODO - promos
+      // TODO - promos TODO TODO TODO!!!
 	
       return anyLegalMovesBb != BbNone;
     }
@@ -242,7 +241,7 @@ namespace Chess {
 	if(DoCheckMateStats) {
 	  // Only bother if it is check
 	  // It's checkmate if there are no legal moves
-	  if(!hasLegalMoves<BoardT, BoardTraitsT>(board, moveInfo)) {
+	  if(!hasLegalMoves<BoardT, BoardTraitsT>(board)) {
 	    stats.checkmates++;
 	  }
 	}
@@ -250,7 +249,7 @@ namespace Chess {
     }
 
     template <typename BoardT, typename BoardTraitsT>
-    inline void perftImplFull(const PerftStateT state, const BoardT& board, const MoveInfoT moveInfo) {
+    inline void perftImplFull(const PerftStateT state, const BoardT& board) {
 
       // TODO get rid...
       if(false && state.depthToGo == 1) {
@@ -267,7 +266,7 @@ namespace Chess {
       
       const PerftStateT newState(state.stats, state.depthToGo-1);
 
-      makeAllLegalMoves<const PerftStateT, PerftPosHandlerT<BoardT, BoardTraitsT>, BoardT, BoardTraitsT>(newState, board, moveInfo);
+      makeAllLegalMoves<const PerftStateT, PerftPosHandlerT<BoardT, BoardTraitsT>, BoardT, BoardTraitsT>(newState, board);
     }
 
     template <typename BoardT, typename BoardTraitsT>
@@ -276,7 +275,7 @@ namespace Chess {
       if(state.depthToGo == 0) {
 	perft0Impl<BoardT, BoardTraitsT>(state.stats, board, moveInfo);
       } else {
-	perftImplFull<BoardT, BoardTraitsT>(state, board, moveInfo);
+	perftImplFull<BoardT, BoardTraitsT>(state, board);
       }
     }
       
