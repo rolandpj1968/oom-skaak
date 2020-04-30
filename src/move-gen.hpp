@@ -1305,7 +1305,7 @@ namespace Chess {
 
     template <typename BoardT>
     inline BitBoardT genLegalPromoPieceMoves(const typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT myAttackBbs, const BitBoardT legalMoveMaskBb, const typename PiecePinMaskBbsImplType<BoardT>::PiecePinMaskBbsT& pinMaskBbs, const BitBoardT allMyPiecesBb, const int promoPieceIndex) {
-      return myAttackBbs.promoPieceAttacks[promoPieceIndex] & legalMoveMaskBb & pinMaskBbs.promoPiecePinMaskBbs[promoPieceIndex] & ~allMyPiecesBb;
+      return myAttackBbs.promoPieceAttackBbs[promoPieceIndex] & legalMoveMaskBb & pinMaskBbs.promoPiecePinMaskBbs[promoPieceIndex] & ~allMyPiecesBb;
     }
 
     template <typename BoardT, typename BoardTraitsT>
@@ -1381,6 +1381,20 @@ namespace Chess {
 
       return PawnPushesAndCapturesT(legalPawnsPushOneBb, legalPawnsPushTwoBb, legalPawnsLeftBb, legalPawnsRightBb, legalEpPawnCaptures);
     }
+
+    inline void genPromoPieceMoves(SimpleLegalMovesImplT<SimpleBoardT>& legalMoves, const SimpleColorStateImplT& myState, const SimplePieceAttackBbsImplT& myAttackBbs, const BitBoardT legalMoveMaskBb, const SimplePiecePinMaskBbsImplT& pinMaskBbs, const BitBoardT allMyPiecesBb) {
+      // no promo pieces
+    }
+    
+    inline void genPromoPieceMoves(SimpleLegalMovesWithPromosImplT<SimpleBoardWithPromosT>& legalMoves, const SimpleColorStateWithPromosImplT& myState, const SimplePieceAttackBbsWithPromosImplT& myAttackBbs, const BitBoardT legalMoveMaskBb, const SimplePiecePinMaskBbsWithPromosImplT& pinMaskBbs, const BitBoardT allMyPiecesBb) {
+      
+      // Ugh the bit stuff operates on BitBoardT type
+      BitBoardT activePromos = (BitBoardT)myState.activePromos;
+      while(activePromos) {
+    	const int promoIndex = Bits::popLsb(activePromos);
+    	legalMoves.promoPieceMoves[promoIndex] = genLegalPromoPieceMoves<SimpleBoardWithPromosT>(myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb, promoIndex);
+      }
+    }
     
     template <typename BoardT, typename BoardTraitsT> 
     inline void genLegalNonKingMoves(typename LegalMovesImplType<BoardT>::LegalMovesT& legalMoves, const BoardT& board, const typename PieceBbsImplType<BoardT>::PieceBbsT& pieceBbs, const typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT& myAttackBbs, const BitBoardT legalMoveMaskBb, const typename PiecePinMaskBbsImplType<BoardT>::PiecePinMaskBbsT& pinMaskBbs) {
@@ -1390,7 +1404,8 @@ namespace Chess {
       
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
-      
+
+      const ColorStateT& myState = board.state[(size_t)Color];
       const ColorStateT& yourState = board.state[(size_t)OtherColor];
       
       const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
@@ -1415,18 +1430,7 @@ namespace Chess {
       legalMoves.pieceMoves[TheQueen] = genLegalPieceMoves<BoardT, TheQueen>(myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
       
       // Promo pieces
-#ifdef USE_PROMOS
-      typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
-      if(MyColorTraitsT::HasPromos) {
-	const ColorStateT& myState = board.state[(size_t)Color];
-	// Ugh the bit stuff operates on BitBoardT type
-	BitBoardT activePromos = (BitBoardT)myState.activePromos;
-	while(activePromos) {
-	  const int promoIndex = Bits::popLsb(activePromos);
-	  legalMoves.promoPieceMoves[promoIndex] = genLegalPromoPieceMoves(myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb, promoIndex);
-	}
-      }
-#endif //def USE_PROMOS
+      genPromoPieceMoves(legalMoves, myState, myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
     }
 
     template <typename BoardT, typename BoardTraitsT>
