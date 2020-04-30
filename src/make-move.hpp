@@ -587,6 +587,13 @@ namespace Chess {
 #else
 	handlePawnMoves<StateT, PosHandlerT, BoardT, BoardTraitsT>(state, board, yourPieceMap, legalMoves.pawnMoves, legalMoves.directChecks.pawnChecksBb, legalMoves.discoveredChecks.pawnPushDiscoveryMasksBb, legalMoves.discoveredChecks.pawnLeftDiscoveryMasksBb, legalMoves.discoveredChecks.pawnRightDiscoveryMasksBb, legalMoves.discoveredChecks.isLeftEpDiscovery, legalMoves.discoveredChecks.isRightEpDiscovery, BbNone, BbNone);
 #endif //def USE_PROMOS
+
+#ifdef USE_PROMOS
+      // I reckon this stuff should be done as required on the make-move side
+      const SquareT yourKingSq = yourState.pieceSquares[TheKing];
+      legalMoves.yourKingRookAttacksBb = rookAttacks(yourKingSq, allPiecesBb);
+      legalMoves.yourKingBishopAttacksBb = bishopAttacks(yourKingSq, allPiecesBb);
+#endif //def USE_PROMOS
 	
 	// Knights
 	handlePieceMoves<StateT, PosHandlerT, BoardT, BoardTraitsT, Knight1>(state, board, yourPieceMap, legalMoves.pieceMoves[Knight1], legalMoves.directChecks.knightChecksBb, (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb);

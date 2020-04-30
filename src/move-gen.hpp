@@ -1576,6 +1576,14 @@ namespace Chess {
 
       return pieceBbs;
     }
+
+    inline BitBoardT getAllPromoPiecesBb(const SimpleColorPieceBbsImplT& colorPieceBbs) {
+      return BbNone; // no promo pieces
+    }
+    
+    inline BitBoardT getAllPromoPiecesBb(const SimpleColorPieceBbsWithPromosImplT& colorPieceBbs) {
+      return colorPieceBbs.allPromoPiecesBb;
+    }
     
     template <typename BoardT, typename BoardTraitsT>
     inline typename LegalMovesImplType<BoardT>::LegalMovesT genLegalMoves(const BoardT& board) {
@@ -1628,11 +1636,8 @@ namespace Chess {
       if(nChecks < 2) {
 
 	// If we're in check then the only legal moves are capture or blocking of the checking piece.
-#ifdef USE_PROMOS
-	const BitBoardT legalMoveMaskBb = genLegalMoveMaskBb<BoardTraitsT>(board, legalMoves.nChecks, allMyKingAttackersBb, myKingSq, allPiecesBb, yourPieceBbs.allPromoPiecesBb, yourAttackBbs);
-#else
-	const BitBoardT legalMoveMaskBb = nChecks == 0 ? BbAll : genLegalMoveMaskBbForSingleCheck<BoardT, BoardTraitsT>(board, allMyKingAttackersBb, myKingSq, allPiecesBb, BbNone, yourAttackBbs);
-#endif //def USE_PROMOS
+	const BitBoardT allYourPromoPiecesBb = getAllPromoPiecesBb(yourPieceBbs);
+	const BitBoardT legalMoveMaskBb = nChecks == 0 ? BbAll : genLegalMoveMaskBbForSingleCheck<BoardT, BoardTraitsT>(board, allMyKingAttackersBb, myKingSq, allPiecesBb, allYourPromoPiecesBb, yourAttackBbs);
 	  
 	// Calculate pinned piece move restrictions.
 	const PiecePinMaskBbsT pinMaskBbs = genPinMaskBbs<BoardT, BoardTraitsT>(board, pieceBbs);
@@ -1648,14 +1653,6 @@ namespace Chess {
 
       legalMoves.directChecks = genDirectCheckMasks<ColorStateT, Color>(yourState, allPiecesBb);
       legalMoves.discoveredChecks = genDiscoveryMasks<BoardT, BoardTraitsT>(board, pieceBbs, legalMoves.pawnMoves.epCaptures.epLeftCaptureBb, legalMoves.pawnMoves.epCaptures.epRightCaptureBb, legalMoves.canCastleFlags);
-
-      // Only for promos
-#ifdef USE_PROMOS
-      // I reckon this stuff should be done as required on the make-move side
-      const SquareT yourKingSq = yourState.pieceSquares[TheKing];
-      legalMoves.yourKingRookAttacksBb = rookAttacks(yourKingSq, allPiecesBb);
-      legalMoves.yourKingBishopAttacksBb = bishopAttacks(yourKingSq, allPiecesBb);
-#endif //def USE_PROMOS
       
       return legalMoves;
     }
