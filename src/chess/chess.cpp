@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
   ColorStateT& w = board.state[(size_t)White];
   ColorStateT& b = board.state[(size_t)Black];
 
-  const PieceBbsT& pieceBbs = genPieceBbs<BoardT, StartingBoardTraitsT>(board);
+  const PieceBbsT& pieceBbs = genPieceBbs<BoardT, White>(board);
 
   const ColorPieceBbsT& wPieceBbs = pieceBbs.colorPieceBbs[(size_t)White];
   const ColorPieceBbsT& bPieceBbs = pieceBbs.colorPieceBbs[(size_t)Black];
@@ -74,14 +74,14 @@ int main(int argc, char* argv[]) {
   const BitBoardT allBPiecesBb = bPieceBbs.bbs[AllPieceTypes];
   const BitBoardT allPiecesBb = allWPiecesBb | allBPiecesBb;
   
-  auto whiteAttacks = genPieceAttackBbs<BoardT, WhiteStartingColorTraitsT>(w, allPiecesBb);
+  auto whiteAttacks = genPieceAttackBbs<BoardT, White>(w, allPiecesBb);
 
   printf("\nWhite:\n");
   dumpAttacks<BoardT>(whiteAttacks);
 
   printf("\n%d attacks, %d valid moves, all white pieces %016lx\n", countAttacks<BoardT>(whiteAttacks), countAttacks<BoardT>(whiteAttacks, allWPiecesBb, allBPiecesBb), allPiecesBb);
   
-  auto blackAttacks = genPieceAttackBbs<BoardT, BlackStartingColorTraitsT>(b, allPiecesBb);
+  auto blackAttacks = genPieceAttackBbs<BoardT, Black>(b, allPiecesBb);
 
   printf("\nBlack:\n");
   dumpAttacks<BoardT>(blackAttacks);

@@ -52,40 +52,6 @@ namespace Chess {
     const bool DoesNotHavePromos = false;
     const bool DoesHavePromos = true;
     
-    // Board traits used for optimising move generation etc.
-    // The compile-time traits can be false only if the run-time state is also false.
-    //   On the other hand the code should handle compile-time traits being true even if run-time traits are false.
-    template <ColorT ColorVal, bool HasPromosVal>
-    struct ColorTraitsImplT {
-      static const ColorT Color = ColorVal;
-      static const bool HasPromos = HasPromosVal;
-
-      typedef ColorTraitsImplT<Color, DoesHavePromos> WithPromosT;
-      typedef ColorTraitsImplT<Color, DoesNotHavePromos> WithoutPromosT;
-    };
-
-    typedef ColorTraitsImplT<White, DoesNotHavePromos> WhiteStartingColorTraitsT;
-    typedef ColorTraitsImplT<Black, DoesNotHavePromos> BlackStartingColorTraitsT;
-
-    template <typename MyColorTraitsImplT, typename YourColorTraitsImplT>
-    struct BoardTraitsImplT {
-      typedef MyColorTraitsImplT MyColorTraitsT;
-      typedef YourColorTraitsImplT YourColorTraitsT;
-
-      static const ColorT Color = MyColorTraitsT::Color;
-      static const ColorT OtherColor = YourColorTraitsT::Color;
-
-      // Switch color to move
-      typedef BoardTraitsImplT<YourColorTraitsT, MyColorTraitsT> ReverseT;
-
-      // We have some promo pieces.
-      typedef BoardTraitsImplT<typename MyColorTraitsT::WithPromosT, YourColorTraitsT> WithPromosT;
-      // We have no promo pieces.
-      typedef BoardTraitsImplT<typename MyColorTraitsT::WithoutPromosT, YourColorTraitsT> WithoutPromosT;
-    };
-
-    typedef BoardTraitsImplT<WhiteStartingColorTraitsT, BlackStartingColorTraitsT> StartingBoardTraitsT;
-
     union PieceOrPromoIndexT {
       PieceT piece;
       u8 promoIndex;
