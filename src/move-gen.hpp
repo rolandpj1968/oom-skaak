@@ -186,7 +186,7 @@ namespace Chess {
     };
 
     template <typename BoardT>
-    struct LegalMovesT {
+    struct SimpleLegalMovesImplT {
       typedef typename PieceBbsImplType<BoardT>::PieceBbsT PieceBbsT;
       
       bool isIllegalPos; // true iff opposition king is (already) in check
@@ -200,16 +200,29 @@ namespace Chess {
 
       DirectCheckMasksT directChecks;
       DiscoveredCheckMasksT discoveredChecks;
-
-#ifdef USE_PROMOS
+    };
+    
+    
+    template <typename BoardT>
+    struct SimpleLegalMovesWithPromosImplT : SimpleLegalMovesImplT<BoardT> {
       BitBoardT promoPieceMoves[NPawns];
 
       // Used for promo check detection
       BitBoardT yourKingRookAttacksBb;
       BitBoardT yourKingBishopAttacksBb;
-#endif //def USE_PROMOS
     };
 
+    template <typename BoardT>
+    struct LegalMovesImplType {};
+    
+    template <> struct LegalMovesImplType<SimpleBoardT> {
+      typedef SimpleLegalMovesImplT<SimpleBoardT> LegalMovesT;
+    };
+
+    template <> struct LegalMovesImplType<SimpleBoardWithPromosT> {
+      typedef SimpleLegalMovesWithPromosImplT<SimpleBoardWithPromosT> LegalMovesT;
+    };
+    
 #include <boost/preprocessor/iteration/local.hpp>
     const u8 QueensideCastleSpaceBits = 0x07;
     const u8 KingsideCastleSpaceBits = 0x30;
@@ -1363,7 +1376,7 @@ namespace Chess {
     }
     
     template <typename BoardT, typename BoardTraitsT> 
-    inline void genLegalNonKingMoves(LegalMovesT<BoardT>& legalMoves, const BoardT& board, const typename PieceBbsImplType<BoardT>::PieceBbsT& pieceBbs, const typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT& myAttackBbs, const BitBoardT legalMoveMaskBb, const typename PiecePinMaskBbsImplType<BoardT>::PiecePinMaskBbsT& pinMaskBbs) {
+    inline void genLegalNonKingMoves(typename LegalMovesImplType<BoardT>::LegalMovesT& legalMoves, const BoardT& board, const typename PieceBbsImplType<BoardT>::PieceBbsT& pieceBbs, const typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT& myAttackBbs, const BitBoardT legalMoveMaskBb, const typename PiecePinMaskBbsImplType<BoardT>::PiecePinMaskBbsT& pinMaskBbs) {
       typedef typename BoardT::ColorStateT ColorStateT;
       
       typedef typename ColorPieceBbsImplType<BoardT>::ColorPieceBbsT ColorPieceBbsT;
@@ -1552,7 +1565,7 @@ namespace Chess {
     }
     
     template <typename BoardT, typename BoardTraitsT>
-    inline LegalMovesT<BoardT> genLegalMoves(const BoardT& board, const int nChecks) {
+    inline typename LegalMovesImplType<BoardT>::LegalMovesT genLegalMoves(const BoardT& board, const int nChecks) {
       typedef typename BoardT::ColorStateT ColorStateT;
       
       typedef typename BoardTraitsT::MyColorTraitsT MyColorTraitsT;
@@ -1562,6 +1575,7 @@ namespace Chess {
       typedef typename ColorPieceBbsImplType<BoardT>::ColorPieceBbsT ColorPieceBbsT;
       typedef typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT PieceAttackBbsT;
       typedef typename PiecePinMaskBbsImplType<BoardT>::PiecePinMaskBbsT PiecePinMaskBbsT;
+      typedef typename LegalMovesImplType<BoardT>::LegalMovesT LegalMovesT;
       
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
@@ -1569,7 +1583,7 @@ namespace Chess {
       const ColorStateT& myState = board.state[(size_t)Color];
       const ColorStateT& yourState = board.state[(size_t)OtherColor];
 
-      LegalMovesT<BoardT> legalMoves = {};
+      LegalMovesT legalMoves = {};
       
       legalMoves.pieceBbs = genPieceBbs<BoardT, BoardTraitsT>(board);
       const PieceBbsT& pieceBbs = legalMoves.pieceBbs;
@@ -1584,13 +1598,8 @@ namespace Chess {
       // Generate moves - TODO this and yourAttackBbs are interesting side-channel data to return in LegalMovesT
       const PieceAttackBbsT myAttackBbs = genPieceAttackBbs<BoardT, MyColorTraitsT>(myState, allPiecesBb);
 
-      // Is your king in check? If so we got here via an illegal move of the move-generator
-      if((myAttackBbs.allAttacksBb & yourPieceBbs.bbs[King]) != 0) {
-	// Illegal position - doesn't count
-	legalMoves.isIllegalPos = true;
-      }
-
-      // This is now a legal position.
+      // Is your king in check? If so this is an illegal position
+      legalMoves.isIllegalPos = (myAttackBbs.allAttacksBb & yourPieceBbs.bbs[King]) != 0;
 
       legalMoves.nChecks = nChecks;
 

@@ -76,9 +76,11 @@ namespace Chess {
 
     template <typename BoardT, typename BoardTraitsT>
     inline bool hasLegalMoves(const BoardT& board, const MoveInfoT moveInfo) {
+      typedef typename LegalMovesImplType<BoardT>::LegalMovesT LegalMovesT;
+      
       // Generate (legal) moves
       const int nChecks = (int)moveInfo.isDirectCheck + (int)moveInfo.isDiscoveredCheck;
-      const LegalMovesT<BoardT> legalMoves = genLegalMoves<BoardT, BoardTraitsT>(board, nChecks);
+      const LegalMovesT legalMoves = genLegalMoves<BoardT, BoardTraitsT>(board, nChecks);
 
       // Are there any?
       const BitBoardT anyLegalMovesBb =

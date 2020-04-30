@@ -545,13 +545,14 @@ namespace Chess {
       typedef typename BoardT::ColorStateT ColorStateT;
 
       typedef typename ColorPieceBbsImplType<BoardT>::ColorPieceBbsT ColorPieceBbsT;
+      typedef typename LegalMovesImplType<BoardT>::LegalMovesT LegalMovesT;
       
       const ColorT Color = BoardTraitsT::Color;
       const ColorT OtherColor = BoardTraitsT::OtherColor;
 
       // Generate (legal) moves
       const int nChecks = (int)moveInfo.isDirectCheck + (int)moveInfo.isDiscoveredCheck;
-      const LegalMovesT<BoardT> legalMoves = genLegalMoves<BoardT, BoardTraitsT>(board, nChecks);
+      const LegalMovesT legalMoves = genLegalMoves<BoardT, BoardTraitsT>(board, nChecks);
 
       const ColorPieceBbsT& yourPieceBbs = legalMoves.pieceBbs.colorPieceBbs[(size_t)OtherColor];
 
