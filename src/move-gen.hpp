@@ -650,6 +650,25 @@ namespace Chess {
       return RookMagicBbTable[square][magicBbKey];
     }
 
+    // I would prefer template specialisation but couldn't get it to work
+    inline BitBoardT getCheckingPieceAttacksBb(const SquareT checkingPieceSq, const ColorPieceMapT& yourPieceMap, const SimplePieceAttackBbsImplT& yourAttackBbs, const BitBoardT allMyKingAttackersBb, const BitBoardT allYourPromoPiecesBb) {
+      const PieceT checkingPiece = yourPieceMap.board[checkingPieceSq].piece;
+      return yourAttackBbs.pieceAttackBbs[checkingPiece];
+    }
+    
+    // I would prefer template specialisation but couldn't get it to work
+    inline BitBoardT getCheckingPieceAttacksBb(const SquareT checkingPieceSq, const ColorPieceMapT& yourPieceMap, const SimplePieceAttackBbsWithPromosImplT& yourAttackBbs, const BitBoardT allMyKingAttackersBb, const BitBoardT allYourPromoPiecesBb) {
+	const BitBoardT promoPieceAttackerBb = allMyKingAttackersBb & allYourPromoPiecesBb;
+	if(promoPieceAttackerBb != BbNone) {
+	  const int checkingPromoIndex = yourPieceMap.board[checkingPieceSq].promoIndex;
+	  return yourAttackBbs.promoPieceAttackBbs[checkingPromoIndex];
+	} else {
+	  // Can't be a pawn cos that is a contact check so must be a (non-pawn) piece
+	  const PieceT checkingPiece = yourPieceMap.board[checkingPieceSq].piece;
+	  return yourAttackBbs.pieceAttackBbs[checkingPiece];
+	}
+    }
+    
     // Generate a legal move mask for non-king moves - only valid for single check - we must capture or block the checking piece.
     template <typename BoardT, typename BoardTraitsT>
     inline BitBoardT genLegalMoveMaskBbForSingleCheck(const BoardT& board, const BitBoardT allMyKingAttackersBb, const SquareT myKingSq, const BitBoardT allPiecesBb, const BitBoardT allYourPromoPiecesBb, const typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT& yourAttackBbs) {
@@ -673,22 +692,10 @@ namespace Chess {
 	const ColorPieceMapT& yourPieceMap = genColorPieceMap(yourState, allYourPromoPiecesBb);
 	
 	const SquareT checkingPieceSq = Bits::lsb(allMyKingAttackersBb);
-	BitBoardT checkingPieceAttacksBb = BbNone;
-	
-#ifdef USE_PROMOS
-	typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
-	const BitBoardT promoPieceAttackerBb = allMyKingAttackersBb & allYourPromoPiecesBb;
-	if(YourColorTraitsT::HasPromos && promoPieceAttackerBb != BbNone) {
-	  const int checkingPromoIndex = yourPieceMap.board[checkingPieceSq].promoIndex;
-	  checkingPieceAttacksBb = yourAttackBbs.promoPieceAttacks[checkingPromoIndex];
-	} else
-#endif //def USE_PROMOS
-	{
-	  // Can't be a pawn cos that is a contact check so must be a (non-pawn) piece
-	  const PieceT checkingPiece = yourPieceMap.board[checkingPieceSq].piece;
-	  checkingPieceAttacksBb = yourAttackBbs.pieceAttackBbs[checkingPiece];
-	}
+	//BitBoardT checkingPieceAttacksBb = BbNone;
 
+	const BitBoardT checkingPieceAttacksBb = getCheckingPieceAttacksBb(checkingPieceSq, yourPieceMap, yourAttackBbs, allMyKingAttackersBb, allYourPromoPiecesBb);
+	
 	if((allMyKingAttackersBb & BishopRays[myKingSq]) != BbNone) {
 	  // Diagonal slider distance check
 	  const BitBoardT diagAttacksFromMyKingBb = bishopAttacks(myKingSq, allPiecesBb);
