@@ -147,17 +147,17 @@ namespace Chess {
       bool isLeftEpDiscovery;
       bool isRightEpDiscovery;
       // Does rook deliver check after castling
-      bool isKingsideCastlingDiscovery;
-      bool isQueensideCastlingDiscovery;
+      MoveFlagsT kingsideCastlingDiscoveryFlag;
+      MoveFlagsT queensideCastlingDiscoveryFlag;
 
       DiscoveredCheckMasksT():
 	diagDiscoveryPiecesBb(BbNone), orthogDiscoveryPiecesBb(BbNone), pawnPushDiscoveryMasksBb(BbNone), pawnLeftDiscoveryMasksBb(BbNone), pawnRightDiscoveryMasksBb(BbNone),
-	isLeftEpDiscovery(false), isRightEpDiscovery(false), isKingsideCastlingDiscovery(false), isQueensideCastlingDiscovery(false) {}
+	isLeftEpDiscovery(false), isRightEpDiscovery(false), kingsideCastlingDiscoveryFlag(NoMoveFlags), queensideCastlingDiscoveryFlag(NoMoveFlags) {}
       
       DiscoveredCheckMasksT(const BitBoardT diagDiscoveryPiecesBb, const BitBoardT orthogDiscoveryPiecesBb, const BitBoardT pawnPushDiscoveryMasksBb, const BitBoardT pawnLeftDiscoveryMasksBb, const BitBoardT pawnRightDiscoveryMasksBb,
-			    const bool isLeftEpDiscovery, const bool isRightEpDiscovery, const bool isKingsideCastlingDiscovery, const bool isQueensideCastlingDiscovery):
+			    const bool isLeftEpDiscovery, const bool isRightEpDiscovery, const MoveFlagsT kingsideCastlingDiscoveryFlag, const MoveFlagsT queensideCastlingDiscoveryFlag):
 	diagDiscoveryPiecesBb(diagDiscoveryPiecesBb), orthogDiscoveryPiecesBb(orthogDiscoveryPiecesBb), pawnPushDiscoveryMasksBb(pawnPushDiscoveryMasksBb), pawnLeftDiscoveryMasksBb(pawnLeftDiscoveryMasksBb), pawnRightDiscoveryMasksBb(pawnRightDiscoveryMasksBb),
-	isLeftEpDiscovery(isLeftEpDiscovery), isRightEpDiscovery(isRightEpDiscovery), isKingsideCastlingDiscovery(isKingsideCastlingDiscovery), isQueensideCastlingDiscovery(isQueensideCastlingDiscovery) {}
+	isLeftEpDiscovery(isLeftEpDiscovery), isRightEpDiscovery(isRightEpDiscovery), kingsideCastlingDiscoveryFlag(kingsideCastlingDiscoveryFlag), queensideCastlingDiscoveryFlag(queensideCastlingDiscoveryFlag) {}
     };
 
     struct EpPawnCapturesT {
@@ -1272,8 +1272,8 @@ namespace Chess {
 	}
       }
 
-      bool isKingsideCastlingDiscovery = false;
-      bool isQueensideCastlingDiscovery = false;
+      MoveFlagsT kingsideCastlingDiscoveryFlag = NoMoveFlags;
+      MoveFlagsT queensideCastlingDiscoveryFlag = NoMoveFlags;
       if(canCastleFlags != NoCastlingRights) {
 	// Only have to remove our king in order to determine whether our rook will check your king after castling
 	const ColorStateT& myState = board.state[(size_t)Color];
@@ -1283,19 +1283,19 @@ namespace Chess {
 	if((canCastleFlags & CanCastleKingside) != NoCastlingRights) {
 	  const BitBoardT rookToBb = bbForSquare(CastlingTraitsT<Color, CanCastleKingside>::RookTo);
 	  if((yourKingRookAttacksBb & rookToBb) != BbNone) {
-	    isKingsideCastlingDiscovery = true;
+	    kingsideCastlingDiscoveryFlag = DiscoveredCheckMoveFlag;
 	  }
 	}
 	if((canCastleFlags & CanCastleQueenside) != NoCastlingRights) {
  	  const BitBoardT rookToBb = bbForSquare(CastlingTraitsT<Color, CanCastleQueenside>::RookTo);
 
 	  if((yourKingRookAttacksBb & rookToBb) != BbNone) {
-	    isQueensideCastlingDiscovery = true;
+	    queensideCastlingDiscoveryFlag = DiscoveredCheckMoveFlag;
 	  }
 	}
       }
       
-      return DiscoveredCheckMasksT(myDiagDiscoveryPiecesBb, myOrthogDiscoveryPiecesBb, pawnPushDiscoveryMasksBb, pawnLeftDiscoveryMasksBb, pawnRightDiscoveryMasksBb, isLeftEpDiscovery, isRightEpDiscovery, isKingsideCastlingDiscovery, isQueensideCastlingDiscovery);
+      return DiscoveredCheckMasksT(myDiagDiscoveryPiecesBb, myOrthogDiscoveryPiecesBb, pawnPushDiscoveryMasksBb, pawnLeftDiscoveryMasksBb, pawnRightDiscoveryMasksBb, isLeftEpDiscovery, isRightEpDiscovery, kingsideCastlingDiscoveryFlag, queensideCastlingDiscoveryFlag);
     }
 
     template <typename BoardT, PieceT Piece>

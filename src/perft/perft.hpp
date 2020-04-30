@@ -131,7 +131,7 @@ namespace Chess {
       // TODO get rid...
       if(false) {
 	static bool done = false;
-	if(moveInfo.moveType == EpCaptureMove) {
+	if(/*moveInfo.moveType == EpCaptureMove*/(moveInfo.moveFlags & EpCaptureMoveFlag) != 0) {
 	  stats.nposwitheps++;
 	  if(!done) {
 	    printf("\n============================================== EP capture Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
@@ -164,10 +164,10 @@ namespace Chess {
       if(CheckChecks) {
 	int nChecks = getNChecks<BoardT, BoardTraitsT>(board);
 	bool isCheck = nChecks > 0;
-	bool isCheckDetected = moveInfo.isDirectCheck || moveInfo.isDiscoveredCheck;
+	bool isCheckDetected = /*moveInfo.isDirectCheck*/(moveInfo.moveFlags & DirectCheckMoveFlag) != 0 || /*moveInfo.isDiscoveredCheck*/(moveInfo.moveFlags & DiscoveredCheckMoveFlag) != 0;
 	
 	bool ok = isCheck == isCheckDetected;
-	if(nChecks > 1 && (!moveInfo.isDirectCheck || !moveInfo.isDiscoveredCheck)) {
+	if(nChecks > 1 && (!/*moveInfo.isDirectCheck*/(moveInfo.moveFlags & DirectCheckMoveFlag) != 0 || !/*moveInfo.isDiscoveredCheck*/(moveInfo.moveFlags & DiscoveredCheckMoveFlag) != 0)) {
 	  ok = false;
 	}
 
@@ -176,7 +176,7 @@ namespace Chess {
 	  stats.invalids++;
 	  static bool done = false;
 	  if(!done) {
-	    printf("\n================================= Bad Check Detection Depth 0 - nChecks %d direct %d discovery %d last move %s-%s ===================================\n\n", nChecks, (int)moveInfo.isDirectCheck, (int)moveInfo.isDiscoveredCheck, SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+	    printf("\n================================= Bad Check Detection Depth 0 - nChecks %d direct %d discovery %d last move %s-%s ===================================\n\n", nChecks, (int)/*moveInfo.isDirectCheck*/(moveInfo.moveFlags & DirectCheckMoveFlag) != 0, (int)/*moveInfo.isDiscoveredCheck*/(moveInfo.moveFlags & DiscoveredCheckMoveFlag) != 0, SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
 	    printBoard(board);
 	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
 	    done = true;
@@ -186,14 +186,14 @@ namespace Chess {
 	
       stats.nodes++;
 
-      if(moveInfo.moveType == CaptureMove) {
+      if(/*moveInfo.moveType == CaptureMove*/(moveInfo.moveFlags & CaptureMoveFlag) != 0) {
 	stats.captures++;
       }
 
-      if(moveInfo.moveType == EpCaptureMove) {
+      if(/*moveInfo.moveType == EpCaptureMove*/(moveInfo.moveFlags & EpCaptureMoveFlag) != 0) {
 	stats.captures++;
 	stats.eps++;
-	if(moveInfo.isDiscoveredCheck && !moveInfo.isDirectCheck) {
+	if(/*moveInfo.isDiscoveredCheck*/(moveInfo.moveFlags & DiscoveredCheckMoveFlag) != 0 && !/*moveInfo.isDirectCheck*/(moveInfo.moveFlags & DirectCheckMoveFlag) != 0) {
 	  stats.epdiscoveries++;
 	  const BitBoardT kingBishopRays = BishopRays[board.state[(size_t)BoardTraitsT::Color].pieceSquares[TheKing]];
 	  const BitBoardT kingRookRays = RookRays[board.state[(size_t)BoardTraitsT::Color].pieceSquares[TheKing]];
@@ -210,11 +210,11 @@ namespace Chess {
 	}
       }
 
-      if(moveInfo.moveType == CastlingMove) {
+      if(/*moveInfo.moveType == CastlingMove*/(moveInfo.moveFlags & CastlingMoveFlag) != 0) {
 	stats.castles++;
       }
 
-      if(moveInfo.isPromo) {
+      if(/*moveInfo.isPromo*/(moveInfo.moveFlags & PromoMoveFlag) != 0) {
 	stats.promos++;
       }
 
@@ -224,12 +224,12 @@ namespace Chess {
 	return;
       }
 
-      if(moveInfo.isDirectCheck) {
+      if(/*moveInfo.isDirectCheck*/(moveInfo.moveFlags & DirectCheckMoveFlag) != 0) {
 	stats.checks++;
       }
-      if(moveInfo.isDiscoveredCheck) {
+      if(/*moveInfo.isDiscoveredCheck*/(moveInfo.moveFlags & DiscoveredCheckMoveFlag) != 0) {
 	// Double checks are counted independently of discoveries
-	if(moveInfo.isDirectCheck) {
+	if(/*moveInfo.isDirectCheck*/(moveInfo.moveFlags & DirectCheckMoveFlag) != 0) {
 	  stats.doublechecks++;
 	} else {
 	  stats.checks++;
@@ -237,7 +237,7 @@ namespace Chess {
 	}
       }
 
-      if(moveInfo.isDirectCheck || moveInfo.isDiscoveredCheck) {
+      if(/*moveInfo.isDirectCheck*/(moveInfo.moveFlags & DirectCheckMoveFlag) != 0 || /*moveInfo.isDiscoveredCheck*/(moveInfo.moveFlags & DiscoveredCheckMoveFlag) != 0) {
 	if(DoCheckMateStats) {
 	  // Only bother if it is check
 	  // It's checkmate if there are no legal moves
@@ -284,7 +284,9 @@ namespace Chess {
       PerftStatsT stats = {};
       // TODO - fill in isDirectCheck and isDiscoveredCheck in order to hoist check detection out of genLegalMoves
       const int nChecks = getNChecks<BoardT, BoardTraitsT>(board);
-      MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
+      const MoveFlagsT directCheckFlag = (nChecks > 0) ? DirectCheckMoveFlag : NoMoveFlags;
+      const MoveFlagsT discoveredCheckFlag = (nChecks > 1) ? DiscoveredCheckMoveFlag : NoMoveFlags;
+      MoveInfoT dummyMoveInfo((MoveFlagsT)(directCheckFlag | discoveredCheckFlag), /*from*/InvalidSquare, /*to*/InvalidSquare);
       const PerftStateT state(stats, depthToGo);
 
       perftImpl<BoardT, BoardTraitsT>(state, board, dummyMoveInfo);
