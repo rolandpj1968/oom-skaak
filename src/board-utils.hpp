@@ -15,42 +15,6 @@ namespace Chess {
   
   namespace BoardUtils {
 
-    // // Note - MUST use this rather than zero-initialisation because piece squares need to be InvalidSquare
-    // SimpleBoardT emptyBoard();
-    
-    // SimpleBoardT startingPosition();
-
-    // template <typename BoardT>
-    // bool isValid(const BoardT& board, const BitBoardT allYourKingAttackersBb);
-
-    // // These are used for FEN output
-    // char pieceChar(const std::vector<std::pair<ColorT, PieceTypeT>>& squarePieces);
-    
-    // template <typename BoardT>
-    // std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64> genPieceMap(const BoardT& board);
-
-    // template <typename BoardT>
-    // void printBoard(const BoardT& board);
-    
-    // void printBb(BitBoardT bb);
-    
-    //using namespace MoveGen;
-
-    // typedef SimpleBoardT BoardT;
-    // typedef typename BoardT::ColorStateT ColorStateT;
-    
-    inline SimpleBoardT emptyBoard() {
-      SimpleBoardT board = {};
-      for(unsigned color = 0; color < NColors; color++) {
-	SimpleColorStateImplT& colorState = board.state[color];
-	for(int i = 0; i < NPieces; i++) {
-	  colorState.pieceSquares[i] = InvalidSquare;
-	}
-	colorState.epSquare = InvalidSquare;
-      }
-      return board;
-    }
-
     template <typename BoardT>
     inline void addPiece(BoardT& board, const ColorT color, const SquareT square, const PieceT piece) {
       typename BoardT::ColorStateT& c = board.state[(size_t)color];
@@ -88,21 +52,7 @@ namespace Chess {
       board.state[(size_t)color].castlingRights = (CastlingRightsT)(CanCastleQueenside | CanCastleKingside);
     }
 
-    inline SimpleBoardT startingPosition() {
-      SimpleBoardT board = emptyBoard();
-
-      addStartingPieces(board, White, A1, A2);
-      addStartingPieces(board, Black, A8, A7);
-      
-      return board;
-    }
-
-    inline void addPawnsForColor(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const ColorT color, BitBoardT pawnsBb) {
-      while(pawnsBb) {
-	const SquareT square = Bits::popLsb(pawnsBb);
-	pieceMap[square].push_back(std::pair<ColorT, PieceTypeT>(color, Pawn));
-      }
-    }
+    extern void addPawnsForColor(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const ColorT color, BitBoardT pawnsBb);
 
     template <typename BoardT>
     inline void addPiecesForColor(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const ColorT color, const typename BoardT::ColorStateT& colorState) {
@@ -162,48 +112,11 @@ namespace Chess {
       return true;
     }
 
-    extern char PieceChar[NColors][NPieceTypes+1];
-
-    inline char pieceChar(const std::vector<std::pair<ColorT, PieceTypeT>>& squarePieces) {
-      // Pieces clash on the square?
-      if(squarePieces.size() > 1) {
-	return 'X';
-      }
-      
-      ColorT color = White;
-      PieceTypeT pieceType = NoPieceType;
-
-      if(squarePieces.size() == 1) {
-	color = squarePieces[0].first;
-	pieceType = squarePieces[0].second;
-      }
-      
-      return PieceChar[(size_t)color][pieceType];
-    }
+    extern char pieceChar(const std::vector<std::pair<ColorT, PieceTypeT>>& squarePieces);
     
-    inline void printRank(const std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, int rank) {
-      printf("%d | ", rank+1);
-      for(int file = 0; file < 8; file++) {
-	SquareT square = (SquareT)((rank << 3) + file);
-	printf("%c ", pieceChar(pieceMap[square]));
-      }
-      printf(" | %d\n", rank+1);
-    }
+    extern void printRank(const std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, int rank);
 
-    inline void printPieceClashes(const std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap) {
-      for(int i = 0; i < 64; i++) {
-	const std::vector<std::pair<ColorT, PieceTypeT>>& squarePieceMap = pieceMap[i];
-	if(squarePieceMap.size() > 1) {
-	  printf("\nPiece clash on %s:", SquareStr[i]);
-	  for(unsigned j = 0; j < squarePieceMap.size(); j++) {
-	    ColorT color = squarePieceMap[j].first;
-	    PieceTypeT pieceType = squarePieceMap[j].second;
-	    printf(" %c", PieceChar[(size_t)color][pieceType]);
-	  }
-	  printf("\n");
-	}
-      }
-    }
+    extern void printPieceClashes(const std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap);
     
     template <typename BoardT>
     void printBoard(const BoardT& board) {
@@ -220,29 +133,6 @@ namespace Chess {
       printPieceClashes(pieceMap);
     }
 
-    inline void printBbRank(BitBoardT bb, int rank) {
-      printf("%d | ", rank+1);
-      for(int file = 0; file < 8; file++) {
-	SquareT square = (SquareT)((rank << 3) + file);
-	printf("%c ", "-*"[(bb >> square) & 1]);
-      }
-      printf(" | %d\n", rank+1);
-    }
-
-    inline void printBb(BitBoardT bb) {
-      printf("    A B C D E F G H\n");
-      printf("    ---------------\n");
-      for(int rank = 7; rank >= 0; rank--) { 
-	printBbRank(bb, rank);
-      }
-      printf("    ---------------\n");
-      printf("    A B C D E F G H\n");
-    }
-    
-    // template <typename BoardT>
-    // int countAttacks(const typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT& pieceAttackBbs, const BitBoardT filterOut = BbNone, const BitBoardT filterInPawnTakes = BbAll);
-
-    // TODO - this shouldn't be in this header file but it has awkward dependencies
     template <typename BoardT, ColorT Color>
     bool isValid(const BoardT& board) {
       typedef typename BoardT::ColorStateT ColorStateT;
@@ -324,6 +214,11 @@ namespace Chess {
 
       return nAttacks;
     }
+
+    extern void printBb(BitBoardT bb);
+    
+    extern SimpleBoardT emptyBoard();
+    extern SimpleBoardT startingPosition();
     
   } // namespace BoardUtils
   

@@ -10,8 +10,6 @@
 #include "bits.hpp"
 
 namespace Chess {
-  using namespace MoveGen;
-  using namespace MakeMove;
   
   namespace Perft {
 
@@ -77,10 +75,10 @@ namespace Chess {
 
     template <typename BoardT, ColorT Color>
     inline bool hasLegalMoves(const BoardT& board) {
-      typedef typename LegalMovesImplType<BoardT>::LegalMovesT LegalMovesT;
+      typedef typename MoveGen::LegalMovesImplType<BoardT>::LegalMovesT LegalMovesT;
       
       // Generate (legal) moves
-      const LegalMovesT legalMoves = genLegalMoves<BoardT, Color>(board);
+      const LegalMovesT legalMoves = MoveGen::genLegalMoves<BoardT, Color>(board);
 
       // Are there any?
       const BitBoardT anyLegalMovesBb =
@@ -196,8 +194,8 @@ namespace Chess {
 	stats.eps++;
 	if(moveInfo.isDiscoveredCheck && !moveInfo.isDirectCheck) {
 	  stats.epdiscoveries++;
-	  const BitBoardT kingBishopRays = BishopRays[board.state[(size_t)Color].pieceSquares[TheKing]];
-	  const BitBoardT kingRookRays = RookRays[board.state[(size_t)Color].pieceSquares[TheKing]];
+	  const BitBoardT kingBishopRays = MoveGen::BishopRays[board.state[(size_t)Color].pieceSquares[TheKing]];
+	  const BitBoardT kingRookRays = MoveGen::RookRays[board.state[(size_t)Color].pieceSquares[TheKing]];
 	  const BitBoardT fromBb = bbForSquare(moveInfo.from);
 	  if(kingRookRays & fromBb) {
 	    stats.ephorizdiscoveries++;
@@ -267,7 +265,7 @@ namespace Chess {
       
       const PerftStateT newState(state.stats, state.depthToGo-1);
 
-      makeAllLegalMoves<const PerftStateT, PerftPosHandlerT<BoardT, Color>, BoardT, Color>(newState, board);
+      MakeMove::makeAllLegalMoves<const PerftStateT, PerftPosHandlerT<BoardT, Color>, BoardT, Color>(newState, board);
     }
 
     template <typename BoardT, ColorT Color>
