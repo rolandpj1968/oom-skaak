@@ -278,7 +278,6 @@ namespace Chess {
       handlePawnsNonPromoPush<StateT, PosHandlerT, BoardT, Color, MoveGen::PawnPushTwoTo2FromFn<Color>, /*IsPushTwo =*/true>(state, board, pawnMoves.pushesTwoBb, directChecksBb, pushDiscoveriesBb);
 	
       // Pawn captures left
-      printf("RPJ - pawns left - capturesLeftBb = 0x%016lx leftDiscoveriesBb = 0x%016lx\n", pawnMoves.capturesLeftBb, leftDiscoveriesBb);
       handlePawnsNonPromoCapture<StateT, PosHandlerT, BoardT, Color, PawnAttackLeftTo2FromFn<Color>>(state, board, yourPieceMap, pawnMoves.capturesLeftBb & ~LastRankBbT<Color>::LastRankBb, directChecksBb, leftDiscoveriesBb);
       // Pawn captures right
       handlePawnsNonPromoCapture<StateT, PosHandlerT, BoardT, Color, PawnAttackRightTo2FromFn<Color>>(state, board, yourPieceMap, pawnMoves.capturesRightBb & ~LastRankBbT<Color>::LastRankBb, directChecksBb, rightDiscoveriesBb);      
