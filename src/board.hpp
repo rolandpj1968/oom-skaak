@@ -80,15 +80,14 @@ namespace Chess {
     };
 
     template <typename BoardOutputT, typename BoardInputT>
-    inline BoardOutputT copyBoard(const BoardInputT& board);
-
-    template <>
-    inline FullBoardT copyBoard<FullBoardT, BasicBoardT>(const BasicBoardT& board) {
-      FullBoardT newBoard;
-      // TODO - implement me
+    inline BoardOutputT copyBoard(const BoardInputT& board) {
+      BoardOutputT newBoard = {};
+      newBoard.state[(size_t)White].basic = board.state[(size_t)White].basic;
+      newBoard.state[(size_t)Black].basic = board.state[(size_t)Black].basic;
+      
       return newBoard;
     }
-    
+
     const bool DoesNotHavePromos = false;
     const bool DoesHavePromos = true;
     
