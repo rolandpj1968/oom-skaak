@@ -21,7 +21,7 @@ namespace Chess {
       BitBoardT sliderBbs[NSliderDirections];
     };
 
-    struct BasicColorPieceBbsWithPromosImplT : BasicColorPieceBbsImplT {
+    struct FullColorPieceBbsImplT : BasicColorPieceBbsImplT {
       BitBoardT allPromoPiecesBb;
     };
 
@@ -32,8 +32,8 @@ namespace Chess {
       typedef BasicColorPieceBbsImplT ColorPieceBbsT;
     };
 
-    template <> struct ColorPieceBbsImplType<BasicBoardWithPromosT> {
-      typedef BasicColorPieceBbsWithPromosImplT ColorPieceBbsT;
+    template <> struct ColorPieceBbsImplType<FullBoardT> {
+      typedef FullColorPieceBbsImplT ColorPieceBbsT;
     };
 
     // Aggregated piece bitboards for both colors.
@@ -62,7 +62,7 @@ namespace Chess {
       BitBoardT allAttacksBb;
     };
 
-    struct BasicPieceAttackBbsWithPromosImplT : BasicPieceAttackBbsImplT {
+    struct FullPieceAttackBbsImplT : BasicPieceAttackBbsImplT {
       // Promo piece moves - maximum one per pawn
       BitBoardT promoPieceAttackBbs[NPawns];
     };
@@ -74,8 +74,8 @@ namespace Chess {
       typedef BasicPieceAttackBbsImplT PieceAttackBbsT;
     };
 
-    template <> struct PieceAttackBbsImplType<BasicBoardWithPromosT> {
-      typedef BasicPieceAttackBbsWithPromosImplT PieceAttackBbsT;
+    template <> struct PieceAttackBbsImplType<FullBoardT> {
+      typedef FullPieceAttackBbsImplT PieceAttackBbsT;
     };
 
     struct SquareAttackerBbsT {
@@ -94,7 +94,7 @@ namespace Chess {
       BitBoardT piecePinMaskBbs[NPieces];
     };
 
-    struct BasicPiecePinMaskBbsWithPromosImplT : BasicPiecePinMaskBbsImplT {
+    struct FullPiecePinMaskBbsImplT : BasicPiecePinMaskBbsImplT {
       // Promo piece moves - one for each pawn
       BitBoardT promoPiecePinMaskBbs[NPawns];
     };
@@ -106,8 +106,8 @@ namespace Chess {
       typedef BasicPiecePinMaskBbsImplT PiecePinMaskBbsT;
     };
 
-    template <> struct PiecePinMaskBbsImplType<BasicBoardWithPromosT> {
-      typedef BasicPiecePinMaskBbsWithPromosImplT PiecePinMaskBbsT;
+    template <> struct PiecePinMaskBbsImplType<FullBoardT> {
+      typedef FullPiecePinMaskBbsImplT PiecePinMaskBbsT;
     };
 
     struct DirectCheckMasksT {
@@ -204,7 +204,7 @@ namespace Chess {
     
     
     template <typename BoardT>
-    struct BasicLegalMovesWithPromosImplT : BasicLegalMovesImplT<BoardT> {
+    struct FullLegalMovesImplT : BasicLegalMovesImplT<BoardT> {
       BitBoardT promoPieceMoves[NPawns];
 
       // Used for promo check detection
@@ -219,8 +219,8 @@ namespace Chess {
       typedef BasicLegalMovesImplT<BasicBoardT> LegalMovesT;
     };
 
-    template <> struct LegalMovesImplType<BasicBoardWithPromosT> {
-      typedef BasicLegalMovesWithPromosImplT<BasicBoardWithPromosT> LegalMovesT;
+    template <> struct LegalMovesImplType<FullBoardT> {
+      typedef FullLegalMovesImplT<FullBoardT> LegalMovesT;
     };
     
 #include <boost/preprocessor/iteration/local.hpp>
@@ -657,7 +657,7 @@ namespace Chess {
     }
     
     // I would prefer template specialisation but couldn't get it to work
-    inline BitBoardT getCheckingPieceAttacksBb(const SquareT checkingPieceSq, const ColorPieceMapT& yourPieceMap, const BasicPieceAttackBbsWithPromosImplT& yourAttackBbs, const BitBoardT allMyKingAttackersBb, const BitBoardT allYourPromoPiecesBb) {
+    inline BitBoardT getCheckingPieceAttacksBb(const SquareT checkingPieceSq, const ColorPieceMapT& yourPieceMap, const FullPieceAttackBbsImplT& yourAttackBbs, const BitBoardT allMyKingAttackersBb, const BitBoardT allYourPromoPiecesBb) {
 	const BitBoardT promoPieceAttackerBb = allMyKingAttackersBb & allYourPromoPiecesBb;
 	if(promoPieceAttackerBb != BbNone) {
 	  const int checkingPromoIndex = yourPieceMap.board[checkingPieceSq].promoIndex;
@@ -900,7 +900,7 @@ namespace Chess {
     // Note that move gen for a piece on InvalidSquare MUST always generate BbNone (and not SIGSEGV :P).
     // I would prefer template partial specialisation here but C++ doesn't allow it, hence use opportunistic overloading which is uglier IMHO.
     template <typename BoardT, ColorT Color>
-    inline typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT genPieceAttackBbs(const BasicColorStateWithPromosImplT& colorState, const BitBoardT allPiecesBb) {
+    inline typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT genPieceAttackBbs(const FullColorStateImplT& colorState, const BitBoardT allPiecesBb) {
       typedef typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT PieceAttackBbsT;
 
       // Non-promo pieces
@@ -1066,7 +1066,7 @@ namespace Chess {
     // Fill a pin mask structure with BbAll for all pieces with promos.
     // I would prefer template partial specialisation here but C++ doesn't allow it, hence use overloading which is uglier IMHO.
     template <typename BoardT>
-    inline void genDefaultPiecePinMaskBbs(BasicPiecePinMaskBbsWithPromosImplT& pinMaskBbs, const typename BoardT::ColorStateT& myState) {
+    inline void genDefaultPiecePinMaskBbs(FullPiecePinMaskBbsImplT& pinMaskBbs, const typename BoardT::ColorStateT& myState) {
       genDefaultBasicPiecePinMaskBbs<BoardT>(pinMaskBbs, myState);
 
       // Promo pieces - it might actually be faster to just set all 8 to BbAll
@@ -1133,7 +1133,7 @@ namespace Chess {
     // Generate the pin masks for all pieces
     // I would prefer template partial specialisation here but C++ doesn't allow it, hence use overloading which is uglier IMHO.
     template <typename BoardT, ColorT Color>
-    inline void genPiecePinMaskBbs(BasicPiecePinMaskBbsWithPromosImplT& pinMaskBbs, const typename BoardT::ColorStateT& myState, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
+    inline void genPiecePinMaskBbs(FullPiecePinMaskBbsImplT& pinMaskBbs, const typename BoardT::ColorStateT& myState, const BitBoardT myDiagPinnedPiecesBb, const BitBoardT myOrthogPinnedPiecesBb) {
 
       genBasicPiecePinMaskBbs<BoardT, Color>(pinMaskBbs, myState, myDiagPinnedPiecesBb, myOrthogPinnedPiecesBb);
 
@@ -1377,13 +1377,13 @@ namespace Chess {
       // no promo pieces
     }
     
-    inline void genPromoPieceMoves(BasicLegalMovesWithPromosImplT<BasicBoardWithPromosT>& legalMoves, const BasicColorStateWithPromosImplT& myState, const BasicPieceAttackBbsWithPromosImplT& myAttackBbs, const BitBoardT legalMoveMaskBb, const BasicPiecePinMaskBbsWithPromosImplT& pinMaskBbs, const BitBoardT allMyPiecesBb) {
+    inline void genPromoPieceMoves(FullLegalMovesImplT<FullBoardT>& legalMoves, const FullColorStateImplT& myState, const FullPieceAttackBbsImplT& myAttackBbs, const BitBoardT legalMoveMaskBb, const FullPiecePinMaskBbsImplT& pinMaskBbs, const BitBoardT allMyPiecesBb) {
       
       // Ugh the bit stuff operates on BitBoardT type
       BitBoardT activePromos = (BitBoardT)myState.activePromos;
       while(activePromos) {
     	const int promoIndex = Bits::popLsb(activePromos);
-    	legalMoves.promoPieceMoves[promoIndex] = genLegalPromoPieceMoves<BasicBoardWithPromosT>(myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb, promoIndex);
+    	legalMoves.promoPieceMoves[promoIndex] = genLegalPromoPieceMoves<FullBoardT>(myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb, promoIndex);
       }
     }
     
@@ -1501,7 +1501,7 @@ namespace Chess {
       // no promo pieces
     }
     
-    inline void addPromoPiecesToPieceBbs(BasicColorPieceBbsWithPromosImplT& pieceBbs, const typename BasicBoardWithPromosT::ColorStateT& colorState) {
+    inline void addPromoPiecesToPieceBbs(FullColorPieceBbsImplT& pieceBbs, const typename FullBoardT::ColorStateT& colorState) {
       BitBoardT activePromos = (BitBoardT)colorState.activePromos;
       while(activePromos) {
 	const int promoIndex = Bits::popLsb(activePromos);
@@ -1565,7 +1565,7 @@ namespace Chess {
       return BbNone; // no promo pieces
     }
     
-    inline BitBoardT getAllPromoPiecesBb(const BasicColorPieceBbsWithPromosImplT& colorPieceBbs) {
+    inline BitBoardT getAllPromoPiecesBb(const FullColorPieceBbsImplT& colorPieceBbs) {
       return colorPieceBbs.allPromoPiecesBb;
     }
     

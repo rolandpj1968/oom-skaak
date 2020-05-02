@@ -168,15 +168,15 @@ namespace Chess {
     }
 
     template <typename StateT, typename PosHandlerT, ColorT Color, typename To2FromFn, bool IsPushTwo>
-    inline void handlePawnsPromoPush(StateT state, const BasicBoardWithPromosT& board, BitBoardT pawnsPushBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
-      typedef PawnPromoMoveFn<BasicBoardWithPromosT, Color, PawnPushToPromo, NoPieceMapT> PawnPushToPromoFn;
-      handlePawnsMoveToPromo<StateT, PosHandlerT, BasicBoardWithPromosT, Color, To2FromFn, PawnPushToPromoFn, PushMove>(state, board, NoPieceMapT(), pawnsPushBb, directChecksBb, discoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
+    inline void handlePawnsPromoPush(StateT state, const FullBoardT& board, BitBoardT pawnsPushBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
+      typedef PawnPromoMoveFn<FullBoardT, Color, PawnPushToPromo, NoPieceMapT> PawnPushToPromoFn;
+      handlePawnsMoveToPromo<StateT, PosHandlerT, FullBoardT, Color, To2FromFn, PawnPushToPromoFn, PushMove>(state, board, NoPieceMapT(), pawnsPushBb, directChecksBb, discoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
     }
 
     template <typename StateT, typename PosHandlerT, ColorT Color, typename To2FromFn, bool IsPushTwo>
     inline void handlePawnsPromoPush(StateT state, const BasicBoardT& board, BitBoardT pawnsPushBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
-      // Upgrade to BasicBoardWithPromosT
-      const BasicBoardWithPromosT boardWithPromos = copyBoard<BasicBoardWithPromosT, BasicBoardT>(board);
+      // Upgrade to FullBoardT
+      const FullBoardT boardWithPromos = copyBoard<FullBoardT, BasicBoardT>(board);
 
       handlePawnsPromoPush<StateT, typename PosHandlerT::WithPromosT, Color, To2FromFn, IsPushTwo>(state, boardWithPromos, pawnsPushBb, directChecksBb, discoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
     }

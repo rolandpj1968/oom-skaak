@@ -29,7 +29,7 @@ namespace Chess {
       CastlingRightsT castlingRights;
     };
 
-    struct BasicColorStateWithPromosImplT : BasicColorStateImplT {
+    struct FullColorStateImplT : BasicColorStateImplT {
       // Bitmap of active promo pieces - index into promos array
       u8 activePromos;
 
@@ -47,18 +47,18 @@ namespace Chess {
     };
 
     typedef BasicBoardImplT<BasicColorStateImplT> BasicBoardT;
-    typedef BasicBoardImplT<BasicColorStateWithPromosImplT> BasicBoardWithPromosT;
+    typedef BasicBoardImplT<FullColorStateImplT> FullBoardT;
 
     template <typename BoardT>
     struct BoardType {};
 
     template <> struct BoardType<BasicBoardT> {
-      typedef BasicBoardWithPromosT WithPromosT;
+      typedef FullBoardT WithPromosT;
       typedef BasicBoardT WithoutPromosT;
     };
 
-    template <> struct BoardType<BasicBoardWithPromosT> {
-      typedef BasicBoardWithPromosT WithPromosT;
+    template <> struct BoardType<FullBoardT> {
+      typedef FullBoardT WithPromosT;
       typedef BasicBoardT WithoutPromosT;
     };
 
@@ -66,8 +66,8 @@ namespace Chess {
     inline BoardOutputT copyBoard(const BoardInputT& board);
 
     template <>
-    inline BasicBoardWithPromosT copyBoard<BasicBoardWithPromosT, BasicBoardT>(const BasicBoardT& board) {
-      BasicBoardWithPromosT newBoard;
+    inline FullBoardT copyBoard<FullBoardT, BasicBoardT>(const BasicBoardT& board) {
+      FullBoardT newBoard;
       // TODO - implement me
       return newBoard;
     }
