@@ -1,7 +1,10 @@
 #ifndef TYPES_HPP
 #define TYPES_HPP
 
+#include <cstddef>
 #include <cstdint>
+
+using std::size_t;
 
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -60,6 +63,10 @@ namespace Chess {
   const BitBoardT RankBbs[8] = { Rank1, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8 };
 
   const BitBoardT EdgeSquaresBb = FileA | FileH | Rank1 | Rank8;
+
+  template <ColorT Color> struct LastRankBbT {};
+  template <> struct LastRankBbT<White> { static const BitBoardT LastRankBb = Rank8; };
+  template <> struct LastRankBbT<Black> { static const BitBoardT LastRankBb = Rank1; };
 
   typedef u8 SquareT;
 
@@ -198,6 +205,36 @@ namespace Chess {
     PiecePresentLimitShift,
   };
 
+  enum PromoPieceT {
+    PromoQueen,
+    PromoKnight,
+    PromoRook,
+    PromoBishop,
+    NPromoPieceTypes
+  };
+    
+  const PieceTypeT PieceTypeForPromoPiece[NPromoPieceTypes] = {
+    Queen,
+    Knight,
+    Rook,
+    Bishop
+  };
+
+  typedef u8 PromoPieceAndSquareT;
+
+  // Note we only have 6 bits for the square so can't support InvalidSquare
+  inline PromoPieceAndSquareT promoPieceAndSquareOf(const PromoPieceT promoPiece, const SquareT sq) {
+    return (PromoPieceAndSquareT) ((promoPiece << 6) | sq);
+  }
+
+  inline PromoPieceT promoPieceOf(const PromoPieceAndSquareT promoPieceAndSquare) {
+    return (PromoPieceT) (promoPieceAndSquare >> 6);
+  }
+
+  inline SquareT squareOf(const PromoPieceAndSquareT promoPieceAndSquare) {
+    return (SquareT) (promoPieceAndSquare & 0x3f);
+  }
+  
   static const int NPawns = 8;
 
   enum PushOrCaptureT {
@@ -241,9 +278,11 @@ namespace Chess {
     bool isDirectCheck;
     // True iff the moved piece uncovers discovered check.
     bool isDiscoveredCheck;
+    // True iff this is a pawn promotion
+    bool isPromo;
 
-    MoveInfoT(const MoveTypeT moveType, const SquareT from, const SquareT to, const bool isDirectCheck, const bool isDiscoveredCheck):
-      moveType(moveType), from(from), to(to), isDirectCheck(isDirectCheck), isDiscoveredCheck(isDiscoveredCheck) {}
+    MoveInfoT(const MoveTypeT moveType, const SquareT from, const SquareT to, const bool isDirectCheck, const bool isDiscoveredCheck, const bool isPromo = false):
+      moveType(moveType), from(from), to(to), isDirectCheck(isDirectCheck), isDiscoveredCheck(isDiscoveredCheck), isPromo(isPromo) {}
   };
 
   enum SliderDirectionT {

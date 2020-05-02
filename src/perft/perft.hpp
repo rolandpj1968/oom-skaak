@@ -3,14 +3,13 @@
 
 #include "types.hpp"
 #include "board.hpp"
+#include "board-utils.hpp"
 #include "fen.hpp"
 #include "move-gen.hpp"
 #include "make-move.hpp"
 #include "bits.hpp"
 
 namespace Chess {
-  using namespace MoveGen;
-  using namespace MakeMove;
   
   namespace Perft {
 
@@ -43,22 +42,26 @@ namespace Chess {
 	stats(stats), depthToGo(depthToGo) {}
     };
 
-    template <typename BoardTraitsT>
+    template <typename BoardT, ColorT Color>
     inline PerftStatsT perft(const BoardT& board, const int depthToGo);
     
-    template <typename BoardTraitsT>
+    template <typename BoardT, ColorT Color>
     inline void perftImpl(const PerftStateT state, const BoardT& board, const MoveInfoT moveInfo);
   
-    template <typename BoardTraitsT>
+    template <typename BoardT, ColorT Color>
     struct PerftPosHandlerT {
+      typedef PerftPosHandlerT<BoardT, OtherColorT<Color>::value> ReverseT;
+      typedef PerftPosHandlerT<typename BoardType<BoardT>::WithPromosT, Color> WithPromosT;
+      typedef PerftPosHandlerT<typename BoardType<BoardT>::WithoutPromosT, Color> WithoutPromosT;
+      
       static const bool ValidatePos = false;
       
       inline static void validatePos(const BoardT& board, MoveInfoT moveInfo) {
 	static bool done = false;
 	if(ValidatePos && !done) {
-	  if(!isValid<typename BoardTraitsT::ReverseT>(board)) {
+	  if(!BoardUtils::isValid<BoardT, Color>(board)) {
 	    printf("Invalid board - last move from %s to %s\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    printBoard(board);
+	    BoardUtils::printBoard(board);
 	    //done = true;
 	  }
 	}
@@ -66,14 +69,16 @@ namespace Chess {
       
       inline static void handlePos(const PerftStateT state, const BoardT& board, MoveInfoT moveInfo) {
 	validatePos(board, moveInfo);
-	perftImpl<typename BoardTraitsT::ReverseT>(state, board, moveInfo);
+	perftImpl<BoardT, Color>(state, board, moveInfo);
       }
     };
 
-    template <typename BoardTraitsT>
-    inline bool hasLegalMoves(const BoardT& board, const MoveInfoT moveInfo) {
+    template <typename BoardT, ColorT Color>
+    inline bool hasLegalMoves(const BoardT& board) {
+      typedef typename MoveGen::LegalMovesImplType<BoardT>::LegalMovesT LegalMovesT;
+      
       // Generate (legal) moves
-      const LegalMovesT legalMoves = genLegalMoves<BoardTraitsT>(board);
+      const LegalMovesT legalMoves = MoveGen::genLegalMoves<BoardT, Color>(board);
 
       // Are there any?
       const BitBoardT anyLegalMovesBb =
@@ -97,23 +102,26 @@ namespace Chess {
 
 	(BitBoardT)legalMoves.canCastleFlags;
 
-      // TODO - promos
+      // TODO - promos TODO TODO TODO!!!
 	
       return anyLegalMovesBb != BbNone;
     }
 
-    template <typename BoardTraitsT>
+    template <typename BoardT, ColorT Color>
     inline void perft0Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
+
+      // BoardUtils::printBoard(board);
+      // printf("%s\n", Fen::toFen(board, Color).c_str());
 
       // TODO get rid...
       if(false) {
 	static bool done = false;
-	if(board.pieces[(size_t)otherColor(BoardTraitsT::Color)].epSquare != InvalidSquare) {
+	if(board.state[(size_t)otherColor(Color)].basic.epSquare != InvalidSquare) {
 	  stats.nposwitheps++;
 	  if(!done) {
 	    printf("\n============================================== EP set at Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    printBoard(board);
-	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
+	    BoardUtils::printBoard(board);
+	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
 	    done = true;
 	  }
 	}
@@ -126,8 +134,8 @@ namespace Chess {
 	  stats.nposwitheps++;
 	  if(!done) {
 	    printf("\n============================================== EP capture Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    printBoard(board);
-	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
+	    BoardUtils::printBoard(board);
+	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
 	    //done = true;
 	  }
 	}
@@ -136,14 +144,14 @@ namespace Chess {
       // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
       const bool CheckForInvalid = false;
       if(CheckForInvalid) {
-	if(!isValid<BoardTraitsT>(board)) {
+	if(!BoardUtils::isValid<BoardT, Color>(board)) {
 	  // Illegal position - doesn't count
 	  stats.invalids++;
 	  static bool done = false;
 	  if(!done) {
 	    printf("\n============================================== Invalid Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    printBoard(board);
-	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
+	    BoardUtils::printBoard(board);
+	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
 	    done = true;
 	  }
 	  return;
@@ -153,7 +161,7 @@ namespace Chess {
       // Check that we detect check accurately
       const bool CheckChecks = false;
       if(CheckChecks) {
-	int nChecks = getNChecks<BoardTraitsT>(board);
+	int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
 	bool isCheck = nChecks > 0;
 	bool isCheckDetected = moveInfo.isDirectCheck || moveInfo.isDiscoveredCheck;
 	
@@ -168,8 +176,8 @@ namespace Chess {
 	  static bool done = false;
 	  if(!done) {
 	    printf("\n================================= Bad Check Detection Depth 0 - nChecks %d direct %d discovery %d last move %s-%s ===================================\n\n", nChecks, (int)moveInfo.isDirectCheck, (int)moveInfo.isDiscoveredCheck, SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    printBoard(board);
-	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
+	    BoardUtils::printBoard(board);
+	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
 	    done = true;
 	  }
 	}
@@ -186,8 +194,8 @@ namespace Chess {
 	stats.eps++;
 	if(moveInfo.isDiscoveredCheck && !moveInfo.isDirectCheck) {
 	  stats.epdiscoveries++;
-	  const BitBoardT kingBishopRays = BishopRays[board.pieces[(size_t)BoardTraitsT::Color].pieceSquares[TheKing]];
-	  const BitBoardT kingRookRays = RookRays[board.pieces[(size_t)BoardTraitsT::Color].pieceSquares[TheKing]];
+	  const BitBoardT kingBishopRays = MoveGen::BishopRays[board.state[(size_t)Color].basic.pieceSquares[TheKing]];
+	  const BitBoardT kingRookRays = MoveGen::RookRays[board.state[(size_t)Color].basic.pieceSquares[TheKing]];
 	  const BitBoardT fromBb = bbForSquare(moveInfo.from);
 	  if(kingRookRays & fromBb) {
 	    stats.ephorizdiscoveries++;
@@ -203,6 +211,10 @@ namespace Chess {
 
       if(moveInfo.moveType == CastlingMove) {
 	stats.castles++;
+      }
+
+      if(moveInfo.isPromo) {
+	stats.promos++;
       }
 
       const bool DoCheckStats = true;
@@ -228,24 +240,24 @@ namespace Chess {
 	if(DoCheckMateStats) {
 	  // Only bother if it is check
 	  // It's checkmate if there are no legal moves
-	  if(!hasLegalMoves<BoardTraitsT>(board, moveInfo)) {
+	  if(!hasLegalMoves<BoardT, Color>(board)) {
 	    stats.checkmates++;
 	  }
 	}
       }
     }
 
-    template <typename BoardTraitsT>
+    template <typename BoardT, ColorT Color>
     inline void perftImplFull(const PerftStateT state, const BoardT& board) {
 
       // TODO get rid...
       if(false && state.depthToGo == 1) {
 	static bool done = false;
-	if(board.pieces[(size_t)otherColor(BoardTraitsT::Color)].epSquare != InvalidSquare) {
+	if(board.state[(size_t)otherColor(Color)].basic.epSquare != InvalidSquare) {
 	  if(!done) {
-	    printf("\n============================================== EP sq %s set at Depth 1 ===================================\n\n", SquareStr[board.pieces[(size_t)otherColor(BoardTraitsT::Color)].epSquare]);
-	    printBoard(board);
-	    printf("\n%s\n\n", Fen::toFen(board, BoardTraitsT::Color).c_str());
+	    printf("\n============================================== EP sq %s set at Depth 1 ===================================\n\n", SquareStr[board.state[(size_t)otherColor(Color)].basic.epSquare]);
+	    BoardUtils::printBoard(board);
+	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
 	    //done = true;
 	  }
 	}
@@ -253,26 +265,28 @@ namespace Chess {
       
       const PerftStateT newState(state.stats, state.depthToGo-1);
 
-      makeAllLegalMoves<const PerftStateT, PerftPosHandlerT<BoardTraitsT>, BoardTraitsT>(newState, board);
+      MakeMove::makeAllLegalMoves<const PerftStateT, PerftPosHandlerT<BoardT, Color>, BoardT, Color>(newState, board);
     }
 
-    template <typename BoardTraitsT>
+    template <typename BoardT, ColorT Color>
     inline void perftImpl(const PerftStateT state, const BoardT& board, const MoveInfoT moveInfo) {
       // If this is a leaf node, gather stats.
       if(state.depthToGo == 0) {
-	perft0Impl<BoardTraitsT>(state.stats, board, moveInfo);
+	perft0Impl<BoardT, Color>(state.stats, board, moveInfo);
       } else {
-	perftImplFull<BoardTraitsT>(state, board);
+	perftImplFull<BoardT, Color>(state, board);
       }
     }
       
-    template <typename BoardTraitsT>
+    template <typename BoardT, ColorT Color>
     inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
       PerftStatsT stats = {};
-      MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/false, /*isDiscoveredCheck*/false);
+      // TODO - fill in isDirectCheck and isDiscoveredCheck in order to hoist check detection out of genLegalMoves
+      const int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
+      MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
       const PerftStateT state(stats, depthToGo);
 
-      perftImpl<BoardTraitsT>(state, board, dummyMoveInfo);
+      perftImpl<BoardT, Color>(state, board, dummyMoveInfo);
 
       return stats;
     }

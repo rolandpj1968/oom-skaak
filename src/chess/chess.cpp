@@ -5,6 +5,7 @@
 #include "board.hpp"
 #include "fen.hpp"
 #include "move-gen.hpp"
+#include "board-utils.hpp"
 
 using namespace Chess;
 
@@ -18,24 +19,23 @@ int a[] = {
 };
 
 using namespace Board;
-using namespace Fen;
-using namespace MoveGen;
 
-static void dumpAttacks(const PieceAttacksT& pieceAttacks) {
-  printf("pawn attacks left:   %016lx\n", pieceAttacks.pawnsLeftAttacks);
-  printf("pawn attacks right:  %016lx\n", pieceAttacks.pawnsRightAttacks);
-  printf("pawn push one:       %016lx\n", pieceAttacks.pawnsPushOne);
-  printf("pawn push two:       %016lx\n", pieceAttacks.pawnsPushTwo);
-  printf("q rook attacks:      %016lx\n", pieceAttacks.pieceAttacks[Rook1]);
-  printf("q knight attacks:    %016lx\n", pieceAttacks.pieceAttacks[Knight1]);
-  printf("b bishop attacks:    %016lx\n", pieceAttacks.pieceAttacks[Bishop1]);
-  printf("queen attacks:       %016lx\n", pieceAttacks.pieceAttacks[TheQueen]);
-  printf("king attacks:        %016lx\n", pieceAttacks.pieceAttacks[TheKing]);
-  printf("w bishop attacks:    %016lx\n", pieceAttacks.pieceAttacks[Bishop2]);
-  printf("k knight attacks:    %016lx\n", pieceAttacks.pieceAttacks[Knight2]);
-  printf("k rook attacks:      %016lx\n", pieceAttacks.pieceAttacks[Rook2]);
+template <typename BoardT>
+static void dumpAttacks(const typename MoveGen::PieceAttackBbsImplType<BoardT>::PieceAttackBbsT& pieceAttackBbs) {
+  printf("pawn attacks left:   %016lx\n", pieceAttackBbs.pawnsLeftAttacksBb);
+  printf("pawn attacks right:  %016lx\n", pieceAttackBbs.pawnsRightAttacksBb);
+  printf("pawn push one:       %016lx\n", pieceAttackBbs.pawnsPushOneBb);
+  printf("pawn push two:       %016lx\n", pieceAttackBbs.pawnsPushTwoBb);
+  printf("q rook attacks:      %016lx\n", pieceAttackBbs.pieceAttackBbs[Rook1]);
+  printf("q knight attacks:    %016lx\n", pieceAttackBbs.pieceAttackBbs[Knight1]);
+  printf("b bishop attacks:    %016lx\n", pieceAttackBbs.pieceAttackBbs[Bishop1]);
+  printf("queen attacks:       %016lx\n", pieceAttackBbs.pieceAttackBbs[TheQueen]);
+  printf("king attacks:        %016lx\n", pieceAttackBbs.pieceAttackBbs[TheKing]);
+  printf("w bishop attacks:    %016lx\n", pieceAttackBbs.pieceAttackBbs[Bishop2]);
+  printf("k knight attacks:    %016lx\n", pieceAttackBbs.pieceAttackBbs[Knight2]);
+  printf("k rook attacks:      %016lx\n", pieceAttackBbs.pieceAttackBbs[Rook2]);
       
-  printf("all attacks:         %016lx\n", pieceAttacks.allAttacks);
+  printf("all attacks:         %016lx\n", pieceAttackBbs.allAttacksBb);
 }
 
 int main(int argc, char* argv[]) {
@@ -44,22 +44,27 @@ int main(int argc, char* argv[]) {
   printf("Hallo again RPJ - sizeof(a) is %zu, sizeof(a)/sizeof(a[0]) = %zu, a[4] = %d, a[0] = %d\n", sizeof(a), sizeof(a)/sizeof(a[0]), a[4], a[0]);
   printf("H8 is %u\n", H8);
 
+  typedef BasicBoardT BoardT;
+  typedef typename BoardT::ColorStateT ColorStateT;
+  typedef typename MoveGen::PieceBbsImplType<BoardT>::PieceBbsT PieceBbsT;
+  typedef typename MoveGen::ColorPieceBbsImplType<BoardT>::ColorPieceBbsT ColorPieceBbsT;
+  
   BoardT board;
 
   if(argc > 1) {
-    board = parseFen(argv[1]).first;
+    board = Fen::parseFen(argv[1]).first;
   } else {
-    board = Board::startingPosition();
+    board = BoardUtils::startingPosition();
   }
 
-  printBoard(board);
+  BoardUtils::printBoard(board);
 
   return 0;
   
-  ColorStateT& w = board.pieces[(size_t)White];
-  ColorStateT& b = board.pieces[(size_t)Black];
+  ColorStateT& w = board.state[(size_t)White];
+  ColorStateT& b = board.state[(size_t)Black];
 
-  const PieceBbsT& pieceBbs = genPieceBbs<StartingBoardTraitsT>(board);
+  const PieceBbsT& pieceBbs = MoveGen::genPieceBbs<BoardT, White>(board);
 
   const ColorPieceBbsT& wPieceBbs = pieceBbs.colorPieceBbs[(size_t)White];
   const ColorPieceBbsT& bPieceBbs = pieceBbs.colorPieceBbs[(size_t)Black];
@@ -68,19 +73,19 @@ int main(int argc, char* argv[]) {
   const BitBoardT allBPiecesBb = bPieceBbs.bbs[AllPieceTypes];
   const BitBoardT allPiecesBb = allWPiecesBb | allBPiecesBb;
   
-  auto whiteAttacks = genPieceAttacks<WhiteStartingColorTraitsT>(w, allPiecesBb);
+  auto whiteAttacks = MoveGen::genPieceAttackBbs<BoardT, White>(w, allPiecesBb);
 
   printf("\nWhite:\n");
-  dumpAttacks(whiteAttacks);
+  dumpAttacks<BoardT>(whiteAttacks);
 
-  printf("\n%d attacks, %d valid moves, all white pieces %016lx\n", countAttacks(whiteAttacks), countAttacks(whiteAttacks, allWPiecesBb, allBPiecesBb), allPiecesBb);
+  printf("\n%d attacks, %d valid moves, all white pieces %016lx\n", BoardUtils::countAttacks<BoardT>(whiteAttacks), BoardUtils::countAttacks<BoardT>(whiteAttacks, allWPiecesBb, allBPiecesBb), allPiecesBb);
   
-  auto blackAttacks = genPieceAttacks<BlackStartingColorTraitsT>(b, allPiecesBb);
+  auto blackAttacks = MoveGen::genPieceAttackBbs<BoardT, Black>(b, allPiecesBb);
 
   printf("\nBlack:\n");
-  dumpAttacks(blackAttacks);
+  dumpAttacks<BoardT>(blackAttacks);
 
-  printf("\n%d attacks, %d valid moves, all black pieces %016lx\n\n", countAttacks(blackAttacks), countAttacks(blackAttacks, allBPiecesBb, allWPiecesBb), allPiecesBb);
+  printf("\n%d attacks, %d valid moves, all black pieces %016lx\n\n", BoardUtils::countAttacks<BoardT>(blackAttacks), BoardUtils::countAttacks<BoardT>(blackAttacks, allBPiecesBb, allWPiecesBb), allPiecesBb);
   
   return 0;
 }
