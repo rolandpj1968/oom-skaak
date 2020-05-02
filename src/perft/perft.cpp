@@ -16,6 +16,7 @@ int main(int argc, char* argv[]) {
   }
   int depthToGo = atoi(argv[1]);
 
+  printf("sizeof(NonPromosColorStateImplT) is %lu - NPieces is %d\n", sizeof(NonPromosColorStateImplT), NPieces);
   printf("sizeof(BasicBoardT) is %lu\n", sizeof(BasicBoardT));
   printf("sizeof(FullBoardT) is %lu\n", sizeof(FullBoardT));
   printf("sizeof(FullColorStateImplT) is %lu\n", sizeof(FullColorStateImplT));
