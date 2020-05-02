@@ -208,19 +208,18 @@ namespace Chess {
     template <typename StateT, typename PosHandlerT, ColorT Color, typename To2FromFn>
     inline BitBoardT handlePawnsNonPromoCaptureOfPromos(StateT state, const FullBoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
       BitBoardT promoPieceCapturesBb = pawnsCaptureBb & yourPieceMap.allPromoPiecesBb;
-      pawnsCaptureBb &= ~promoPieceCapturesBb;
 	
       typedef PawnMoveFn<FullBoardT, Color, PawnPromoCapture, ColorPieceMapT> PawnPromoCaptureFn;
       handlePawnsMove<StateT, PosHandlerT, FullBoardT, Color, To2FromFn, PawnPromoCaptureFn, CaptureMove>(state, board, yourPieceMap, promoPieceCapturesBb, directChecksBb, discoveriesBb);
 	
-      return promoPieceCapturesBb & ~promoPieceCapturesBb;
+      return pawnsCaptureBb & ~promoPieceCapturesBb;
     }
 
     template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color, typename To2FromFn>
     inline void handlePawnsNonPromoCapture(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
 
       const BitBoardT pawnsCaptureOfNonPromosBb = handlePawnsNonPromoCaptureOfPromos<StateT, PosHandlerT, Color, To2FromFn>(state, board, yourPieceMap, pawnsCaptureBb, directChecksBb, discoveriesBb);
-	
+
       // (Non-promo-piece) capture (without pawn promo)
       typedef PawnMoveFn<BoardT, Color, PawnCapture, ColorPieceMapT> PawnCaptureFn;
       handlePawnsMove<StateT, PosHandlerT, BoardT, Color, To2FromFn, PawnCaptureFn, CaptureMove>(state, board, yourPieceMap, pawnsCaptureOfNonPromosBb, directChecksBb, discoveriesBb);
@@ -279,6 +278,7 @@ namespace Chess {
       handlePawnsNonPromoPush<StateT, PosHandlerT, BoardT, Color, MoveGen::PawnPushTwoTo2FromFn<Color>, /*IsPushTwo =*/true>(state, board, pawnMoves.pushesTwoBb, directChecksBb, pushDiscoveriesBb);
 	
       // Pawn captures left
+      printf("RPJ - pawns left - capturesLeftBb = 0x%016lx leftDiscoveriesBb = 0x%016lx\n", pawnMoves.capturesLeftBb, leftDiscoveriesBb);
       handlePawnsNonPromoCapture<StateT, PosHandlerT, BoardT, Color, PawnAttackLeftTo2FromFn<Color>>(state, board, yourPieceMap, pawnMoves.capturesLeftBb & ~LastRankBbT<Color>::LastRankBb, directChecksBb, leftDiscoveriesBb);
       // Pawn captures right
       handlePawnsNonPromoCapture<StateT, PosHandlerT, BoardT, Color, PawnAttackRightTo2FromFn<Color>>(state, board, yourPieceMap, pawnMoves.capturesRightBb & ~LastRankBbT<Color>::LastRankBb, directChecksBb, rightDiscoveriesBb);      
@@ -362,7 +362,7 @@ namespace Chess {
     inline BitBoardT handlePiecePromoCaptures(StateT state, const FullBoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const BitBoardT pieceCapturesBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
       const BitBoardT promoPieceCapturesBb = pieceCapturesBb & yourPieceMap.allPromoPiecesBb;
 
-      if(Color == Black && promoPieceCapturesBb != BbNone) {
+      if(false && Color == Black && promoPieceCapturesBb != BbNone) {
 	printf("\n---------------------------------------------------------------------------------\n");
 	printf("We got us some promo-piece captures - from %s\n\n", SquareStr[from]);
 	BoardUtils::printBoard(board);

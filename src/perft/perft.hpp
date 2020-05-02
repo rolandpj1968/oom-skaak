@@ -272,6 +272,7 @@ namespace Chess {
     inline void perftImpl(const PerftStateT state, const BoardT& board, const MoveInfoT moveInfo) {
       // If this is a leaf node, gather stats.
       if(state.depthToGo == 0) {
+	printf("Move %s-%s\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
 	perft0Impl<BoardT, Color>(state.stats, board, moveInfo);
       } else {
 	perftImplFull<BoardT, Color>(state, board);
