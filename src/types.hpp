@@ -1,7 +1,10 @@
 #ifndef TYPES_HPP
 #define TYPES_HPP
 
+#include <cstddef>
 #include <cstdint>
+
+using std::size_t;
 
 typedef uint8_t u8;
 typedef uint16_t u16;

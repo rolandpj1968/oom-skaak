@@ -49,6 +49,29 @@ namespace Chess {
     typedef SimpleBoardImplT<SimpleColorStateImplT> SimpleBoardT;
     typedef SimpleBoardImplT<SimpleColorStateWithPromosImplT> SimpleBoardWithPromosT;
 
+    template <typename BoardT>
+    struct BoardType {};
+
+    template <> struct BoardType<SimpleBoardT> {
+      typedef SimpleBoardWithPromosT WithPromosT;
+      typedef SimpleBoardT WithoutPromosT;
+    };
+
+    template <> struct BoardType<SimpleBoardWithPromosT> {
+      typedef SimpleBoardWithPromosT WithPromosT;
+      typedef SimpleBoardT WithoutPromosT;
+    };
+
+    template <typename BoardOutputT, typename BoardInputT>
+    inline BoardOutputT copyBoard(const BoardInputT& board);
+
+    template <>
+    inline SimpleBoardWithPromosT copyBoard<SimpleBoardWithPromosT, SimpleBoardT>(const SimpleBoardT& board) {
+      SimpleBoardWithPromosT newBoard;
+      // TODO - implement me
+      return newBoard;
+    }
+    
     const bool DoesNotHavePromos = false;
     const bool DoesHavePromos = true;
     
@@ -167,7 +190,7 @@ namespace Chess {
       colorState.pieceSquares[piece] = square;
     }
 
-#ifdef USE_PROMOS
+// #ifdef USE_PROMOS
     template <typename BoardT>
     inline void addPromoPiece(BoardT& board, const ColorT color, const int promoIndex, const PromoPieceT promoPiece, const SquareT square) {
       typename BoardT::ColorStateT &colorState = board.state[(size_t)color];
@@ -182,7 +205,7 @@ namespace Chess {
 
       colorState.promos[promoIndex] = promoPieceAndSquareOf(promoPiece, square);
     }
-#endif //def USE_PROMOS
+// #endif //def USE_PROMOS
     
     template <typename BoardT, ColorT Color>
     inline void placePiece(BoardT& board, const SquareT square, const PieceT piece) {
@@ -384,7 +407,7 @@ namespace Chess {
       return board;
     }
 
-#ifdef USE_PROMOS
+// #ifdef USE_PROMOS
     template <typename BoardT, ColorT Color>
     inline BoardT pushPawnToPromo(const BoardT& oldBoard, const SquareT from, const SquareT to, PromoPieceT promoPiece) {
       BoardT board = oldBoard;
@@ -399,7 +422,7 @@ namespace Chess {
       
       return board;
     }
-#endif //def USE_PROMOS
+// #endif //def USE_PROMOS
     
     template <typename BoardT, ColorT Color>
     inline BoardT captureEp(const BoardT& oldBoard, const SquareT from, const SquareT to, const SquareT captureSquare) {
@@ -417,24 +440,6 @@ namespace Chess {
       return board;
     }
 
-    // Note - MUST use this rather than zero-initialisation because piece squares need to be InvalidSquare
-    SimpleBoardT emptyBoard();
-    
-    SimpleBoardT startingPosition();
-
-    //template <typename BoardT>
-    bool isValid(const SimpleBoardT& board, const BitBoardT allYourKingAttackersBb);
-
-    // These are used for FEN output
-    char pieceChar(const std::vector<std::pair<ColorT, PieceTypeT>>& squarePieces);
-    
-    //template <typename BoardT>
-    std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64> genPieceMap(const SimpleBoardT& board);
-
-    //template <typename BoardT>
-    void printBoard(const SimpleBoardT& board);
-    
-    void printBb(BitBoardT bb);
   }
     
 }

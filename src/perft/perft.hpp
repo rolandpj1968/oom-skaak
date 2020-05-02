@@ -3,6 +3,7 @@
 
 #include "types.hpp"
 #include "board.hpp"
+#include "board-utils.hpp"
 #include "fen.hpp"
 #include "move-gen.hpp"
 #include "make-move.hpp"
@@ -52,17 +53,17 @@ namespace Chess {
     template <typename BoardT, ColorT Color>
     struct PerftPosHandlerT {
       typedef PerftPosHandlerT<BoardT, OtherColorT<Color>::value> ReverseT;
-      // typedef PerftPosHandlerT<BoardT, ColorT Color::WithPromosT> WithPromosT;
-      // typedef PerftPosHandlerT<BoardT, ColorT Color::WithoutPromosT> WithoutPromosT;
+      typedef PerftPosHandlerT<typename BoardType<BoardT>::WithPromosT, Color> WithPromosT;
+      typedef PerftPosHandlerT<typename BoardType<BoardT>::WithoutPromosT, Color> WithoutPromosT;
       
       static const bool ValidatePos = false;
       
       inline static void validatePos(const BoardT& board, MoveInfoT moveInfo) {
 	static bool done = false;
 	if(ValidatePos && !done) {
-	  if(!isValid<BoardT, Color>(board)) {
+	  if(!BoardUtils::isValid<BoardT, Color>(board)) {
 	    printf("Invalid board - last move from %s to %s\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    printBoard(board);
+	    BoardUtils::printBoard(board);
 	    //done = true;
 	  }
 	}
@@ -111,7 +112,7 @@ namespace Chess {
     template <typename BoardT, ColorT Color>
     inline void perft0Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
 
-      // printBoard(board);
+      // BoardUtils::printBoard(board);
       // printf("%s\n", Fen::toFen(board, Color).c_str());
 
       // TODO get rid...
@@ -121,7 +122,7 @@ namespace Chess {
 	  stats.nposwitheps++;
 	  if(!done) {
 	    printf("\n============================================== EP set at Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    printBoard(board);
+	    BoardUtils::printBoard(board);
 	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
 	    done = true;
 	  }
@@ -135,7 +136,7 @@ namespace Chess {
 	  stats.nposwitheps++;
 	  if(!done) {
 	    printf("\n============================================== EP capture Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    printBoard(board);
+	    BoardUtils::printBoard(board);
 	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
 	    //done = true;
 	  }
@@ -145,13 +146,13 @@ namespace Chess {
       // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
       const bool CheckForInvalid = false;
       if(CheckForInvalid) {
-	if(!isValid<BoardT, Color>(board)) {
+	if(!BoardUtils::isValid<BoardT, Color>(board)) {
 	  // Illegal position - doesn't count
 	  stats.invalids++;
 	  static bool done = false;
 	  if(!done) {
 	    printf("\n============================================== Invalid Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    printBoard(board);
+	    BoardUtils::printBoard(board);
 	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
 	    done = true;
 	  }
@@ -162,7 +163,7 @@ namespace Chess {
       // Check that we detect check accurately
       const bool CheckChecks = false;
       if(CheckChecks) {
-	int nChecks = getNChecks<BoardT, Color>(board);
+	int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
 	bool isCheck = nChecks > 0;
 	bool isCheckDetected = moveInfo.isDirectCheck || moveInfo.isDiscoveredCheck;
 	
@@ -177,7 +178,7 @@ namespace Chess {
 	  static bool done = false;
 	  if(!done) {
 	    printf("\n================================= Bad Check Detection Depth 0 - nChecks %d direct %d discovery %d last move %s-%s ===================================\n\n", nChecks, (int)moveInfo.isDirectCheck, (int)moveInfo.isDiscoveredCheck, SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    printBoard(board);
+	    BoardUtils::printBoard(board);
 	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
 	    done = true;
 	  }
@@ -257,7 +258,7 @@ namespace Chess {
 	if(board.state[(size_t)otherColor(Color)].epSquare != InvalidSquare) {
 	  if(!done) {
 	    printf("\n============================================== EP sq %s set at Depth 1 ===================================\n\n", SquareStr[board.state[(size_t)otherColor(Color)].epSquare]);
-	    printBoard(board);
+	    BoardUtils::printBoard(board);
 	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
 	    //done = true;
 	  }
@@ -283,7 +284,7 @@ namespace Chess {
     inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
       PerftStatsT stats = {};
       // TODO - fill in isDirectCheck and isDiscoveredCheck in order to hoist check detection out of genLegalMoves
-      const int nChecks = getNChecks<BoardT, Color>(board);
+      const int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
       MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
       const PerftStateT state(stats, depthToGo);
 

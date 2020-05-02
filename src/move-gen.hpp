@@ -4,7 +4,7 @@
 #include "types.hpp"
 #include "bits.hpp"
 #include "board.hpp"
-#include "fen.hpp" // TODO get rid...
+//#include "fen.hpp" // TODO get rid...
 
 namespace Chess {
 
@@ -928,7 +928,7 @@ namespace Chess {
 	  promoPieceAttacksBb = bishopAttacks(promoPieceSq, allPiecesBb);
 	}
 	
-	attacks.promoPieceAttacks[promoIndex] = promoPieceAttacksBb;
+	attacks.promoPieceAttackBbs[promoIndex] = promoPieceAttacksBb;
 	attacks.allAttacksBb |= promoPieceAttacksBb;
       }
       
@@ -1637,63 +1637,6 @@ namespace Chess {
       return legalMoves;
     }
 
-    template <typename BoardT>
-    int countAttacks(const typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT& pieceAttackBbs, const BitBoardT filterOut = BbNone, const BitBoardT filterInPawnTakes = BbAll);
-
-    // TODO - this shouldn't be in this header file but it has awkward dependencies
-    template <typename BoardT, ColorT Color>
-    bool isValid(const BoardT& board) {
-      typedef typename BoardT::ColorStateT ColorStateT;
-
-      typedef typename PieceBbsImplType<BoardT>::PieceBbsT PieceBbsT;
-      typedef typename ColorPieceBbsImplType<BoardT>::ColorPieceBbsT ColorPieceBbsT;
-      
-      const ColorT OtherColor = OtherColorT<Color>::value;
-
-      const ColorStateT& yourState = board.state[(size_t)OtherColor];
-      
-      const PieceBbsT& pieceBbs = genPieceBbs<BoardT, Color>(board);
-      const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
-      const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
-      
-      const BitBoardT allMyPiecesBb = myPieceBbs.bbs[AllPieceTypes];
-      const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
-      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
-      
-      const SquareT yourKingSq = yourState.pieceSquares[TheKing];
-      const SquareAttackerBbsT yourKingAttackerBbs = genSquareAttackerBbs<BoardT, Color>(yourKingSq, myPieceBbs, allPiecesBb);
-      const BitBoardT allYourKingAttackersBb = yourKingAttackerBbs.pieceAttackerBbs[AllPieceTypes];
-
-      return Board::isValid(board, allYourKingAttackersBb);
-    }
-
-    // TODO - this shouldn't be in this header file but it has awkward dependencies
-    template <typename BoardT, ColorT Color>
-    int getNChecks(const BoardT& board) {
-      typedef typename BoardT::ColorStateT ColorStateT;
-      
-      typedef typename PieceBbsImplType<BoardT>::PieceBbsT PieceBbsT;
-      typedef typename ColorPieceBbsImplType<BoardT>::ColorPieceBbsT ColorPieceBbsT;
-      
-      const ColorT OtherColor = OtherColorT<Color>::value;
-      
-      const ColorStateT& myState = board.state[(size_t)Color];
-
-      const PieceBbsT pieceBbs = genPieceBbs<BoardT, Color>(board);
-
-      const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
-      const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
-      
-      const BitBoardT allMyPiecesBb = myPieceBbs.bbs[AllPieceTypes];
-      const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
-      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
-      
-      const SquareT myKingSq = myState.pieceSquares[TheKing];
-      const SquareAttackerBbsT myKingAttackerBbs = genSquareAttackerBbs<BoardT, OtherColor>(myKingSq, yourPieceBbs, allPiecesBb);
-      const BitBoardT allMyKingAttackersBb = myKingAttackerBbs.pieceAttackerBbs[AllPieceTypes];
-
-      return Bits::count(allMyKingAttackersBb);
-    }
     
   } // namespace MoveGen
   
