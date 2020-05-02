@@ -330,14 +330,12 @@ namespace Chess {
       }
     };
 
-#ifdef USE_PROMOS
-    template <ColorT Color, PieceT Piece> struct PieceMoveFn<Color, Piece, PiecePromoCapture, ColorPieceMapT> {
+    template <typename BoardT, ColorT Color, PieceT Piece> struct PieceMoveFn<BoardT, Color, Piece, PiecePromoCapture, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
 	return capturePromoPieceWithPiece<BoardT, Color, Piece>(board, yourPieceMap, from, to);
       }
     };
-#endif //USE_PROMOS
 
     template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color, typename PieceMoveFn, MoveTypeT MoveType>
     inline void handlePieceMoves(StateT state, const BoardT& board, const typename PieceMoveFn::PieceMapImplT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
@@ -354,6 +352,23 @@ namespace Chess {
       }
     }
     
+    template <typename StateT, typename PosHandlerT, ColorT Color, PieceT Piece>
+    inline BitBoardT handlePiecePromoCaptures(StateT state, const BasicBoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const BitBoardT pieceCapturesBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
+      // No promo pieces
+      return pieceCapturesBb;
+    }
+    
+    template <typename StateT, typename PosHandlerT, ColorT Color, PieceT Piece>
+    inline BitBoardT handlePiecePromoCaptures(StateT state, const FullBoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const BitBoardT pieceCapturesBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
+      const BitBoardT promoPieceCapturesBb = pieceCapturesBb & yourPieceMap.allPromoPiecesBb;
+
+      // (Non-promo-)piece captures of promo pieces
+      typedef PieceMoveFn<FullBoardT, Color, Piece, PiecePromoCapture, ColorPieceMapT> PiecePromoCaptureFn;
+      handlePieceMoves<StateT, PosHandlerT, FullBoardT, Color, PiecePromoCaptureFn, CaptureMove>(state, board, yourPieceMap, from, promoPieceCapturesBb, directChecksBb, isDiscoveredCheck);
+
+      return pieceCapturesBb & ~promoPieceCapturesBb;
+    }
+    
     template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color, PieceT Piece>
     inline void handlePieceMoves(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb) {
       typedef typename BoardT::ColorStateT ColorStateT;
@@ -368,23 +383,14 @@ namespace Chess {
       typedef PieceMoveFn<BoardT, Color, Piece, PiecePush, NoPieceMapT> PiecePushFn;
       handlePieceMoves<StateT, PosHandlerT, BoardT, Color, PiecePushFn, PushMove>(state, board, NoPieceMapT(), from, piecePushesBb, directChecksBb, isDiscoveredCheck);
 
-      BitBoardT pieceCapturesBb = movesBb & allYourPiecesBb;
+      const BitBoardT pieceCapturesBb = movesBb & allYourPiecesBb;
 
-#ifdef USE_PROMOS
-      typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
-      if(YourColorTraitsT::HasPromos) {
-	const BitBoardT promoPieceCapturesBb = pieceCapturesBb & yourPieceMap.allPromoPiecesBb;
-	pieceCapturesBb &= ~promoPieceCapturesBb;
-
-	// (Non-promo-)piece captures of promo pieces
-	typedef PieceMoveFn<BoardT, Color, Piece, PiecePromoCapture, ColorPieceMapT> PiecePromoCaptureFn;
-	handlePieceMoves<StateT, PosHandlerT, BoardT, Color, PiecePromoCaptureFn, CaptureMove>(state, board, yourPieceMap, from, promoPieceCapturesBb, directChecksBb, isDiscoveredCheck);
-      }
-#endif //def USE_PROMOS
+      // (Non-promo-)piece captures of promo pieces
+      const BitBoardT nonPromoPieceCaptures = handlePiecePromoCaptures<StateT, PosHandlerT, Color, Piece>(state, board, yourPieceMap, from, pieceCapturesBb, directChecksBb, isDiscoveredCheck);
 
       // (Non-promo-)piece captures of non-promo pieces
       typedef PieceMoveFn<BoardT, Color, Piece, PieceCapture, ColorPieceMapT> PieceCaptureFn;
-      handlePieceMoves<StateT, PosHandlerT, BoardT, Color, PieceCaptureFn, CaptureMove>(state, board, yourPieceMap, from, pieceCapturesBb, directChecksBb, isDiscoveredCheck);
+      handlePieceMoves<StateT, PosHandlerT, BoardT, Color, PieceCaptureFn, CaptureMove>(state, board, yourPieceMap, from, nonPromoPieceCaptures, directChecksBb, isDiscoveredCheck);
     }
 
     //
