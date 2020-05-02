@@ -210,7 +210,7 @@ namespace Chess {
     inline void movePromoPiece(BoardT& board, const ColorT color, const int promoIndex, const PromoPieceT promoPiece, const SquareT square) {
       typename BoardT::ColorStateT &colorState = board.state[(size_t)color];
 
-      colorState.promos[promoIndex] = promoPieceAndSquareOf(promoPiece, square);
+      colorState.promos.promos[promoIndex] = promoPieceAndSquareOf(promoPiece, square);
     }
     
     template <typename BoardT, ColorT Color>
