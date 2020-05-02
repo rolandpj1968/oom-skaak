@@ -14,7 +14,7 @@ namespace Chess {
 
   namespace Board {
 
-    struct SimpleColorStateImplT {
+    struct BasicColorStateImplT {
       // Pawns bitboard
       BitBoardT pawnsBb;
 
@@ -29,7 +29,7 @@ namespace Chess {
       CastlingRightsT castlingRights;
     };
 
-    struct SimpleColorStateWithPromosImplT : SimpleColorStateImplT {
+    struct BasicColorStateWithPromosImplT : BasicColorStateImplT {
       // Bitmap of active promo pieces - index into promos array
       u8 activePromos;
 
@@ -40,34 +40,34 @@ namespace Chess {
     // Don't use this directly with zero-initialisation or you'll be disappointed because some fields need InvalidSquare (!= 0) init.
     // Use emptyBoard() or startingPosition() or parseFen().
     template <typename ColorStateImplT>
-    struct SimpleBoardImplT {
+    struct BasicBoardImplT {
       typedef ColorStateImplT ColorStateT;
       
       ColorStateImplT state[NColors];
     };
 
-    typedef SimpleBoardImplT<SimpleColorStateImplT> SimpleBoardT;
-    typedef SimpleBoardImplT<SimpleColorStateWithPromosImplT> SimpleBoardWithPromosT;
+    typedef BasicBoardImplT<BasicColorStateImplT> BasicBoardT;
+    typedef BasicBoardImplT<BasicColorStateWithPromosImplT> BasicBoardWithPromosT;
 
     template <typename BoardT>
     struct BoardType {};
 
-    template <> struct BoardType<SimpleBoardT> {
-      typedef SimpleBoardWithPromosT WithPromosT;
-      typedef SimpleBoardT WithoutPromosT;
+    template <> struct BoardType<BasicBoardT> {
+      typedef BasicBoardWithPromosT WithPromosT;
+      typedef BasicBoardT WithoutPromosT;
     };
 
-    template <> struct BoardType<SimpleBoardWithPromosT> {
-      typedef SimpleBoardWithPromosT WithPromosT;
-      typedef SimpleBoardT WithoutPromosT;
+    template <> struct BoardType<BasicBoardWithPromosT> {
+      typedef BasicBoardWithPromosT WithPromosT;
+      typedef BasicBoardT WithoutPromosT;
     };
 
     template <typename BoardOutputT, typename BoardInputT>
     inline BoardOutputT copyBoard(const BoardInputT& board);
 
     template <>
-    inline SimpleBoardWithPromosT copyBoard<SimpleBoardWithPromosT, SimpleBoardT>(const SimpleBoardT& board) {
-      SimpleBoardWithPromosT newBoard;
+    inline BasicBoardWithPromosT copyBoard<BasicBoardWithPromosT, BasicBoardT>(const BasicBoardT& board) {
+      BasicBoardWithPromosT newBoard;
       // TODO - implement me
       return newBoard;
     }

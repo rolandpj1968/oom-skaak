@@ -158,7 +158,7 @@ namespace Chess {
 
     // Place pieces on the board - this is fiddlier than ideal because we have to map to sensible concrete pieces like BlackBishop etc.
     // Where there are castling rights, it's critical that rooks are assigned correctly.
-    inline void placePieces(SimpleBoardT& board, const ColorT color, std::map<PieceTypeT, std::vector<SquareT>>& pieceTypeMap, const CastlingRightsT castlingRights) {
+    inline void placePieces(BasicBoardT& board, const ColorT color, std::map<PieceTypeT, std::vector<SquareT>>& pieceTypeMap, const CastlingRightsT castlingRights) {
       // Pawns - there MUST be 8 at most
       const std::vector<SquareT>& pawnSquares = pieceTypeMap[Pawn];
       if(pawnSquares.size() > 8) {
@@ -315,12 +315,13 @@ namespace Chess {
       }
     }
     
-    inline void placePieces(SimpleBoardT& board, std::map<ColorT, std::map<PieceTypeT, std::vector<SquareT>>>& pieceTypeMap, std::map<ColorT, CastlingRightsT>& castlingRights) {
+    inline void placePieces(BasicBoardT& board, std::map<ColorT, std::map<PieceTypeT, std::vector<SquareT>>>& pieceTypeMap, std::map<ColorT, CastlingRightsT>& castlingRights) {
       placePieces(board, White, pieceTypeMap[White], castlingRights[White]);
       placePieces(board, Black, pieceTypeMap[Black], castlingRights[Black]);
     }
     
-    inline std::pair<SimpleBoardT, ColorT> parseFen(const std::string& fen) {
+    // TODO handle BasicBoardWithPromosT
+    inline std::pair<BasicBoardT, ColorT> parseFen(const std::string& fen) {
       // split the FEN string into fields
       auto fields = split(fen);
 
@@ -340,7 +341,7 @@ namespace Chess {
       // EP square
       SquareT epSquare = parseEpSquare(fields[3]);
       
-      SimpleBoardT board = BoardUtils::emptyBoard();
+      BasicBoardT board = BoardUtils::emptyBoard();
 
       placePieces(board, pieceTypeMap, castlingRights);
 
@@ -431,12 +432,6 @@ namespace Chess {
       return ss.str();
     }
     
-    // // TODO handle SimpleBoardWithPromosT
-    // std::pair<SimpleBoardT, ColorT> parseFen(const std::string& fen);
-
-    // template <typename BoardT>
-    // std::string toFen(const BoardT& board, const ColorT colorToMove);
-
   } // namespace Fen
 } // namespace Chess
 

@@ -8,7 +8,7 @@
 
 using namespace Chess;
 
-typedef SimpleBoardT BoardT; 
+typedef BasicBoardT BoardT; 
 
 // perft <depth>
 int main(int argc, char* argv[]) {

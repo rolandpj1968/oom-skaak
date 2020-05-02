@@ -168,15 +168,15 @@ namespace Chess {
     }
 
     template <typename StateT, typename PosHandlerT, ColorT Color, typename To2FromFn, bool IsPushTwo>
-    inline void handlePawnsPromoPush(StateT state, const SimpleBoardWithPromosT& board, BitBoardT pawnsPushBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
-      typedef PawnPromoMoveFn<SimpleBoardWithPromosT, Color, PawnPushToPromo, NoPieceMapT> PawnPushToPromoFn;
-      handlePawnsMoveToPromo<StateT, PosHandlerT, SimpleBoardWithPromosT, Color, To2FromFn, PawnPushToPromoFn, PushMove>(state, board, NoPieceMapT(), pawnsPushBb, directChecksBb, discoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
+    inline void handlePawnsPromoPush(StateT state, const BasicBoardWithPromosT& board, BitBoardT pawnsPushBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
+      typedef PawnPromoMoveFn<BasicBoardWithPromosT, Color, PawnPushToPromo, NoPieceMapT> PawnPushToPromoFn;
+      handlePawnsMoveToPromo<StateT, PosHandlerT, BasicBoardWithPromosT, Color, To2FromFn, PawnPushToPromoFn, PushMove>(state, board, NoPieceMapT(), pawnsPushBb, directChecksBb, discoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
     }
 
     template <typename StateT, typename PosHandlerT, ColorT Color, typename To2FromFn, bool IsPushTwo>
-    inline void handlePawnsPromoPush(StateT state, const SimpleBoardT& board, BitBoardT pawnsPushBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
-      // Upgrade to SimpleBoardWithPromosT
-      const SimpleBoardWithPromosT boardWithPromos = copyBoard<SimpleBoardWithPromosT, SimpleBoardT>(board);
+    inline void handlePawnsPromoPush(StateT state, const BasicBoardT& board, BitBoardT pawnsPushBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
+      // Upgrade to BasicBoardWithPromosT
+      const BasicBoardWithPromosT boardWithPromos = copyBoard<BasicBoardWithPromosT, BasicBoardT>(board);
 
       handlePawnsPromoPush<StateT, typename PosHandlerT::WithPromosT, Color, To2FromFn, IsPushTwo>(state, boardWithPromos, pawnsPushBb, directChecksBb, discoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
     }

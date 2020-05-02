@@ -85,10 +85,10 @@ namespace Chess {
       printf("    A B C D E F G H\n");
     }
     
-    SimpleBoardT emptyBoard() {
-      SimpleBoardT board = {};
+    BasicBoardT emptyBoard() {
+      BasicBoardT board = {};
       for(unsigned color = 0; color < NColors; color++) {
-	SimpleColorStateImplT& colorState = board.state[color];
+	BasicColorStateImplT& colorState = board.state[color];
 	for(int i = 0; i < NPieces; i++) {
 	  colorState.pieceSquares[i] = InvalidSquare;
 	}
@@ -97,8 +97,8 @@ namespace Chess {
       return board;
     }
 
-    SimpleBoardT startingPosition() {
-      SimpleBoardT board = emptyBoard();
+    BasicBoardT startingPosition() {
+      BasicBoardT board = emptyBoard();
 
       addStartingPieces(board, White, A1, A2);
       addStartingPieces(board, Black, A8, A7);

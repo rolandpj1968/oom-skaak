@@ -217,8 +217,8 @@ namespace Chess {
 
     extern void printBb(BitBoardT bb);
     
-    extern SimpleBoardT emptyBoard();
-    extern SimpleBoardT startingPosition();
+    extern BasicBoardT emptyBoard();
+    extern BasicBoardT startingPosition();
     
   } // namespace BoardUtils
   
