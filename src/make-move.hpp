@@ -386,11 +386,11 @@ namespace Chess {
       const BitBoardT pieceCapturesBb = movesBb & allYourPiecesBb;
 
       // (Non-promo-)piece captures of promo pieces
-      const BitBoardT nonPromoPieceCaptures = handlePiecePromoCaptures<StateT, PosHandlerT, Color, Piece>(state, board, yourPieceMap, from, pieceCapturesBb, directChecksBb, isDiscoveredCheck);
+      const BitBoardT pieceNonPromoCaptures = handlePiecePromoCaptures<StateT, PosHandlerT, Color, Piece>(state, board, yourPieceMap, from, pieceCapturesBb, directChecksBb, isDiscoveredCheck);
 
       // (Non-promo-)piece captures of non-promo pieces
       typedef PieceMoveFn<BoardT, Color, Piece, PieceCapture, ColorPieceMapT> PieceCaptureFn;
-      handlePieceMoves<StateT, PosHandlerT, BoardT, Color, PieceCaptureFn, CaptureMove>(state, board, yourPieceMap, from, nonPromoPieceCaptures, directChecksBb, isDiscoveredCheck);
+      handlePieceMoves<StateT, PosHandlerT, BoardT, Color, PieceCaptureFn, CaptureMove>(state, board, yourPieceMap, from, pieceNonPromoCaptures, directChecksBb, isDiscoveredCheck);
     }
 
     //
@@ -422,14 +422,12 @@ namespace Chess {
       }
     };
 
-#ifdef USE_PROMOS
-    template <ColorT Color> struct KingMoveFn<Color, KingPromoCapture, ColorPieceMapT> {
+    template <typename BoardT, ColorT Color> struct KingMoveFn<BoardT, Color, KingPromoCapture, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
 	return capturePromoPieceWithPiece<BoardT, Color, TheKing>(board, yourPieceMap, from, to);
       }
     };
-#endif //def USE_PROMOS
 
     template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color, typename KingMoveFn, MoveTypeT MoveType>
     inline void handleKingMoves(StateT state, const BoardT& board, const typename KingMoveFn::PieceMapImplT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRaysBb) {
@@ -449,6 +447,23 @@ namespace Chess {
       }
     }
     
+    template <typename StateT, typename PosHandlerT, ColorT Color>
+    inline BitBoardT handleKingPromoCaptures(StateT state, const BasicBoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const BitBoardT kingCapturesBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRaysBb) {
+      // No promo pieces
+      return kingCapturesBb;
+    }
+    
+    template <typename StateT, typename PosHandlerT, ColorT Color>
+    inline BitBoardT handleKingPromoCaptures(StateT state, const FullBoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const BitBoardT kingCapturesBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRaysBb) {
+      const BitBoardT promoPieceCapturesBb = kingCapturesBb & yourPieceMap.allPromoPiecesBb;
+      
+      // King captures of promo pieces
+      typedef KingMoveFn<FullBoardT, Color, KingPromoCapture, ColorPieceMapT> KingPromoCaptureFn;
+      handleKingMoves<StateT, PosHandlerT, FullBoardT, Color, KingPromoCaptureFn, CaptureMove>(state, board, yourPieceMap, from, promoPieceCapturesBb, discoveriesBb, yourKingRaysBb);
+
+      return kingCapturesBb & ~promoPieceCapturesBb;
+    }
+    
     template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color>
     inline void handleKingMoves(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb, const SquareT yourKingSq) {
       typedef typename BoardT::ColorStateT ColorStateT;
@@ -463,23 +478,12 @@ namespace Chess {
       typedef KingMoveFn<BoardT, Color, KingPush, NoPieceMapT> KingPushFn;
       handleKingMoves<StateT, PosHandlerT, BoardT, Color, KingPushFn, PushMove>(state, board, NoPieceMapT(), from, kingPushesBb, discoveriesBb, yourKingRaysBb);
 
-      BitBoardT kingCapturesBb = movesBb & allYourPiecesBb;
-
-#ifdef USE_PROMOS
-      typedef typename BoardTraitsT::YourColorTraitsT YourColorTraitsT;
-      if(YourColorTraitsT::HasPromos) {
-	const BitBoardT promoPieceCapturesBb = kingCapturesBb & yourPieceMap.allPromoPiecesBb;
-	kingCapturesBb &= ~promoPieceCapturesBb;
-
-	// King captures of promo pieces
-	typedef KingMoveFn<Color, KingPromoCapture, ColorPieceMapT> KingPromoCaptureFn;
-	handleKingMoves<StateT, PosHandlerT, Color, KingPromoCaptureFn, CaptureMove>(state, board, yourPieceMap, from, promoPieceCapturesBb, discoveriesBb, yourKingRaysBb);
-      }
-#endif //def USE_PROMOS
+      const BitBoardT kingCapturesBb = movesBb & allYourPiecesBb;
+      const BitBoardT kingNonPromoCapturesBb = handleKingPromoCaptures<StateT, PosHandlerT, Color>(state, board, yourPieceMap, from, kingCapturesBb, discoveriesBb, yourKingRaysBb);
 
       // King captures of non-promo pieces
       typedef KingMoveFn<BoardT, Color, KingCapture, ColorPieceMapT> KingCaptureFn;
-      handleKingMoves<StateT, PosHandlerT, BoardT, Color, KingCaptureFn, CaptureMove>(state, board, yourPieceMap, from, kingCapturesBb, discoveriesBb, yourKingRaysBb);
+      handleKingMoves<StateT, PosHandlerT, BoardT, Color, KingCaptureFn, CaptureMove>(state, board, yourPieceMap, from, kingNonPromoCapturesBb, discoveriesBb, yourKingRaysBb);
     }
     
     //
