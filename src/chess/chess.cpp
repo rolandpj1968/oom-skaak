@@ -19,8 +19,6 @@ int a[] = {
 };
 
 using namespace Board;
-//using namespace Fen;
-//using namespace MoveGen;
 
 template <typename BoardT>
 static void dumpAttacks(const typename MoveGen::PieceAttackBbsImplType<BoardT>::PieceAttackBbsT& pieceAttackBbs) {

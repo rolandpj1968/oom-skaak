@@ -268,7 +268,6 @@ namespace Chess {
     CastlingMove
   };
 
-  // TODO - move to using flags instead of bools or even move-type?
   struct MoveInfoT {
     MoveTypeT moveType;
     // For castling this is the king 'from' square.
