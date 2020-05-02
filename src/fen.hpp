@@ -345,10 +345,10 @@ namespace Chess {
 
       placePieces(board, pieceTypeMap, castlingRights);
 
-      board.state[(size_t)White].castlingRights = castlingRights[White];
-      board.state[(size_t)Black].castlingRights = castlingRights[Black];
+      board.state[(size_t)White].basic.castlingRights = castlingRights[White];
+      board.state[(size_t)Black].basic.castlingRights = castlingRights[Black];
 
-      board.state[(size_t)otherColor(color)].epSquare = epSquare;
+      board.state[(size_t)otherColor(color)].basic.epSquare = epSquare;
       
       return std::make_pair(board, color);
     }
@@ -392,8 +392,8 @@ namespace Chess {
 
     template <typename BoardT>
     inline std::string genCastlingRights(const BoardT& board) {
-      CastlingRightsT wRights = board.state[(size_t)White].castlingRights;
-      CastlingRightsT bRights = board.state[(size_t)Black].castlingRights;
+      CastlingRightsT wRights = board.state[(size_t)White].basic.castlingRights;
+      CastlingRightsT bRights = board.state[(size_t)Black].basic.castlingRights;
 
       if(wRights == NoCastlingRights && bRights == NoCastlingRights) {
 	return "-";
@@ -412,7 +412,7 @@ namespace Chess {
 
     template <typename BoardT>
     inline std::string genEpSquare(const BoardT& board, const ColorT colorToMove) {
-      SquareT epSq = board.state[(size_t)otherColor(colorToMove)].epSquare;
+      SquareT epSq = board.state[(size_t)otherColor(colorToMove)].basic.epSquare;
 
       if(epSq == InvalidSquare) { return "-"; }
 

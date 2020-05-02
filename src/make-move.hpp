@@ -121,7 +121,7 @@ namespace Chess {
     inline void handlePawnsMoveToPromo(StateT state, const BoardT& board, const typename PawnPromoMoveFn::PieceMapImplT& yourPieceMap, BitBoardT pawnsMoveBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
       typedef typename PosHandlerT::ReverseT ReversePosHandlerT;
 
-      const SquareT yourKingSq = board.state[(size_t)OtherColorT<Color>::value].pieceSquares[TheKing];
+      const SquareT yourKingSq = board.state[(size_t)OtherColorT<Color>::value].basic.pieceSquares[TheKing];
 	
       while(pawnsMoveBb) {
 	const SquareT to = Bits::popLsb(pawnsMoveBb);
@@ -342,7 +342,7 @@ namespace Chess {
       typedef typename BoardT::ColorStateT ColorStateT;
 
       const ColorStateT& myState = board.state[(size_t)Color];
-      const SquareT from = myState.pieceSquares[Piece];
+      const SquareT from = myState.basic.pieceSquares[Piece];
       const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
 
       const BitBoardT piecePushesBb = movesBb & ~allYourPiecesBb;
@@ -431,7 +431,7 @@ namespace Chess {
       typedef typename BoardT::ColorStateT ColorStateT;
 
       const ColorStateT& myState = board.state[(size_t)Color];
-      const SquareT from = myState.pieceSquares[TheKing];
+      const SquareT from = myState.basic.pieceSquares[TheKing];
       const BitBoardT yourKingRaysBb = MoveGen::BishopRays[yourKingSq] | MoveGen::RookRays[yourKingSq];
       
       const BitBoardT kingPushesBb = movesBb & ~allYourPiecesBb;
@@ -605,7 +605,7 @@ namespace Chess {
 	  const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
 	  const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
 	  
-	  const SquareT yourKingSq = yourState.pieceSquares[TheKing];
+	  const SquareT yourKingSq = yourState.basic.pieceSquares[TheKing];
 	  // These are used for promo-piece check detection
 	  const BitBoardT yourKingRookAttacksBb = MoveGen::rookAttacks(yourKingSq, allPiecesBb);
 	  const BitBoardT yourKingBishopAttacksBb = MoveGen::bishopAttacks(yourKingSq, allPiecesBb);
@@ -679,7 +679,7 @@ namespace Chess {
       } // nChecks < 2
       
       // King - discoveries from king moves are a pain in the butt because each move direction is potentially different.
-      handleKingMoves<StateT, PosHandlerT, BoardT, Color>(state, board, yourPieceMap, legalMoves.pieceMoves[TheKing], (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb, yourState.pieceSquares[TheKing]); 
+      handleKingMoves<StateT, PosHandlerT, BoardT, Color>(state, board, yourPieceMap, legalMoves.pieceMoves[TheKing], (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb, yourState.basic.pieceSquares[TheKing]); 
     }
      
   } // namespace MakeMove

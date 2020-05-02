@@ -17,18 +17,20 @@ namespace Chess {
 
     template <typename BoardT>
     inline void addPiece(BoardT& board, const ColorT color, const SquareT square, const PieceT piece) {
-      typename BoardT::ColorStateT& c = board.state[(size_t)color];
+      typename BoardT::ColorStateT& colorState = board.state[(size_t)color];
+      NonPromosColorStateImplT& basicState = colorState.basic;
 
-      c.pieceSquares[piece] = square;
+      basicState.pieceSquares[piece] = square;
     }
 
     template <typename BoardT>
     inline void addPawn(BoardT& board, const ColorT color, const SquareT square) {
-      typename BoardT::ColorStateT& c = board.state[(size_t)color];
+      typename BoardT::ColorStateT& colorState = board.state[(size_t)color];
+      NonPromosColorStateImplT& basicState = colorState.basic;
       
       const BitBoardT pieceBb = bbForSquare(square);
 
-      c.pawnsBb |= pieceBb;
+      basicState.pawnsBb |= pieceBb;
     }
     
     template <typename BoardT>
@@ -49,17 +51,19 @@ namespace Chess {
       }
 
       // Castling rights
-      board.state[(size_t)color].castlingRights = (CastlingRightsT)(CanCastleQueenside | CanCastleKingside);
+      board.state[(size_t)color].basic.castlingRights = (CastlingRightsT)(CanCastleQueenside | CanCastleKingside);
     }
 
     extern void addPawnsForColor(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const ColorT color, BitBoardT pawnsBb);
 
     template <typename BoardT>
     inline void addPiecesForColor(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const ColorT color, const typename BoardT::ColorStateT& colorState) {
-      addPawnsForColor(pieceMap, color, colorState.pawnsBb);
+      const NonPromosColorStateImplT& basicState = colorState.basic;
+
+      addPawnsForColor(pieceMap, color, basicState.pawnsBb);
 
       for(PieceT piece = Knight1; piece < NPieces; piece = (PieceT)(piece+1)) {
-	SquareT square = colorState.pieceSquares[piece];
+	SquareT square = basicState.pieceSquares[piece];
 	if(square != InvalidSquare) {
 	  pieceMap[square].push_back(std::pair<ColorT, PieceTypeT>(color, PieceTypeForPiece[piece]));
 	}
@@ -152,7 +156,7 @@ namespace Chess {
       const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
       
-      const SquareT yourKingSq = yourState.pieceSquares[TheKing];
+      const SquareT yourKingSq = yourState.basic.pieceSquares[TheKing];
       const MoveGen::SquareAttackerBbsT yourKingAttackerBbs = MoveGen::genSquareAttackerBbs<BoardT, Color>(yourKingSq, myPieceBbs, allPiecesBb);
       const BitBoardT allYourKingAttackersBb = yourKingAttackerBbs.pieceAttackerBbs[AllPieceTypes];
 
@@ -180,7 +184,7 @@ namespace Chess {
       const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
       const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
       
-      const SquareT myKingSq = myState.pieceSquares[TheKing];
+      const SquareT myKingSq = myState.basic.pieceSquares[TheKing];
       const MoveGen::SquareAttackerBbsT myKingAttackerBbs = MoveGen::genSquareAttackerBbs<BoardT, OtherColor>(myKingSq, yourPieceBbs, allPiecesBb);
       const BitBoardT allMyKingAttackersBb = myKingAttackerBbs.pieceAttackerBbs[AllPieceTypes];
 

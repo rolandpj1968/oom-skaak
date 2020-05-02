@@ -89,10 +89,11 @@ namespace Chess {
       BasicBoardT board = {};
       for(unsigned color = 0; color < NColors; color++) {
 	BasicColorStateImplT& colorState = board.state[color];
+	NonPromosColorStateImplT& basicState = colorState.basic;
 	for(int i = 0; i < NPieces; i++) {
-	  colorState.pieceSquares[i] = InvalidSquare;
+	  basicState.pieceSquares[i] = InvalidSquare;
 	}
-	colorState.epSquare = InvalidSquare;
+	basicState.epSquare = InvalidSquare;
       }
       return board;
     }
