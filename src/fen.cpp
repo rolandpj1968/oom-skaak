@@ -4,8 +4,6 @@ namespace Chess {
 
   using namespace Board;
   
-  //typedef SimpleBoardT BoardT;
-    
   namespace Fen {
 
     const std::map<char, PieceTypeAndColorT> FenPieces = {

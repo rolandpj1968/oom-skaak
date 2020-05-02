@@ -56,6 +56,23 @@ namespace Chess {
 
     extern void addPawnsForColor(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const ColorT color, BitBoardT pawnsBb);
 
+    inline void addPromoPiecesForColor(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const ColorT color, const typename BasicBoardT::ColorStateT& colorState) {
+      // No promo pieces
+    }
+    
+    inline void addPromoPiecesForColor(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const ColorT color, const typename FullBoardT::ColorStateT& colorState) {
+      // Ugh the bit stuff operates on BitBoardT type
+      BitBoardT activePromos = (BitBoardT)colorState.promos.activePromos;
+      while(activePromos) {
+	const int promoIndex = Bits::popLsb(activePromos);
+	const PromoPieceAndSquareT promoPieceAndSquare = colorState.promos.promos[promoIndex];
+	const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
+	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
+
+	pieceMap[promoPieceSq].push_back(std::pair<ColorT, PieceTypeT>(color, PieceTypeForPromoPiece[promoPiece]));
+      }
+    }
+    
     template <typename BoardT>
     inline void addPiecesForColor(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const ColorT color, const typename BoardT::ColorStateT& colorState) {
       const NonPromosColorStateImplT& basicState = colorState.basic;
@@ -69,19 +86,8 @@ namespace Chess {
 	}
       }
 
-      // Promo pieces - ugh the bit stuff operates on BitBoardT type
-#ifdef USE_PROMOS
-      BitBoardT activePromos = (BitBoardT)colorState.activePromos;
-      while(activePromos) {
-	const int promoIndex = Bits::popLsb(activePromos);
-	const PromoPieceAndSquareT promoPieceAndSquare = colorState.promos[promoIndex];
-	const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
-	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
-
-	pieceMap[promoPieceSq].push_back(std::pair<ColorT, PieceTypeT>(color, PieceTypeForPromoPiece[promoPiece]));
-      }
-#endif //def USE_PROMOS
-      
+      // Promo pieces
+      addPromoPiecesForColor(pieceMap, color, colorState);
     }
 
     template <typename BoardT>

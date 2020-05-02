@@ -362,6 +362,15 @@ namespace Chess {
     inline BitBoardT handlePiecePromoCaptures(StateT state, const FullBoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const BitBoardT pieceCapturesBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
       const BitBoardT promoPieceCapturesBb = pieceCapturesBb & yourPieceMap.allPromoPiecesBb;
 
+      if(Color == Black && promoPieceCapturesBb != BbNone) {
+	printf("\n---------------------------------------------------------------------------------\n");
+	printf("We got us some promo-piece captures - from %s\n\n", SquareStr[from]);
+	BoardUtils::printBoard(board);
+	printf("\nCapturing at:\n");
+	BoardUtils::printBb(promoPieceCapturesBb);
+	printf("\n---------------------------------------------------------------------------------\n");
+      }
+
       // (Non-promo-)piece captures of promo pieces
       typedef PieceMoveFn<FullBoardT, Color, Piece, PiecePromoCapture, ColorPieceMapT> PiecePromoCaptureFn;
       handlePieceMoves<StateT, PosHandlerT, FullBoardT, Color, PiecePromoCaptureFn, CaptureMove>(state, board, yourPieceMap, from, promoPieceCapturesBb, directChecksBb, isDiscoveredCheck);
@@ -547,17 +556,17 @@ namespace Chess {
       typedef PromoPieceMoveFn<BoardT, Color, PromoPiecePush, NoPieceMapT> PromoPiecePushFn;
       handlePromoPieceMoves<StateT, PosHandlerT, BoardT, Color, PromoPiecePushFn, PushMove>(state, board, NoPieceMapT(), promoIndex, promoPiece, from, piecePushesBb, directChecksBb, isDiscoveredCheck);
 
-      BitBoardT pieceCapturesBb = movesBb & allYourPiecesBb;
-      const BitBoardT promoPieceCapturesBb = pieceCapturesBb & yourPieceMap.allPromoPiecesBb;
-      pieceCapturesBb &= ~promoPieceCapturesBb;
-
+      const BitBoardT pieceCapturesBb = movesBb & allYourPiecesBb;
+      
       // Promo-piece captures of promo pieces
+      const BitBoardT promoPieceCapturesBb = pieceCapturesBb & yourPieceMap.allPromoPiecesBb;
       typedef PromoPieceMoveFn<BoardT, Color, PromoPiecePromoCapture, ColorPieceMapT> PromoPiecePromoCaptureFn;
       handlePromoPieceMoves<StateT, PosHandlerT, BoardT, Color, PromoPiecePromoCaptureFn, CaptureMove>(state, board, yourPieceMap, promoIndex, promoPiece, from, promoPieceCapturesBb, directChecksBb, isDiscoveredCheck);
 
       // Promo-piece captures of non-promo pieces
+      const BitBoardT nonPromoPieceCaptures = pieceCapturesBb & ~promoPieceCapturesBb;
       typedef PromoPieceMoveFn<BoardT, Color, PromoPieceCapture, ColorPieceMapT> PromoPieceCaptureFn;
-      handlePromoPieceMoves<StateT, PosHandlerT, BoardT, Color, PromoPieceCaptureFn, CaptureMove>(state, board, yourPieceMap, promoIndex, promoPiece, from, pieceCapturesBb, directChecksBb, isDiscoveredCheck);
+      handlePromoPieceMoves<StateT, PosHandlerT, BoardT, Color, PromoPieceCaptureFn, CaptureMove>(state, board, yourPieceMap, promoIndex, promoPiece, from, nonPromoPieceCaptures, directChecksBb, isDiscoveredCheck);
     }
 
     //
@@ -651,7 +660,7 @@ namespace Chess {
       if(legalMoves.isIllegalPos) {
 	static bool done = false;
 	if(!done) {
-	  printf("\n============================================== Invalid Pos :( ===================================\n\n");
+	  printf("\n============================================== Invalid Pos :( Color %s ===================================\n\n", (Color == White ? "W" : "B"));
 	  BoardUtils::printBoard(board);
 	  printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
 	  printf("\n");

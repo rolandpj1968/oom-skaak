@@ -94,6 +94,23 @@ namespace Chess {
       BitBoardT allPromoPiecesBb;
       PieceOrPromoIndexT board[64+1]; // Allow board[InvalidSquare]
     };
+
+    inline void addPromoPieces(ColorPieceMapT& pieceMap, const BasicColorStateImplT& colorState, const BitBoardT allPromoPiecesBb) {
+      // No promo pieces
+    }
+    
+    inline void addPromoPieces(ColorPieceMapT& pieceMap, const FullColorStateImplT& colorState, const BitBoardT allPromoPiecesBb) {
+      BitBoardT activePromos = (BitBoardT)colorState.promos.activePromos;
+      while(activePromos) {
+	const int promoIndex = Bits::popLsb(activePromos);
+	const PromoPieceAndSquareT promoPieceAndSquare = colorState.promos.promos[promoIndex];
+	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
+
+	pieceMap.board[promoPieceSq].promoIndex = promoIndex;
+      }
+
+      pieceMap.allPromoPiecesBb = allPromoPiecesBb;
+    }
     
     // Generate the (non-pawn) piece map for a color
     template <typename ColorStateT>
@@ -112,18 +129,7 @@ namespace Chess {
       pieceMap.board[basicState.pieceSquares[TheKing]].piece = TheKing;
 
       // Promo pieces - ugh the bit stuff operates on BitBoardT type
-#ifdef USE_PROMOS
-      BitBoardT activePromos = (BitBoardT)colorState.activePromos;
-      while(activePromos) {
-	const int promoIndex = Bits::popLsb(activePromos);
-	const PromoPieceAndSquareT promoPieceAndSquare = colorState.promos[promoIndex];
-	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
-
-	pieceMap.board[promoPieceSq].promoIndex = promoIndex;
-      }
-
-      pieceMap.allPromoPiecesBb = allPromoPiecesBb;
-#endif //def USE_PROMOS
+      addPromoPieces(pieceMap, colorState, allPromoPiecesBb);
       
       return pieceMap;
     }
