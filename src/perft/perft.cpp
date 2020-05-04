@@ -8,6 +8,13 @@
 
 using namespace Chess;
 
+void Perft::dumpStats(const Perft::PerftStatsT& stats) {
+  printf("nodes = %lu, captures = %lu, eps = %lu, castles = %lu, promos = %lu, checks = %lu, discoveries = %lu, doublechecks = %lu, checkmates = %lu\n", stats.nodes, stats.captures, stats.eps, stats.castles, stats.promos, stats.checks, stats.discoverychecks, stats.doublechecks, stats.checkmates);
+  //printf("depth-0-with-eps = %lu, epdiscoveries = %lu, ephorizdiscoveries = %lu, epdiagfromdiscoveries = %lu, epdiagcapturediscoveries = %lu\n", stats.nposwitheps, stats.epdiscoveries, stats.ephorizdiscoveries, stats.epdiagfromdiscoveries, stats.epdiagcapturediscoveries);
+}
+
+
+
 static void do_special_and_die(int depthToGo) {
     printf("Hallo RPJ\n");
     //auto basicBoard = Fen::parseFen("r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 b kq - 0 1").first;
@@ -41,11 +48,6 @@ static void usage_and_die(int argc, char* argv[], const char* msg = 0) {
   fprintf(stderr, "\n");
   
   exit(1);
-}
-
-static void dumpStats(const Perft::PerftStatsT& stats) {
-  printf("nodes = %lu, captures = %lu, eps = %lu, castles = %lu, promos = %lu, checks = %lu, discoveries = %lu, doublechecks = %lu, checkmates = %lu\n", stats.nodes, stats.captures, stats.eps, stats.castles, stats.promos, stats.checks, stats.discoverychecks, stats.doublechecks, stats.checkmates);
-  //printf("depth-0-with-eps = %lu, epdiscoveries = %lu, ephorizdiscoveries = %lu, epdiagfromdiscoveries = %lu, epdiagcapturediscoveries = %lu\n", stats.nposwitheps, stats.epdiscoveries, stats.ephorizdiscoveries, stats.epdiagfromdiscoveries, stats.epdiagcapturediscoveries);
 }
 
 int main(int argc, char* argv[]) {
@@ -128,9 +130,18 @@ int main(int argc, char* argv[]) {
     printf("\n");
   }
 
-  Perft::PerftStatsT stats = colorToMove == White ?
-    Perft::perft<BasicBoardT, White>(board, depthToGo) :
-    Perft::perft<BasicBoardT, Black>(board, depthToGo);
+  Perft::PerftStatsT stats;
+
+  if(doSplit) {
+   stats = colorToMove == White ?
+      Perft::splitPerft<BasicBoardT, White>(board, depthToGo) :
+      Perft::splitPerft<BasicBoardT, Black>(board, depthToGo);
+   printf("\n");
+  } else {
+   stats = colorToMove == White ?
+      Perft::perft<BasicBoardT, White>(board, depthToGo) :
+      Perft::perft<BasicBoardT, Black>(board, depthToGo);
+  }
 
   printf("perft(%d) stats:\n\n", depthToGo);
   dumpStats(stats);
