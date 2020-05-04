@@ -152,7 +152,7 @@ namespace Chess {
 	    printf("\n============================================== Invalid Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
 	    BoardUtils::printBoard(board);
 	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
-	    done = true;
+	    //done = true;
 	  }
 	  return;
 	}
@@ -178,7 +178,7 @@ namespace Chess {
 	    printf("\n================================= Bad Check Detection Depth 0 - nChecks %d direct %d discovery %d last move %s-%s ===================================\n\n", nChecks, (int)moveInfo.isDirectCheck, (int)moveInfo.isDiscoveredCheck, SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
 	    BoardUtils::printBoard(board);
 	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
-	    done = true;
+	    //done = true;
 	  }
 	}
       }

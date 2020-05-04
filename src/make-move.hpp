@@ -127,11 +127,27 @@ namespace Chess {
 
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
 	const BitBoardT toBb = bbForSquare(to);
-	const BitBoardT orthogCheckBb = toBb & yourKingRookAttacksBb;
-	const BitBoardT diagCheckBb = toBb & yourKingBishopAttacksBb;
+	bool isOrthogCheck = (toBb & yourKingRookAttacksBb) != BbNone;
+	bool isDiagCheck = (toBb & yourKingBishopAttacksBb) != BbNone;
+	const BitBoardT fromBb = bbForSquare(from);
+	if(MoveType == PushMove) {
+	  // Can get check from pawn pushing away from your King to promo Rook or Queen
+	  if((fromBb & yourKingRookAttacksBb) != BbNone && fileOf(yourKingSq) == fileOf(from)) {
+	    isOrthogCheck = true;
+	  }
+	} else {
+	  //Can get check from pawn capturing away from your King to promo Bishop or Queen
+	  if((fromBb & yourKingBishopAttacksBb) != BbNone) {
+	    // Capture must be in a direction away from your King
+	    const BitBoardT captureDirectionRay = MoveGen::BishopRays[from] & MoveGen::BishopRays[to];
+	    if((captureDirectionRay & bbForSquare(yourKingSq)) != BbNone) {
+	      isDiagCheck = true;
+	    }
+	  }
+	}
 	
 	const BoardT queenPromoBoard = PawnPromoMoveFn::fn(board, yourPieceMap, from, to, PromoQueen);
-	const bool isQueenCheck = (orthogCheckBb | diagCheckBb) != BbNone;
+	const bool isQueenCheck = isOrthogCheck || isDiagCheck;
 	ReversePosHandlerT::handlePos(state, queenPromoBoard, MoveInfoT(MoveType, from, to, isQueenCheck, isDiscoveredCheck, /*isPromo*/true));
 	
 	const BoardT knightPromoBoard = PawnPromoMoveFn::fn(board, yourPieceMap, from, to, PromoKnight);
@@ -139,11 +155,11 @@ namespace Chess {
 	ReversePosHandlerT::handlePos(state, knightPromoBoard, MoveInfoT(MoveType, from, to, isKnightCheck, isDiscoveredCheck, /*isPromo*/true));
 	
 	const BoardT rookPromoBoard = PawnPromoMoveFn::fn(board, yourPieceMap, from, to, PromoRook);
-	const bool isRookCheck = orthogCheckBb != BbNone;
+	const bool isRookCheck = isOrthogCheck;
 	ReversePosHandlerT::handlePos(state, rookPromoBoard, MoveInfoT(MoveType, from, to, isRookCheck, isDiscoveredCheck, /*isPromo*/true));
 	
 	const BoardT bishopPromoBoard = PawnPromoMoveFn::fn(board, yourPieceMap, from, to, PromoBishop);
-	const bool isBishopCheck = diagCheckBb != BbNone;
+	const bool isBishopCheck = isDiagCheck;
 	ReversePosHandlerT::handlePos(state, bishopPromoBoard, MoveInfoT(MoveType, from, to, isBishopCheck, isDiscoveredCheck, /*isPromo*/true));
       }
     }

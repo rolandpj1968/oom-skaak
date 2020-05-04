@@ -1,11 +1,13 @@
 #include <cstdio>
+#include <string>
 
 #include <boost/preprocessor/iteration/local.hpp>
 
 #include "board.hpp"
+#include "board-utils.hpp"
+#include "bounded-hash-map.hpp"
 #include "fen.hpp"
 #include "move-gen.hpp"
-#include "board-utils.hpp"
 
 using namespace Chess;
 
@@ -38,7 +40,7 @@ static void dumpAttacks(const typename MoveGen::PieceAttackBbsImplType<BoardT>::
   printf("all attacks:         %016lx\n", pieceAttackBbs.allAttacksBb);
 }
 
-int main(int argc, char* argv[]) {
+int main1(int argc, char* argv[]) {
 
   printf("Hallo RPJ - sizeof(Color) is %zu\n", sizeof(ColorT));
   printf("Hallo again RPJ - sizeof(a) is %zu, sizeof(a)/sizeof(a[0]) = %zu, a[4] = %d, a[0] = %d\n", sizeof(a), sizeof(a)/sizeof(a[0]), a[4], a[0]);
@@ -88,4 +90,99 @@ int main(int argc, char* argv[]) {
   printf("\n%d attacks, %d valid moves, all black pieces %016lx\n\n", BoardUtils::countAttacks<BoardT>(blackAttacks), BoardUtils::countAttacks<BoardT>(blackAttacks, allBPiecesBb, allWPiecesBb), allPiecesBb);
   
   return 0;
+}
+
+int main(int argc, char* argv[]) {
+  using BoundedHashMap::BoundedHashMap;
+
+  const int MAX_SIZE = 4;
+  BoundedHashMap<std::string, int> map(MAX_SIZE);
+
+  printf("bounded map: empty() is %d, size() is %lu, max_size is %lu\n", map.empty(), map.size(), map.max_size());
+
+  printf("mru list: {");
+  for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
+    printf(" %s", it->c_str());
+  }
+  printf(" }\n");
+
+  std::string one("1");
+  map.put(one, 1);
+
+  printf("bounded map: empty() is %d, size() is %lu, max_size is %lu\n", map.empty(), map.size(), map.max_size());
+
+  printf("mru list: {");
+  for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
+    printf(" %s", it->c_str());
+  }
+  printf(" }\n");
+
+  std::string two("2");
+  map.put(two, 2);
+
+  printf("bounded map: empty() is %d, size() is %lu, max_size is %lu\n", map.empty(), map.size(), map.max_size());
+
+  printf("mru list: {");
+  for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
+    printf(" %s", it->c_str());
+  }
+  printf(" }\n");
+
+  std::string three("3");
+  map.put(three, 3);
+
+  printf("bounded map: empty() is %d, size() is %lu, max_size is %lu\n", map.empty(), map.size(), map.max_size());
+
+  printf("mru list: {");
+  for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
+    printf(" %s", it->c_str());
+  }
+  printf(" }\n");
+
+  std::string four("4");
+  map.put(four, 4);
+
+  printf("bounded map: empty() is %d, size() is %lu, max_size is %lu\n", map.empty(), map.size(), map.max_size());
+
+  printf("mru list: {");
+  for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
+    printf(" %s", it->c_str());
+  }
+  printf(" }\n");
+
+  std::string five("5");
+  map.put(five, 5);
+
+  printf("bounded map: empty() is %d, size() is %lu, max_size is %lu\n", map.empty(), map.size(), map.max_size());
+
+  printf("mru list: {");
+  for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
+    printf(" %s", it->c_str());
+  }
+  printf(" }\n");
+
+  printf("map.at(three) is %d\n", map.at(three));
+  printf("mru list: {");
+  for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
+    printf(" %s", it->c_str());
+  }
+  printf(" }\n");
+
+  printf("map.at(two) is %d\n", map.at(two));
+  printf("mru list: {");
+  for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
+    printf(" %s", it->c_str());
+  }
+  printf(" }\n");
+
+  std::string six("6");
+  map.put(six, 6);
+
+  printf("bounded map: empty() is %d, size() is %lu, max_size is %lu\n", map.empty(), map.size(), map.max_size());
+
+  printf("mru list: {");
+  for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
+    printf(" %s", it->c_str());
+  }
+  printf(" }\n");
 }
