@@ -8,15 +8,14 @@
 
 using namespace Chess;
 
-// perft <depth>
-int main(int argc, char* argv[]) {
-  if(argc <= 1 || argc > 3) {
-    fprintf(stderr, "usage: %s <depth> [FEN]\n", argv[0]);
-    exit(1);
-  }
-  int depthToGo = atoi(argv[1]);
+void Perft::dumpStats(const Perft::PerftStatsT& stats) {
+  printf("nodes = %lu, captures = %lu, eps = %lu, castles = %lu, promos = %lu, checks = %lu, discoveries = %lu, doublechecks = %lu, checkmates = %lu\n", stats.nodes, stats.captures, stats.eps, stats.castles, stats.promos, stats.checks, stats.discoverychecks, stats.doublechecks, stats.checkmates);
+  //printf("depth-0-with-eps = %lu, epdiscoveries = %lu, ephorizdiscoveries = %lu, epdiagfromdiscoveries = %lu, epdiagcapturediscoveries = %lu\n", stats.nposwitheps, stats.epdiscoveries, stats.ephorizdiscoveries, stats.epdiagfromdiscoveries, stats.epdiagcapturediscoveries);
+}
 
-  if(argc == 3 && std::string(argv[2]) == "RPJ") {
+
+
+static void do_special_and_die(int depthToGo) {
     printf("Hallo RPJ\n");
     //auto basicBoard = Fen::parseFen("r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 b kq - 0 1").first;
     auto basicBoard = Fen::parseFen("r3k3/Pppp1ppp/1b3nbN/nPP5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 b q - 0 1").first;
@@ -32,17 +31,53 @@ int main(int argc, char* argv[]) {
     printf("perft(%d) - nodes = %lu, captures = %lu, eps = %lu, castles = %lu, promos = %lu, checks = %lu, discoveries = %lu, doublechecks = %lu, checkmates = %lu\n", depthToGo, stats.nodes, stats.captures, stats.eps, stats.castles, stats.promos, stats.checks, stats.discoverychecks, stats.doublechecks, stats.checkmates);
   
     exit(1);
-  }
+}
 
+static void usage_and_die(int argc, char* argv[], const char* msg = 0) {
+  if(msg) {
+    fprintf(stderr, "%s\n\n", msg);
+  }
+  
+  fprintf(stderr, "usage: %s <depth> [FEN] [--split] [--max-tt-depth <depth>] [--tt-size <size>]\n\n", argv[0]);
+  fprintf(stderr, "  Default position is the starting position; also use \"-\" for starting position, e.g. %s 6 \"-\" --max-tt-depth 4\n", argv[0]);
+  fprintf(stderr, "  --split provides top-level subtree statistics per top-level move - this is useful for debugging\n");
+  fprintf(stderr, "  --max-tt-depth <depth> enables tableauing of results for transpositions up to <depth>\n");
+  fprintf(stderr, "      Transition tables (TTs) are only used from level 3 and deeper since no shallower transpositions are possible\n");
+  fprintf(stderr, "  --tt-size <size> defines the maximum TT size for each level (default 262144)\n");
+  fprintf(stderr, "      TT entries at each level are discarded according to LRU\n");
+  fprintf(stderr, "\n");
+  
+  exit(1);
+}
+
+int main(int argc, char* argv[]) {
   printf("sizeof(NonPromosColorStateImplT) is %lu - NPieces is %d\n", sizeof(NonPromosColorStateImplT), NPieces);
   printf("sizeof(BasicBoardT) is %lu\n", sizeof(BasicBoardT));
   printf("sizeof(FullBoardT) is %lu\n", sizeof(FullBoardT));
   printf("sizeof(FullColorStateImplT) is %lu\n", sizeof(FullColorStateImplT));
+  printf("\n");
   //printf("sizeof(FullColorStateImpl2T) is %lu\n", sizeof(FullColorStateImpl2T));
   
+  if(argc <= 1) {
+    usage_and_die(argc, argv, "Insufficient cmd-line arguments");
+  }
+  
+  int depthToGo = atoi(argv[1]);
+  if(depthToGo < 0) {
+    usage_and_die(argc, argv, "<depth> must be >= 0");
+  }
+
+  if(argc == 3 && std::string(argv[2]) == "RPJ") {
+    do_special_and_die(depthToGo);
+  }
+
   BasicBoardT board;
   ColorT colorToMove;
-  if(argc == 2) {
+  bool doSplit = false;
+  int maxTtDepth = 0;
+  int ttSize = 262144;
+  
+  if(argc < 3 || std::string(argv[2]) == "-") {
     board = BoardUtils::startingPosition();
     colorToMove = White;
   } else {
@@ -51,13 +86,79 @@ int main(int argc, char* argv[]) {
     colorToMove = boardAndColor.second;
   }
 
+  // Parse flags
+  for(int i = 3; i < argc; i++ ) {
+    std::string arg = argv[i];
+
+    if(arg == "--split") {
+      doSplit = true;
+    } else if(arg == "--max-tt-depth") {
+      i++;
+      if(argc <= i) {
+	usage_and_die(argc, argv, "--max-tt-depth missing <max-tt-depth> argument");
+      }
+      maxTtDepth = atoi(argv[i]);
+      if(maxTtDepth < 3 || maxTtDepth > depthToGo || depthToGo < 3) {
+	usage_and_die(argc, argv, "Invalid <max-tt-depth>");
+      }
+    } else if(arg == "--tt-size") {
+      i++;
+      if(argc <= i) {
+	usage_and_die(argc, argv, "--tt-size missing <size> argument");
+      }
+      ttSize = atol(argv[i]);
+      if(ttSize < 1) {
+	usage_and_die(argc, argv, "Invalid TT size");
+      }
+    } else {
+	usage_and_die(argc, argv, "Unrecognised argument");
+    }
+  }
+
   BoardUtils::printBoard<BasicBoardT>(board);
   printf("\n%s\n\n", Fen::toFen<BasicBoardT>(board, colorToMove).c_str());
+  bool doNewline = false;
+  if(doSplit) {
+    printf("  providing split results per move at depth 1\n");
+    doNewline = true;
+  }
+  if(maxTtDepth != 0) {
+    printf("  using TTs with %d entries at depths 3-%d\n", ttSize, maxTtDepth);
+    doNewline = true;
+  }
+  if(doNewline) {
+    printf("\n");
+  }
 
-  Perft::PerftStatsT stats = colorToMove == White ?
-    Perft::perft<BasicBoardT, White>(board, depthToGo) :
-    Perft::perft<BasicBoardT, Black>(board, depthToGo);
+  Perft::PerftStatsT stats;
 
-  printf("perft(%d) - nodes = %lu, captures = %lu, eps = %lu, castles = %lu, promos = %lu, checks = %lu, discoveries = %lu, doublechecks = %lu, checkmates = %lu\n", depthToGo, stats.nodes, stats.captures, stats.eps, stats.castles, stats.promos, stats.checks, stats.discoverychecks, stats.doublechecks, stats.checkmates);
-  printf("depth-0-with-eps = %lu, epdiscoveries = %lu, ephorizdiscoveries = %lu, epdiagfromdiscoveries = %lu, epdiagcapturediscoveries = %lu\n", stats.nposwitheps, stats.epdiscoveries, stats.ephorizdiscoveries, stats.epdiagfromdiscoveries, stats.epdiagcapturediscoveries);
+  if(maxTtDepth != 0) {
+    auto allStats = colorToMove == White ?
+      Perft::ttPerft<BasicBoardT, White>(board, doSplit, depthToGo, maxTtDepth, ttSize) :
+      Perft::ttPerft<BasicBoardT, Black>(board, doSplit, depthToGo, maxTtDepth, ttSize);
+    stats = allStats.first;
+    if(doSplit) {
+      printf("\n");
+    }
+    const auto& ttStats = allStats.second;
+    using Perft::MinTtDepth;
+    for(int i = MinTtDepth; i <= maxTtDepth; i++) {
+      u64 nodes = ttStats[i - MinTtDepth].first;
+      u64 hits = ttStats[i - MinTtDepth].second;
+      printf("Depth %d: %lu nodes, %lu HT hits - %.2f%% hit rate\n", i, nodes, hits, ((double)hits/(double)nodes)*100.0);
+    }
+    printf("\n");
+  } else if(doSplit) {
+    stats = colorToMove == White ?
+      Perft::splitPerft<BasicBoardT, White>(board, depthToGo) :
+      Perft::splitPerft<BasicBoardT, Black>(board, depthToGo);
+   printf("\n");
+  } else {
+   stats = colorToMove == White ?
+      Perft::perft<BasicBoardT, White>(board, depthToGo) :
+      Perft::perft<BasicBoardT, Black>(board, depthToGo);
+  }
+
+  printf("perft(%d) stats:\n\n", depthToGo);
+  dumpStats(stats);
 }

@@ -411,8 +411,16 @@ namespace Chess {
     }
 
     template <typename BoardT>
-    inline std::string genEpSquare(const BoardT& board, const ColorT colorToMove) {
+    inline std::string genEpSquare(const BoardT& board, const ColorT colorToMove, const bool trimEp) {
       SquareT epSq = board.state[(size_t)otherColor(colorToMove)].basic.epSquare;
+      if(trimEp) {
+	const BitBoardT myPawnsBb = board.state[(size_t)colorToMove].basic.pawnsBb;
+	const BitBoardT epSquarePawnAttackersBb = MoveGen::PawnAttackerBbs[(size_t)colorToMove][epSq];
+
+	if((myPawnsBb & epSquarePawnAttackersBb) == BbNone) {
+	  epSq = InvalidSquare;
+	}
+      }
 
       if(epSq == InvalidSquare) { return "-"; }
 
@@ -423,11 +431,12 @@ namespace Chess {
     }
 
     // TODO - halfmove clock and fullmove number when we support those
+    // trimEp is used to omit the EP square in cases where it's not capturable so we get a consistent FEN for transpositions
     template <typename BoardT>
-    inline std::string toFen(const BoardT& board, const ColorT colorToMove) {
+    inline std::string toFen(const BoardT& board, const ColorT colorToMove, const bool trimEp = false) {
       std::stringstream ss;
 
-      ss << genPieces(board) << ' ' << genColor(colorToMove) << ' ' << genCastlingRights(board) << ' ' << genEpSquare(board, colorToMove);
+      ss << genPieces(board) << ' ' << genColor(colorToMove) << ' ' << genCastlingRights(board) << ' ' << genEpSquare(board, colorToMove, trimEp);
 
       return ss.str();
     }

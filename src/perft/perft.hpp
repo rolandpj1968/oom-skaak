@@ -4,10 +4,13 @@
 #include "types.hpp"
 #include "board.hpp"
 #include "board-utils.hpp"
+#include "bounded-hash-map.hpp"
 #include "fen.hpp"
 #include "move-gen.hpp"
 #include "make-move.hpp"
 #include "bits.hpp"
+
+#include <vector>
 
 namespace Chess {
   
@@ -26,20 +29,30 @@ namespace Chess {
       u64 discoverychecks;
       u64 doublechecks;
       u64 checkmates;
-      u64 invalids;
-      u64 nposwitheps;
-      u64 epdiscoveries;
-      u64 ephorizdiscoveries;
-      u64 epdiagfromdiscoveries;
-      u64 epdiagcapturediscoveries;
     };
 
+    inline void addAll(PerftStatsT& to, const PerftStatsT& from) {
+      to.nodes += from.nodes;
+      to.captures += from.captures;
+      to.eps += from.eps;
+      to.castles += from.castles;
+      to.promos += from.promos;
+      to.checks += from.checks;
+      to.discoverychecks += from.discoverychecks;
+      to.doublechecks += from.doublechecks;
+      to.checkmates += from.checkmates;
+    }
+
+    extern void dumpStats(const Perft::PerftStatsT& stats);
+    
+    // Curiously adding just one more member here - depth - slows down perf substantially, particularly if they are int size!
     struct PerftStateT {
       PerftStatsT& stats;
-      int depthToGo;
+      u8 depth;
+      u8 depthToGo;
 
-      PerftStateT(PerftStatsT& stats, int depthToGo):
-	stats(stats), depthToGo(depthToGo) {}
+      PerftStateT(PerftStatsT& stats, u8 depth, u8 depthToGo):
+	stats(stats), depth(depth), depthToGo(depthToGo) {}
     };
 
     template <typename BoardT, ColorT Color>
@@ -56,19 +69,7 @@ namespace Chess {
       
       static const bool ValidatePos = false;
       
-      inline static void validatePos(const BoardT& board, MoveInfoT moveInfo) {
-	static bool done = false;
-	if(ValidatePos && !done) {
-	  if(!BoardUtils::isValid<BoardT, Color>(board)) {
-	    printf("Invalid board - last move from %s to %s\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    BoardUtils::printBoard(board);
-	    //done = true;
-	  }
-	}
-      }
-      
       inline static void handlePos(const PerftStateT state, const BoardT& board, MoveInfoT moveInfo) {
-	validatePos(board, moveInfo);
 	perftImpl<BoardT, Color>(state, board, moveInfo);
       }
     };
@@ -109,80 +110,6 @@ namespace Chess {
 
     template <typename BoardT, ColorT Color>
     inline void perft0Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
-
-      // BoardUtils::printBoard(board);
-      // printf("%s\n", Fen::toFen(board, Color).c_str());
-
-      // TODO get rid...
-      if(false) {
-	static bool done = false;
-	if(board.state[(size_t)otherColor(Color)].basic.epSquare != InvalidSquare) {
-	  stats.nposwitheps++;
-	  if(!done) {
-	    printf("\n============================================== EP set at Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    BoardUtils::printBoard(board);
-	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
-	    done = true;
-	  }
-	}
-      }	    
-
-      // TODO get rid...
-      if(false) {
-	static bool done = false;
-	if(moveInfo.moveType == EpCaptureMove) {
-	  stats.nposwitheps++;
-	  if(!done) {
-	    printf("\n============================================== EP capture Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    BoardUtils::printBoard(board);
-	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
-	    //done = true;
-	  }
-	}
-      }	    
-
-      // It is strictly a bug if we encounter an invalid position - we are doing legal (only) move evaluation.
-      const bool CheckForInvalid = false;
-      if(CheckForInvalid) {
-	if(!BoardUtils::isValid<BoardT, Color>(board)) {
-	  // Illegal position - doesn't count
-	  stats.invalids++;
-	  static bool done = false;
-	  if(!done) {
-	    printf("\n============================================== Invalid Depth 0 - last move %s-%s ===================================\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    BoardUtils::printBoard(board);
-	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
-	    //done = true;
-	  }
-	  return;
-	}
-      }
-	
-      // Check that we detect check accurately
-      const bool CheckChecks = false;
-      if(CheckChecks) {
-	int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
-	bool isCheck = nChecks > 0;
-	bool isCheckDetected = moveInfo.isDirectCheck || moveInfo.isDiscoveredCheck;
-	
-	bool ok = isCheck == isCheckDetected;
-	if(nChecks > 1 && (!moveInfo.isDirectCheck || !moveInfo.isDiscoveredCheck)) {
-	  ok = false;
-	}
-
-	if(!ok) {
-	  // Bad check detection
-	  stats.invalids++;
-	  static bool done = false;
-	  if(!done) {
-	    printf("\n================================= Bad Check Detection Depth 0 - nChecks %d direct %d discovery %d last move %s-%s ===================================\n\n", nChecks, (int)moveInfo.isDirectCheck, (int)moveInfo.isDiscoveredCheck, SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	    BoardUtils::printBoard(board);
-	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
-	    //done = true;
-	  }
-	}
-      }
-	
       stats.nodes++;
 
       if(moveInfo.moveType == CaptureMove) {
@@ -192,21 +119,6 @@ namespace Chess {
       if(moveInfo.moveType == EpCaptureMove) {
 	stats.captures++;
 	stats.eps++;
-	if(moveInfo.isDiscoveredCheck && !moveInfo.isDirectCheck) {
-	  stats.epdiscoveries++;
-	  const BitBoardT kingBishopRays = MoveGen::BishopRays[board.state[(size_t)Color].basic.pieceSquares[TheKing]];
-	  const BitBoardT kingRookRays = MoveGen::RookRays[board.state[(size_t)Color].basic.pieceSquares[TheKing]];
-	  const BitBoardT fromBb = bbForSquare(moveInfo.from);
-	  if(kingRookRays & fromBb) {
-	    stats.ephorizdiscoveries++;
-	  } else {
-	    if(fromBb & kingBishopRays) {
-	      stats.epdiagfromdiscoveries++;
-	    } else {
-	      stats.epdiagcapturediscoveries++;
-	    }
-	  }
-	}
       }
 
       if(moveInfo.moveType == CastlingMove) {
@@ -215,12 +127,6 @@ namespace Chess {
 
       if(moveInfo.isPromo) {
 	stats.promos++;
-      }
-
-      const bool DoCheckStats = true;
-      const bool DoCheckMateStats = true;
-      if(!DoCheckStats) {
-	return;
       }
 
       if(moveInfo.isDirectCheck) {
@@ -236,8 +142,9 @@ namespace Chess {
 	}
       }
 
-      if(moveInfo.isDirectCheck || moveInfo.isDiscoveredCheck) {
-	if(DoCheckMateStats) {
+      static const bool DoCheckMateStats = true;
+      if(DoCheckMateStats) {
+	if(moveInfo.isDirectCheck || moveInfo.isDiscoveredCheck) {
 	  // Only bother if it is check
 	  // It's checkmate if there are no legal moves
 	  if(!hasLegalMoves<BoardT, Color>(board)) {
@@ -249,21 +156,8 @@ namespace Chess {
 
     template <typename BoardT, ColorT Color>
     inline void perftImplFull(const PerftStateT state, const BoardT& board) {
-
-      // TODO get rid...
-      if(false && state.depthToGo == 1) {
-	static bool done = false;
-	if(board.state[(size_t)otherColor(Color)].basic.epSquare != InvalidSquare) {
-	  if(!done) {
-	    printf("\n============================================== EP sq %s set at Depth 1 ===================================\n\n", SquareStr[board.state[(size_t)otherColor(Color)].basic.epSquare]);
-	    BoardUtils::printBoard(board);
-	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
-	    //done = true;
-	  }
-	}
-      }	    
       
-      const PerftStateT newState(state.stats, state.depthToGo-1);
+      const PerftStateT newState(state.stats, state.depth+1, state.depthToGo-1);
 
       MakeMove::makeAllLegalMoves<const PerftStateT, PerftPosHandlerT<BoardT, Color>, BoardT, Color>(newState, board);
     }
@@ -281,16 +175,193 @@ namespace Chess {
     template <typename BoardT, ColorT Color>
     inline PerftStatsT perft(const BoardT& board, const int depthToGo) {
       PerftStatsT stats = {};
-      // TODO - fill in isDirectCheck and isDiscoveredCheck in order to hoist check detection out of genLegalMoves
       const int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
       MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
-      const PerftStateT state(stats, depthToGo);
+      const PerftStateT state(stats, 0, depthToGo);
 
       perftImpl<BoardT, Color>(state, board, dummyMoveInfo);
 
       return stats;
     }
 
+    //
+    // Split perft implementation
+    //
+
+    template <typename BoardT, ColorT Color>
+    inline PerftStatsT splitPerft(const BoardT& board, const int depthToGo);
+    
+    template <typename BoardT, ColorT Color>
+    inline void splitPerftImpl(const PerftStateT state, const BoardT& board, const MoveInfoT moveInfo);
+  
+    template <typename BoardT, ColorT Color>
+    struct SplitPerftPosHandlerT {
+      typedef SplitPerftPosHandlerT<BoardT, OtherColorT<Color>::value> ReverseT;
+      typedef SplitPerftPosHandlerT<typename BoardType<BoardT>::WithPromosT, Color> WithPromosT;
+      typedef SplitPerftPosHandlerT<typename BoardType<BoardT>::WithoutPromosT, Color> WithoutPromosT;
+      
+      inline static void handlePos(const PerftStateT state, const BoardT& board, MoveInfoT moveInfo) {
+	PerftStatsT splitStats = {};
+	const PerftStateT splitState(splitStats, state.depth, state.depthToGo);
+	
+	splitPerftImpl<BoardT, Color>(splitState, board, moveInfo);
+
+	if(state.depth == 1) {
+	  printf("  move %s-%s: ", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+	  dumpStats(splitStats);
+	}
+
+	// Accumulate the stats
+	addAll(state.stats, splitStats);
+      }
+    };
+
+    template <typename BoardT, ColorT Color>
+    inline void splitPerftImplFull(const PerftStateT state, const BoardT& board) {
+      
+      const PerftStateT newState(state.stats, state.depth+1, state.depthToGo-1);
+
+      MakeMove::makeAllLegalMoves<const PerftStateT, SplitPerftPosHandlerT<BoardT, Color>, BoardT, Color>(newState, board);
+    }
+
+    template <typename BoardT, ColorT Color>
+    inline void splitPerftImpl(const PerftStateT state, const BoardT& board, const MoveInfoT moveInfo) {
+      // If this is a leaf node, gather stats.
+      if(state.depthToGo == 0) {
+	perft0Impl<BoardT, Color>(state.stats, board, moveInfo);
+      } else if(state.depth < 2) {
+	splitPerftImplFull<BoardT, Color>(state, board);
+      } else {
+	perftImplFull<BoardT, Color>(state, board);
+      }
+    }
+      
+    template <typename BoardT, ColorT Color>
+    inline PerftStatsT splitPerft(const BoardT& board, const int depthToGo) {
+      PerftStatsT stats = {};
+      const int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
+      MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
+      const PerftStateT state(stats, 0, depthToGo);
+
+      splitPerftImpl<BoardT, Color>(state, board, dummyMoveInfo);
+
+      return stats;
+    }
+
+    //
+    // Perft with transition tables
+    //
+    // We maintain a separate TT per depth
+    //
+
+    using BoundedHashMap::BoundedHashMap;
+
+    struct TtPerftStateT {
+      PerftStatsT& stats;
+      std::vector<BoundedHashMap<std::string, PerftStatsT>>& tts;
+      std::vector<std::pair<u64, u64>>& ttStats; // (total-nodes, ht-hits)
+      const bool doSplit;
+      const u8 maxTtDepth;
+      u8 depth;
+      u8 depthToGo;
+
+      TtPerftStateT(PerftStatsT& stats, std::vector<BoundedHashMap<std::string, PerftStatsT>>& tts, std::vector<std::pair<u64, u64>>& ttStats, const bool doSplit, const u8 maxTtDepth, const u8 depth, const u8 depthToGo):
+	stats(stats), tts(tts), ttStats(ttStats), doSplit(doSplit), maxTtDepth(maxTtDepth), depth(depth), depthToGo(depthToGo) {}
+    };
+
+    const int MinTtDepth = 3;
+    
+    template <typename BoardT, ColorT Color>
+    inline PerftStatsT ttPerft(const BoardT& board, const int depthToGo);
+    
+    template <typename BoardT, ColorT Color>
+    inline void ttPerftImpl(const TtPerftStateT state, const BoardT& board, const MoveInfoT moveInfo);
+  
+    template <typename BoardT, ColorT Color>
+    struct TtPerftPosHandlerT {
+      typedef TtPerftPosHandlerT<BoardT, OtherColorT<Color>::value> ReverseT;
+      typedef TtPerftPosHandlerT<typename BoardType<BoardT>::WithPromosT, Color> WithPromosT;
+      typedef TtPerftPosHandlerT<typename BoardType<BoardT>::WithoutPromosT, Color> WithoutPromosT;
+      
+      inline static void handlePos(const TtPerftStateT state, const BoardT& board, MoveInfoT moveInfo) {
+	PerftStatsT splitStats = {};
+
+	bool foundIt = false;
+	std::string fen;
+
+	// Probe the TT
+	if(MinTtDepth <= state.depth && state.depth <= state.maxTtDepth) {
+	  state.ttStats[state.depth - MinTtDepth].first++;
+	  // Omit the EP square in cases where EP capture is impossible - this gives us more transpositions
+	  fen = Fen::toFen<BoardT>(board, Color, /*trimEp*/true);
+	  if(state.tts[state.depth - MinTtDepth].contains(fen)) {
+	    foundIt = true;
+	    state.ttStats[state.depth - MinTtDepth].second++;
+	    splitStats = state.tts[state.depth - MinTtDepth].at(fen);
+	  }
+	}
+
+	// If it's not in the TT then compute it
+	if(!foundIt) {
+	  const TtPerftStateT splitState(splitStats, state.tts, state.ttStats, state.doSplit, state.maxTtDepth, state.depth, state.depthToGo);
+	
+	  ttPerftImpl<BoardT, Color>(splitState, board, moveInfo);
+	}
+	
+	if(state.doSplit && state.depth == 1) {
+	  printf("  move %s-%s: ", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+	  dumpStats(splitStats);
+	}
+
+	// Accumulate the stats
+	addAll(state.stats, splitStats);
+
+	// If it's not in the TT then insert it
+	if(MinTtDepth <= state.depth && state.depth <= state.maxTtDepth && !foundIt) {
+	  state.tts[state.depth - MinTtDepth].put(fen, splitStats);
+	}
+      }
+    };
+
+    template <typename BoardT, ColorT Color>
+    inline void ttPerftImplFull(const TtPerftStateT state, const BoardT& board) {
+      
+      const TtPerftStateT newState(state.stats, state.tts, state.ttStats, state.doSplit, state.maxTtDepth, state.depth+1, state.depthToGo-1);
+
+      MakeMove::makeAllLegalMoves<const TtPerftStateT, TtPerftPosHandlerT<BoardT, Color>, BoardT, Color>(newState, board);
+    }
+
+    template <typename BoardT, ColorT Color>
+    inline void ttPerftImpl(const TtPerftStateT state, const BoardT& board, const MoveInfoT moveInfo) {
+      // If this is a leaf node, gather stats.
+      if(state.depthToGo == 0) {
+	perft0Impl<BoardT, Color>(state.stats, board, moveInfo);
+      } else if(state.depth <= state.maxTtDepth) {
+	ttPerftImplFull<BoardT, Color>(state, board);
+      } else {
+	PerftStateT perftState(state.stats, state.depth, state.depthToGo);
+	perftImplFull<BoardT, Color>(perftState, board);
+      }
+    }
+      
+    template <typename BoardT, ColorT Color>
+    inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> ttPerft(const BoardT& board, const bool doSplit, const int depthToGo, const int maxTtDepth, const int ttSize) {
+      PerftStatsT stats = {};
+      // map: fen->stats for each depth
+      std::vector<BoundedHashMap<std::string, PerftStatsT>> tts;
+      for(int i = MinTtDepth; i <= maxTtDepth; i++) {
+	tts.push_back(BoundedHashMap<std::string, PerftStatsT>(ttSize));
+      }
+      std::vector<std::pair<u64, u64>> ttStats(maxTtDepth-MinTtDepth+1);
+      
+      const int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
+      MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
+      const TtPerftStateT state(stats, tts, ttStats, doSplit, maxTtDepth, 0, depthToGo);
+
+      ttPerftImpl<BoardT, Color>(state, board, dummyMoveInfo);
+
+      return std::make_pair(stats, ttStats);
+    }
   } // namespace Perf
 } // namespace Chess
 

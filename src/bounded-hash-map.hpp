@@ -9,10 +9,10 @@ namespace Chess {
 
     template <typename KeyT, typename ValT>
     struct BoundedHashMapVal {
-      const typename std::list<KeyT>::const_iterator mru_it;
+      typename std::list<KeyT>::iterator mru_it;
       ValT val;
 
-      BoundedHashMapVal(const typename std::list<KeyT>::const_iterator& mru_it, const ValT& val) :
+      BoundedHashMapVal(const typename std::list<KeyT>::iterator& mru_it, const ValT& val) :
 	mru_it(mru_it), val(val) {}
     };
 
@@ -34,28 +34,6 @@ namespace Chess {
       
       // Should do all of this more like STL standard but that's a lot of work
       
-      bool remove_lru_entry() {
-	if(mru.empty()) {
-	  return false; // already empty
-	}
-
-	const KeyT& lru_key = mru.back();
-	return remove(lru_key); // removed the lru element - this MUST succeed
-      }
-
-      void mru_move_to_front(const typename std::list<KeyT>::const_iterator& mru_it) {
-	mru.splice(mru.begin(), mru, mru_it);
-      }
-
-      const ValT& at(const KeyT& key) {
-	const BoundedHashMapVal<KeyT, ValT>& elem = map.at(key);
-	
-	// move-to-front of mru
-	mru_move_to_front(elem.mru_it);
-			    
-	return elem.val;
-      }
-
       bool remove(const KeyT& key) noexcept {
 	auto map_it = map.find(key);
 	if(map_it == map.end()) {
@@ -68,6 +46,32 @@ namespace Chess {
 	return true; // was present
       }
     
+      bool remove_lru_entry() {
+	if(mru.empty()) {
+	  return false; // already empty
+	}
+
+	const KeyT& lru_key = mru.back();
+	return remove(lru_key); // removed the lru element - this MUST succeed
+      }
+
+      void mru_move_to_front(typename std::list<KeyT>::iterator& mru_it) {
+	mru.splice(mru.begin(), mru, mru_it);
+      }
+
+      bool contains(const KeyT& key) const {
+	return map.find(key) != map.end();
+      }
+
+      ValT& at(const KeyT& key) {
+	BoundedHashMapVal<KeyT, ValT>& elem = map.at(key);
+	
+	// move-to-front of mru
+	mru_move_to_front(elem.mru_it);
+			    
+	return elem.val;
+      }
+
       bool put(const KeyT& key, const ValT& val) noexcept {
 	auto map_it = map.find(key);
 	if(map_it != map.end()) {
@@ -88,7 +92,6 @@ namespace Chess {
 	// Add the new entry
 	mru.push_front(key);
 	map.insert(make_pair(key, BoundedHashMapVal<KeyT, ValT>(mru.begin(), val)));
-	//map[key] = BoundedHashMapVal<KeyT, ValT>(mru.begin(), val);
 
 	return false; // not already present
       }
