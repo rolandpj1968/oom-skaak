@@ -38,13 +38,13 @@ static void usage_and_die(int argc, char* argv[], const char* msg = 0) {
     fprintf(stderr, "%s\n\n", msg);
   }
   
-  fprintf(stderr, "usage: %s <depth> [FEN] [--split] [--hash-depth <max-depth>] [--hash-size <size>]\n\n", argv[0]);
-  fprintf(stderr, "  Default position is the starting position; also use \"-\" for starting position, e.g. %s 6 \"-\" --hash 4\n", argv[0]);
+  fprintf(stderr, "usage: %s <depth> [FEN] [--split] [--max-tt-depth <depth>] [--tt-size <size>]\n\n", argv[0]);
+  fprintf(stderr, "  Default position is the starting position; also use \"-\" for starting position, e.g. %s 6 \"-\" --max-tt-depth 4\n", argv[0]);
   fprintf(stderr, "  --split provides top-level subtree statistics per top-level move - this is useful for debugging\n");
-  fprintf(stderr, "  --hash <max-depth> enables tableauing of results for repeated positions up to max-depth\n");
-  fprintf(stderr, "      hash tables are only used from level 3 and deeper since no repeat positions are possible nearer the root\n");
-  fprintf(stderr, "  --hash-size <size> defines the maximum hash-table size for each level\n");
-  fprintf(stderr, "      hash table entries are discarded according to LRU\n");
+  fprintf(stderr, "  --max-tt-depth <depth> enables tableauing of results for transpositions up to <depth>\n");
+  fprintf(stderr, "      Transition tables (TTs) are only used from level 3 and deeper since no shallower transpositions are possible\n");
+  fprintf(stderr, "  --tt-size <size> defines the maximum TT size for each level (default 262144)\n");
+  fprintf(stderr, "      TT entries at each level are discarded according to LRU\n");
   fprintf(stderr, "\n");
   
   exit(1);
@@ -74,8 +74,8 @@ int main(int argc, char* argv[]) {
   BasicBoardT board;
   ColorT colorToMove;
   bool doSplit = false;
-  int maxHashDepth = 0;
-  int hashSize = 4096;
+  int maxTtDepth = 0;
+  int ttSize = 262144;
   
   if(argc < 3 || std::string(argv[2]) == "-") {
     board = BoardUtils::startingPosition();
@@ -92,23 +92,23 @@ int main(int argc, char* argv[]) {
 
     if(arg == "--split") {
       doSplit = true;
-    } else if(arg == "--hash-depth") {
+    } else if(arg == "--max-tt-depth") {
       i++;
       if(argc <= i) {
-	usage_and_die(argc, argv, "--hash-depth missing <max-hash-depth> argument");
+	usage_and_die(argc, argv, "--max-tt-depth missing <max-tt-depth> argument");
       }
-      maxHashDepth = atoi(argv[i]);
-      if(maxHashDepth < 3 || maxHashDepth > depthToGo || depthToGo < 3) {
-	usage_and_die(argc, argv, "Invalid <max-hash-depth>");
+      maxTtDepth = atoi(argv[i]);
+      if(maxTtDepth < 3 || maxTtDepth > depthToGo || depthToGo < 3) {
+	usage_and_die(argc, argv, "Invalid <max-tt-depth>");
       }
-    } else if(arg == "--hash-size") {
+    } else if(arg == "--tt-size") {
       i++;
       if(argc <= i) {
-	usage_and_die(argc, argv, "--hash-size missing <size> argument");
+	usage_and_die(argc, argv, "--tt-size missing <size> argument");
       }
-      hashSize = atol(argv[i]);
-      if(hashSize < 1) {
-	usage_and_die(argc, argv, "Invalid hash size");
+      ttSize = atol(argv[i]);
+      if(ttSize < 1) {
+	usage_and_die(argc, argv, "Invalid TT size");
       }
     } else {
 	usage_and_die(argc, argv, "Unrecognised argument");
@@ -122,8 +122,8 @@ int main(int argc, char* argv[]) {
     printf("  providing split results per move at depth 1\n");
     doNewline = true;
   }
-  if(maxHashDepth != 0) {
-    printf("  using hash tables with %d entries at depths 3-%d\n", hashSize, maxHashDepth);
+  if(maxTtDepth != 0) {
+    printf("  using TTs with %d entries at depths 3-%d\n", ttSize, maxTtDepth);
     doNewline = true;
   }
   if(doNewline) {
@@ -132,19 +132,19 @@ int main(int argc, char* argv[]) {
 
   Perft::PerftStatsT stats;
 
-  if(maxHashDepth != 0) {
+  if(maxTtDepth != 0) {
     auto allStats = colorToMove == White ?
-      Perft::hashPerft<BasicBoardT, White>(board, doSplit, depthToGo, maxHashDepth, hashSize) :
-      Perft::hashPerft<BasicBoardT, Black>(board, doSplit, depthToGo, maxHashDepth, hashSize);
+      Perft::ttPerft<BasicBoardT, White>(board, doSplit, depthToGo, maxTtDepth, ttSize) :
+      Perft::ttPerft<BasicBoardT, Black>(board, doSplit, depthToGo, maxTtDepth, ttSize);
     stats = allStats.first;
     if(doSplit) {
       printf("\n");
     }
-    const auto& hashTablesStats = allStats.second;
-    using Perft::MinHashDepth;
-    for(int i = MinHashDepth; i <= maxHashDepth; i++) {
-      u64 nodes = hashTablesStats[i - MinHashDepth].first;
-      u64 hits = hashTablesStats[i - MinHashDepth].second;
+    const auto& ttStats = allStats.second;
+    using Perft::MinTtDepth;
+    for(int i = MinTtDepth; i <= maxTtDepth; i++) {
+      u64 nodes = ttStats[i - MinTtDepth].first;
+      u64 hits = ttStats[i - MinTtDepth].second;
       printf("Depth %d: %lu nodes, %lu HT hits - %.2f%% hit rate\n", i, nodes, hits, ((double)hits/(double)nodes)*100.0);
     }
     printf("\n");

@@ -249,78 +249,63 @@ namespace Chess {
     }
 
     //
-    // Perft with hash table tableuing
+    // Perft with transition tables
+    //
+    // We maintain a separate TT per depth
     //
 
     using BoundedHashMap::BoundedHashMap;
 
-    struct HashPerftStateT {
+    struct TtPerftStateT {
       PerftStatsT& stats;
-      std::vector<BoundedHashMap<std::string, PerftStatsT>>& hashTables;
-      std::vector<std::pair<u64, u64>>& hashTableStats; // (total-nodes, ht-hits)
+      std::vector<BoundedHashMap<std::string, PerftStatsT>>& tts;
+      std::vector<std::pair<u64, u64>>& ttStats; // (total-nodes, ht-hits)
       const bool doSplit;
-      const u8 maxHashDepth;
+      const u8 maxTtDepth;
       u8 depth;
       u8 depthToGo;
 
-      HashPerftStateT(PerftStatsT& stats, std::vector<BoundedHashMap<std::string, PerftStatsT>>& hashTables, std::vector<std::pair<u64, u64>>& hashTableStats, const bool doSplit, const u8 maxHashDepth, const u8 depth, const u8 depthToGo):
-	stats(stats), hashTables(hashTables), hashTableStats(hashTableStats), doSplit(doSplit), maxHashDepth(maxHashDepth), depth(depth), depthToGo(depthToGo) {}
+      TtPerftStateT(PerftStatsT& stats, std::vector<BoundedHashMap<std::string, PerftStatsT>>& tts, std::vector<std::pair<u64, u64>>& ttStats, const bool doSplit, const u8 maxTtDepth, const u8 depth, const u8 depthToGo):
+	stats(stats), tts(tts), ttStats(ttStats), doSplit(doSplit), maxTtDepth(maxTtDepth), depth(depth), depthToGo(depthToGo) {}
     };
 
-    const int MinHashDepth = 3;
+    const int MinTtDepth = 3;
     
     template <typename BoardT, ColorT Color>
-    inline PerftStatsT hashPerft(const BoardT& board, const int depthToGo);
+    inline PerftStatsT ttPerft(const BoardT& board, const int depthToGo);
     
     template <typename BoardT, ColorT Color>
-    inline void hashPerftImpl(const HashPerftStateT state, const BoardT& board, const MoveInfoT moveInfo);
+    inline void ttPerftImpl(const TtPerftStateT state, const BoardT& board, const MoveInfoT moveInfo);
   
     template <typename BoardT, ColorT Color>
-    struct HashPerftPosHandlerT {
-      typedef HashPerftPosHandlerT<BoardT, OtherColorT<Color>::value> ReverseT;
-      typedef HashPerftPosHandlerT<typename BoardType<BoardT>::WithPromosT, Color> WithPromosT;
-      typedef HashPerftPosHandlerT<typename BoardType<BoardT>::WithoutPromosT, Color> WithoutPromosT;
+    struct TtPerftPosHandlerT {
+      typedef TtPerftPosHandlerT<BoardT, OtherColorT<Color>::value> ReverseT;
+      typedef TtPerftPosHandlerT<typename BoardType<BoardT>::WithPromosT, Color> WithPromosT;
+      typedef TtPerftPosHandlerT<typename BoardType<BoardT>::WithoutPromosT, Color> WithoutPromosT;
       
-      inline static void handlePos(const HashPerftStateT state, const BoardT& board, MoveInfoT moveInfo) {
+      inline static void handlePos(const TtPerftStateT state, const BoardT& board, MoveInfoT moveInfo) {
 	PerftStatsT splitStats = {};
 
 	bool foundIt = false;
 	std::string fen;
 
-	// Probe the hash table
-	if(MinHashDepth <= state.depth && state.depth <= state.maxHashDepth) {
-	  state.hashTableStats[state.depth - MinHashDepth].first++;
-	  fen = Fen::toFen<BoardT>(board, Color, /*trimEp*/true/*(state.depth == 3)*/);
-	  if(state.hashTables[state.depth - MinHashDepth].contains(fen)) {
+	// Probe the TT
+	if(MinTtDepth <= state.depth && state.depth <= state.maxTtDepth) {
+	  state.ttStats[state.depth - MinTtDepth].first++;
+	  // Omit the EP square in cases where EP capture is impossible - this gives us more transpositions
+	  fen = Fen::toFen<BoardT>(board, Color, /*trimEp*/true);
+	  if(state.tts[state.depth - MinTtDepth].contains(fen)) {
 	    foundIt = true;
-	    state.hashTableStats[state.depth - MinHashDepth].second++;
-	    splitStats = state.hashTables[state.depth - MinHashDepth].at(fen);
-
-	    // Check the results;
-	    PerftStatsT checkStats = {};
-	    const HashPerftStateT checkState(checkStats, state.hashTables, state.hashTableStats, state.doSplit, state.maxHashDepth, state.depth, state.depthToGo);
-	    hashPerftImpl<BoardT, Color>(checkState, board, moveInfo);
-
-	    if(checkStats.nodes != splitStats.nodes) {
-	      printf("\n\n---------------------------Bad Table Results Last Move %s-%s--------------------------------------------\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
-	      BoardUtils::printBoard(board);
-	      printf("\nFen trimmed: %s\n", fen.c_str());
-	      printf("\nFen actual:  %s\n", Fen::toFen(board, Color).c_str());
-	      printf("Table stats:  "); dumpStats(splitStats);
-	      printf("Actual stats: "); dumpStats(checkStats);
-	      printf("\n------------------------------------------------------------------------------------------------------\n\n");
-	    }
+	    state.ttStats[state.depth - MinTtDepth].second++;
+	    splitStats = state.tts[state.depth - MinTtDepth].at(fen);
 	  }
-	  // if(state.depth == 3) {
-	  //   printf("       Depth 3 FEN: %s last move %s-%s %s\n", fen.c_str(), SquareStr[moveInfo.from], SquareStr[moveInfo.to], (foundIt ? " HIT": ""));
-	  // }
 	}
 
-	// If it's not in the hash table then compute it
+	// If it's not in the TT then compute it
 	if(!foundIt) {
-	  const HashPerftStateT splitState(splitStats, state.hashTables, state.hashTableStats, state.doSplit, state.maxHashDepth, state.depth, state.depthToGo);
+	  const TtPerftStateT splitState(splitStats, state.tts, state.ttStats, state.doSplit, state.maxTtDepth, state.depth, state.depthToGo);
 	
-	  hashPerftImpl<BoardT, Color>(splitState, board, moveInfo);
+	  ttPerftImpl<BoardT, Color>(splitState, board, moveInfo);
 	}
 	
 	if(state.doSplit && state.depth == 1) {
@@ -331,28 +316,28 @@ namespace Chess {
 	// Accumulate the stats
 	addAll(state.stats, splitStats);
 
-	// If it's not in the hash table then insert it
-	if(MinHashDepth <= state.depth && state.depth <= state.maxHashDepth && !foundIt) {
-	  state.hashTables[state.depth - MinHashDepth].put(fen, splitStats);
+	// If it's not in the TT then insert it
+	if(MinTtDepth <= state.depth && state.depth <= state.maxTtDepth && !foundIt) {
+	  state.tts[state.depth - MinTtDepth].put(fen, splitStats);
 	}
       }
     };
 
     template <typename BoardT, ColorT Color>
-    inline void hashPerftImplFull(const HashPerftStateT state, const BoardT& board) {
+    inline void ttPerftImplFull(const TtPerftStateT state, const BoardT& board) {
       
-      const HashPerftStateT newState(state.stats, state.hashTables, state.hashTableStats, state.doSplit, state.maxHashDepth, state.depth+1, state.depthToGo-1);
+      const TtPerftStateT newState(state.stats, state.tts, state.ttStats, state.doSplit, state.maxTtDepth, state.depth+1, state.depthToGo-1);
 
-      MakeMove::makeAllLegalMoves<const HashPerftStateT, HashPerftPosHandlerT<BoardT, Color>, BoardT, Color>(newState, board);
+      MakeMove::makeAllLegalMoves<const TtPerftStateT, TtPerftPosHandlerT<BoardT, Color>, BoardT, Color>(newState, board);
     }
 
     template <typename BoardT, ColorT Color>
-    inline void hashPerftImpl(const HashPerftStateT state, const BoardT& board, const MoveInfoT moveInfo) {
+    inline void ttPerftImpl(const TtPerftStateT state, const BoardT& board, const MoveInfoT moveInfo) {
       // If this is a leaf node, gather stats.
       if(state.depthToGo == 0) {
 	perft0Impl<BoardT, Color>(state.stats, board, moveInfo);
-      } else if(state.depth <= state.maxHashDepth) {
-	hashPerftImplFull<BoardT, Color>(state, board);
+      } else if(state.depth <= state.maxTtDepth) {
+	ttPerftImplFull<BoardT, Color>(state, board);
       } else {
 	PerftStateT perftState(state.stats, state.depth, state.depthToGo);
 	perftImplFull<BoardT, Color>(perftState, board);
@@ -360,23 +345,22 @@ namespace Chess {
     }
       
     template <typename BoardT, ColorT Color>
-    inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> hashPerft(const BoardT& board, const bool doSplit, const int depthToGo, const int maxHashDepth, const int hashSize) {
+    inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> ttPerft(const BoardT& board, const bool doSplit, const int depthToGo, const int maxTtDepth, const int ttSize) {
       PerftStatsT stats = {};
       // map: fen->stats for each depth
-      std::vector<BoundedHashMap<std::string, PerftStatsT>> hashTables;
-      std::vector<std::pair<u64, u64>> hashTableStats;
-      for(int i = MinHashDepth; i <= maxHashDepth; i++) {
-	hashTables.push_back(BoundedHashMap<std::string, PerftStatsT>(hashSize));
-	hashTableStats.push_back(std::make_pair((u64)0, (u64)0));
+      std::vector<BoundedHashMap<std::string, PerftStatsT>> tts;
+      for(int i = MinTtDepth; i <= maxTtDepth; i++) {
+	tts.push_back(BoundedHashMap<std::string, PerftStatsT>(ttSize));
       }
+      std::vector<std::pair<u64, u64>> ttStats(maxTtDepth-MinTtDepth+1);
       
       const int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
       MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
-      const HashPerftStateT state(stats, hashTables, hashTableStats, doSplit, maxHashDepth, 0, depthToGo);
+      const TtPerftStateT state(stats, tts, ttStats, doSplit, maxTtDepth, 0, depthToGo);
 
-      hashPerftImpl<BoardT, Color>(state, board, dummyMoveInfo);
+      ttPerftImpl<BoardT, Color>(state, board, dummyMoveInfo);
 
-      return std::make_pair(stats, hashTableStats);
+      return std::make_pair(stats, ttStats);
     }
   } // namespace Perf
 } // namespace Chess

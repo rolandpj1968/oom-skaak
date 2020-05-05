@@ -415,14 +415,9 @@ namespace Chess {
       SquareT epSq = board.state[(size_t)otherColor(colorToMove)].basic.epSquare;
       if(trimEp) {
 	const BitBoardT myPawnsBb = board.state[(size_t)colorToMove].basic.pawnsBb;
-	const BitBoardT epSquarePawnAttackersBb = MoveGen::PawnAttackerBbs[(size_t)/*otherColor*/(colorToMove)][epSq];
+	const BitBoardT epSquarePawnAttackersBb = MoveGen::PawnAttackerBbs[(size_t)colorToMove][epSq];
 
-	// printf("EpSq is %s\n\nmy-pawns:\n", SquareStr[epSq]);
-	// BoardUtils::printBb(myPawnsBb);
-	// printf("\nep attackers:\n");
-	// BoardUtils::printBb(epSquarePawnAttackersBb);
 	if((myPawnsBb & epSquarePawnAttackersBb) == BbNone) {
-	  // printf("No ep square capturers...");
 	  epSq = InvalidSquare;
 	}
       }
