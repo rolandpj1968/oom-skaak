@@ -22,6 +22,16 @@ int a[] = {
 
 using namespace Board;
 
+int main(int argc, char* argv[]) {
+  auto board = Fen::parseFen("rnbqkb1r/pppppp1p/7n/6pP/8/8/PPPPPPP1/RNBQKBNR w KQkq g6").first;
+
+  BoardUtils::printBoard(board);
+
+  printf("\nFen: %s\n\nFen2: %s\n\n", Fen::toFen(board, White).c_str(), Fen::toFen(board, White, true).c_str());
+
+  return 0;
+}
+
 template <typename BoardT>
 static void dumpAttacks(const typename MoveGen::PieceAttackBbsImplType<BoardT>::PieceAttackBbsT& pieceAttackBbs) {
   printf("pawn attacks left:   %016lx\n", pieceAttackBbs.pawnsLeftAttacksBb);
@@ -92,7 +102,7 @@ int main1(int argc, char* argv[]) {
   return 0;
 }
 
-int main(int argc, char* argv[]) {
+int main2(int argc, char* argv[]) {
   using BoundedHashMap::BoundedHashMap;
 
   const int MAX_SIZE = 4;
@@ -185,4 +195,6 @@ int main(int argc, char* argv[]) {
     printf(" %s", it->c_str());
   }
   printf(" }\n");
+
+  return 0;
 }

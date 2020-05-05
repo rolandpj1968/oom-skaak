@@ -123,7 +123,7 @@ int main(int argc, char* argv[]) {
     doNewline = true;
   }
   if(maxHashDepth != 0) {
-    printf("  using hash tables with %d entries at depths 3 - %d\n", hashSize, maxHashDepth);
+    printf("  using hash tables with %d entries at depths 3-%d\n", hashSize, maxHashDepth);
     doNewline = true;
   }
   if(doNewline) {
@@ -132,8 +132,24 @@ int main(int argc, char* argv[]) {
 
   Perft::PerftStatsT stats;
 
-  if(doSplit) {
-   stats = colorToMove == White ?
+  if(maxHashDepth != 0) {
+    auto allStats = colorToMove == White ?
+      Perft::hashPerft<BasicBoardT, White>(board, doSplit, depthToGo, maxHashDepth, hashSize) :
+      Perft::hashPerft<BasicBoardT, Black>(board, doSplit, depthToGo, maxHashDepth, hashSize);
+    stats = allStats.first;
+    if(doSplit) {
+      printf("\n");
+    }
+    const auto& hashTablesStats = allStats.second;
+    using Perft::MinHashDepth;
+    for(int i = MinHashDepth; i <= maxHashDepth; i++) {
+      u64 nodes = hashTablesStats[i - MinHashDepth].first;
+      u64 hits = hashTablesStats[i - MinHashDepth].second;
+      printf("Depth %d: %lu nodes, %lu HT hits - %.2f%% hit rate\n", i, nodes, hits, ((double)hits/(double)nodes)*100.0);
+    }
+    printf("\n");
+  } else if(doSplit) {
+    stats = colorToMove == White ?
       Perft::splitPerft<BasicBoardT, White>(board, depthToGo) :
       Perft::splitPerft<BasicBoardT, Black>(board, depthToGo);
    printf("\n");
