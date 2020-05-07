@@ -31,6 +31,10 @@ namespace Chess {
     //
     // };
 
+    // Are we making moves and handling positions, or are we counting moves?
+    struct PosTag {};
+    struct CountTag {};
+
     //
     // Non-promo pawn moves
     //
@@ -352,6 +356,9 @@ namespace Chess {
       }
     };
 
+    // template <typename StateT, typename PosOrCountType, typename PosOrCountHandlerT, typename BoardT, ColorT Color, typename PieceMoveFn, MoveTypeT MoveType>
+    // inline void handlePieceMoves(StateT state, const BoardT& board, const typename PieceMoveFn::PieceMapImplT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck);
+    
     template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color, typename PieceMoveFn, MoveTypeT MoveType>
     inline void handlePieceMoves(StateT state, const BoardT& board, const typename PieceMoveFn::PieceMapImplT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
       typedef typename PosHandlerT::ReverseT ReversePosHandlerT;
@@ -377,15 +384,6 @@ namespace Chess {
     inline BitBoardT handlePiecePromoCaptures(StateT state, const FullBoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const BitBoardT pieceCapturesBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
       const BitBoardT promoPieceCapturesBb = pieceCapturesBb & yourPieceMap.allPromoPiecesBb;
 
-      if(false && Color == Black && promoPieceCapturesBb != BbNone) {
-	printf("\n---------------------------------------------------------------------------------\n");
-	printf("We got us some promo-piece captures - from %s\n\n", SquareStr[from]);
-	BoardUtils::printBoard(board);
-	printf("\nCapturing at:\n");
-	BoardUtils::printBb(promoPieceCapturesBb);
-	printf("\n---------------------------------------------------------------------------------\n");
-      }
-
       // (Non-promo-)piece captures of promo pieces
       typedef PieceMoveFn<FullBoardT, Color, Piece, PiecePromoCapture, ColorPieceMapT> PiecePromoCaptureFn;
       handlePieceMoves<StateT, PosHandlerT, FullBoardT, Color, PiecePromoCaptureFn, CaptureMove>(state, board, yourPieceMap, from, promoPieceCapturesBb, directChecksBb, isDiscoveredCheck);
@@ -394,7 +392,7 @@ namespace Chess {
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color, PieceT Piece>
-    inline void handlePieceMoves(StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb) {
+    inline void handlePieceMoves(StateT state, const PosTag&, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb) {
       typedef typename BoardT::ColorStateT ColorStateT;
 
       const ColorStateT& myState = board.state[(size_t)Color];
@@ -410,11 +408,11 @@ namespace Chess {
       const BitBoardT pieceCapturesBb = movesBb & allYourPiecesBb;
 
       // (Non-promo-)piece captures of promo pieces
-      const BitBoardT pieceNonPromoCaptures = handlePiecePromoCaptures<StateT, PosHandlerT, Color, Piece>(state, board, yourPieceMap, from, pieceCapturesBb, directChecksBb, isDiscoveredCheck);
+      const BitBoardT pieceNonPromoCapturesBb = handlePiecePromoCaptures<StateT, PosHandlerT, Color, Piece>(state, board, yourPieceMap, from, pieceCapturesBb, directChecksBb, isDiscoveredCheck);
 
       // (Non-promo-)piece captures of non-promo pieces
       typedef PieceMoveFn<BoardT, Color, Piece, PieceCapture, ColorPieceMapT> PieceCaptureFn;
-      handlePieceMoves<StateT, PosHandlerT, BoardT, Color, PieceCaptureFn, CaptureMove>(state, board, yourPieceMap, from, pieceNonPromoCaptures, directChecksBb, isDiscoveredCheck);
+      handlePieceMoves<StateT, PosHandlerT, BoardT, Color, PieceCaptureFn, CaptureMove>(state, board, yourPieceMap, from, pieceNonPromoCapturesBb, directChecksBb, isDiscoveredCheck);
     }
 
     //
@@ -651,8 +649,8 @@ namespace Chess {
       }
     }
     
-    template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color>
-    inline void makeAllLegalMoves(StateT state, const BoardT& board) {
+    template <typename StateT, typename PosOrCountTag, typename PosOrCountHandlerT, typename BoardT, ColorT Color>
+    inline void handleAllLegalMoves(StateT state, const BoardT& board) {
       typedef typename BoardT::ColorStateT ColorStateT;
 
       typedef typename MoveGen::ColorPieceBbsImplType<BoardT>::ColorPieceBbsT ColorPieceBbsT;
@@ -690,7 +688,7 @@ namespace Chess {
 	// Evaluate moves
 
 	// Pawns
-	handlePawnNonPromoMoves<StateT, PosHandlerT, BoardT, Color>(state, board, yourPieceMap, legalMoves.pawnMoves, legalMoves.directChecks.pawnChecksBb, legalMoves.discoveredChecks.pawnPushDiscoveryMasksBb, legalMoves.discoveredChecks.pawnLeftDiscoveryMasksBb, legalMoves.discoveredChecks.pawnRightDiscoveryMasksBb, legalMoves.discoveredChecks.isLeftEpDiscovery, legalMoves.discoveredChecks.isRightEpDiscovery/*, BbNone, BbNone*/);
+	handlePawnNonPromoMoves<StateT, PosOrCountHandlerT, BoardT, Color>(state, board, yourPieceMap, legalMoves.pawnMoves, legalMoves.directChecks.pawnChecksBb, legalMoves.discoveredChecks.pawnPushDiscoveryMasksBb, legalMoves.discoveredChecks.pawnLeftDiscoveryMasksBb, legalMoves.discoveredChecks.pawnRightDiscoveryMasksBb, legalMoves.discoveredChecks.isLeftEpDiscovery, legalMoves.discoveredChecks.isRightEpDiscovery/*, BbNone, BbNone*/);
 
 	const BitBoardT allPawnPromoMovesBb = (legalMoves.pawnMoves.pushesOneBb | legalMoves.pawnMoves.capturesLeftBb | legalMoves.pawnMoves.capturesRightBb) & LastRankBbT<Color>::LastRankBb;
 	if(allPawnPromoMovesBb != BbNone) {
@@ -708,45 +706,50 @@ namespace Chess {
 	  const BitBoardT yourKingRookAttacksBb = MoveGen::rookAttacks(yourKingSq, allPiecesBb);
 	  const BitBoardT yourKingBishopAttacksBb = MoveGen::bishopAttacks(yourKingSq, allPiecesBb);
 
-	  handlePawnPromoMoves<StateT, PosHandlerT, BoardT, Color>(state, board, yourPieceMap, legalMoves.pawnMoves, legalMoves.directChecks.pawnChecksBb, legalMoves.discoveredChecks.pawnPushDiscoveryMasksBb, legalMoves.discoveredChecks.pawnLeftDiscoveryMasksBb, legalMoves.discoveredChecks.pawnRightDiscoveryMasksBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
+	  handlePawnPromoMoves<StateT, PosOrCountHandlerT, BoardT, Color>(state, board, yourPieceMap, legalMoves.pawnMoves, legalMoves.directChecks.pawnChecksBb, legalMoves.discoveredChecks.pawnPushDiscoveryMasksBb, legalMoves.discoveredChecks.pawnLeftDiscoveryMasksBb, legalMoves.discoveredChecks.pawnRightDiscoveryMasksBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
 	}
 	
 	// Knights
-	handlePieceMoves<StateT, PosHandlerT, BoardT, Color, Knight1>(state, board, yourPieceMap, legalMoves.pieceMoves[Knight1], legalMoves.directChecks.knightChecksBb, (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb);
-	handlePieceMoves<StateT, PosHandlerT, BoardT, Color, Knight2>(state, board, yourPieceMap, legalMoves.pieceMoves[Knight2], legalMoves.directChecks.knightChecksBb, (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb);
+	handlePieceMoves<StateT, PosOrCountHandlerT, BoardT, Color, Knight1>(state, PosOrCountTag(), board, yourPieceMap, legalMoves.pieceMoves[Knight1], legalMoves.directChecks.knightChecksBb, (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb);
+	handlePieceMoves<StateT, PosOrCountHandlerT, BoardT, Color, Knight2>(state, PosOrCountTag(), board, yourPieceMap, legalMoves.pieceMoves[Knight2], legalMoves.directChecks.knightChecksBb, (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb);
 	
 	// Bishops
-	handlePieceMoves<StateT, PosHandlerT, BoardT, Color, Bishop1>(state, board, yourPieceMap, legalMoves.pieceMoves[Bishop1], legalMoves.directChecks.bishopChecksBb, legalMoves.discoveredChecks.orthogDiscoveryPiecesBb, allYourPiecesBb); 
-	handlePieceMoves<StateT, PosHandlerT, BoardT, Color, Bishop2>(state, board, yourPieceMap, legalMoves.pieceMoves[Bishop2], legalMoves.directChecks.bishopChecksBb, legalMoves.discoveredChecks.orthogDiscoveryPiecesBb, allYourPiecesBb); 
+	handlePieceMoves<StateT, PosOrCountHandlerT, BoardT, Color, Bishop1>(state, PosOrCountTag(), board, yourPieceMap, legalMoves.pieceMoves[Bishop1], legalMoves.directChecks.bishopChecksBb, legalMoves.discoveredChecks.orthogDiscoveryPiecesBb, allYourPiecesBb); 
+	handlePieceMoves<StateT, PosOrCountHandlerT, BoardT, Color, Bishop2>(state, PosOrCountTag(), board, yourPieceMap, legalMoves.pieceMoves[Bishop2], legalMoves.directChecks.bishopChecksBb, legalMoves.discoveredChecks.orthogDiscoveryPiecesBb, allYourPiecesBb); 
 
 	// Rooks
-	handlePieceMoves<StateT, PosHandlerT, BoardT, Color, Rook1>(state, board, yourPieceMap, legalMoves.pieceMoves[Rook1], legalMoves.directChecks.rookChecksBb, legalMoves.discoveredChecks.diagDiscoveryPiecesBb, allYourPiecesBb); 
-	handlePieceMoves<StateT, PosHandlerT, BoardT, Color, Rook2>(state, board, yourPieceMap, legalMoves.pieceMoves[Rook2], legalMoves.directChecks.rookChecksBb, legalMoves.discoveredChecks.diagDiscoveryPiecesBb, allYourPiecesBb); 
+	handlePieceMoves<StateT, PosOrCountHandlerT, BoardT, Color, Rook1>(state, PosOrCountTag(), board, yourPieceMap, legalMoves.pieceMoves[Rook1], legalMoves.directChecks.rookChecksBb, legalMoves.discoveredChecks.diagDiscoveryPiecesBb, allYourPiecesBb); 
+	handlePieceMoves<StateT, PosOrCountHandlerT, BoardT, Color, Rook2>(state, PosOrCountTag(), board, yourPieceMap, legalMoves.pieceMoves[Rook2], legalMoves.directChecks.rookChecksBb, legalMoves.discoveredChecks.diagDiscoveryPiecesBb, allYourPiecesBb); 
 
 	// Queen
-	handlePieceMoves<StateT, PosHandlerT, BoardT, Color, TheQueen>(state, board, yourPieceMap, legalMoves.pieceMoves[TheQueen], (legalMoves.directChecks.bishopChecksBb | legalMoves.directChecks.rookChecksBb), /*discoveriesBb*/BbNone, allYourPiecesBb); 
+	handlePieceMoves<StateT, PosOrCountHandlerT, BoardT, Color, TheQueen>(state, PosOrCountTag(), board, yourPieceMap, legalMoves.pieceMoves[TheQueen], (legalMoves.directChecks.bishopChecksBb | legalMoves.directChecks.rookChecksBb), /*discoveriesBb*/BbNone, allYourPiecesBb); 
 
 	// Promo pieces
-	makeLegalPromoPieceMoves<StateT, PosHandlerT, Color>(state, board, legalMoves, yourPieceMap, allYourPiecesBb);
+	makeLegalPromoPieceMoves<StateT, PosOrCountHandlerT, Color>(state, board, legalMoves, yourPieceMap, allYourPiecesBb);
 	
 	// Castling
 	CastlingRightsT canCastleFlags = legalMoves.canCastleFlags;
 	if(canCastleFlags) {
 	  if((canCastleFlags & CanCastleKingside)) {
-	    handleCastlingMove<StateT, PosHandlerT, BoardT, Color, CanCastleKingside>(state, board, legalMoves.discoveredChecks.isKingsideCastlingDiscovery);
+	    handleCastlingMove<StateT, PosOrCountHandlerT, BoardT, Color, CanCastleKingside>(state, board, legalMoves.discoveredChecks.isKingsideCastlingDiscovery);
 	  }	
 
 	  if((canCastleFlags & CanCastleQueenside)) {
-	    handleCastlingMove<StateT, PosHandlerT, BoardT, Color, CanCastleQueenside>(state, board, legalMoves.discoveredChecks.isQueensideCastlingDiscovery);
+	    handleCastlingMove<StateT, PosOrCountHandlerT, BoardT, Color, CanCastleQueenside>(state, board, legalMoves.discoveredChecks.isQueensideCastlingDiscovery);
 	  }
 	}
 
       } // nChecks < 2
       
       // King - discoveries from king moves are a pain in the butt because each move direction is potentially different.
-      handleKingMoves<StateT, PosHandlerT, BoardT, Color>(state, board, yourPieceMap, legalMoves.pieceMoves[TheKing], (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb, yourState.basic.pieceSquares[TheKing]); 
+      handleKingMoves<StateT, PosOrCountHandlerT, BoardT, Color>(state, board, yourPieceMap, legalMoves.pieceMoves[TheKing], (legalMoves.discoveredChecks.diagDiscoveryPiecesBb | legalMoves.discoveredChecks.orthogDiscoveryPiecesBb), allYourPiecesBb, yourState.basic.pieceSquares[TheKing]); 
     }
-     
+
+    template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color>
+    inline void makeAllLegalMoves(StateT state, const BoardT& board) {
+      handleAllLegalMoves<StateT, PosTag, PosHandlerT, BoardT, Color>(state, board);
+    }
+    
   } // namespace MakeMove
 } // namespace Chess
 
