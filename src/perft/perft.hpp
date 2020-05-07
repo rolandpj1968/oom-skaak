@@ -67,10 +67,19 @@ namespace Chess {
       typedef PerftPosHandlerT<typename BoardType<BoardT>::WithPromosT, Color> WithPromosT;
       typedef PerftPosHandlerT<typename BoardType<BoardT>::WithoutPromosT, Color> WithoutPromosT;
       
-      static const bool ValidatePos = false;
-      
       inline static void handlePos(const PerftStateT state, const BoardT& board, MoveInfoT moveInfo) {
 	perftImpl<BoardT, Color>(state, board, moveInfo);
+      }
+    };
+
+    template <typename BoardT, ColorT Color>
+    struct PerftCountHandlerT {
+      typedef PerftCountHandlerT<BoardT, OtherColorT<Color>::value> ReverseT;
+      typedef PerftCountHandlerT<typename BoardType<BoardT>::WithPromosT, Color> WithPromosT;
+      typedef PerftCountHandlerT<typename BoardType<BoardT>::WithoutPromosT, Color> WithoutPromosT;
+      
+      inline static void handleCount(PerftStatsT& stats, const u64 nodes) {
+	stats.nodes += nodes;
       }
     };
 
@@ -155,10 +164,15 @@ namespace Chess {
     }
 
     template <typename BoardT, ColorT Color>
+    inline void perft1Impl(PerftStatsT stats, const BoardT& board) {
+      MakeMove::countAllLegalMoves<PerftStatsT&, PerftCountHandlerT<BoardT, Color>, BoardT, Color>(stats, board);
+    }
+    
+    template <typename BoardT, ColorT Color>
     inline void perftImplFull(const PerftStateT state, const BoardT& board) {
       
       const PerftStateT newState(state.stats, state.depth+1, state.depthToGo-1);
-
+      
       MakeMove::makeAllLegalMoves<const PerftStateT, PerftPosHandlerT<BoardT, Color>, BoardT, Color>(newState, board);
     }
 
@@ -167,6 +181,8 @@ namespace Chess {
       // If this is a leaf node, gather stats.
       if(state.depthToGo == 0) {
 	perft0Impl<BoardT, Color>(state.stats, board, moveInfo);
+      } else if(state.depthToGo == 1) {
+	perft1Impl<BoardT, Color>(state.stats, board);
       } else {
 	perftImplFull<BoardT, Color>(state, board);
       }
