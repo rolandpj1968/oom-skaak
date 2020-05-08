@@ -164,7 +164,7 @@ namespace Chess {
     }
 
     template <typename BoardT, ColorT Color>
-    inline void perft1Impl(PerftStatsT stats, const BoardT& board) {
+    inline void perft1Impl(PerftStatsT& stats, const BoardT& board) {
       MakeMove::countAllLegalMoves<PerftStatsT&, PerftCountHandlerT<BoardT, Color>, BoardT, Color>(stats, board);
     }
     
@@ -176,7 +176,7 @@ namespace Chess {
       MakeMove::makeAllLegalMoves<const PerftStateT, PerftPosHandlerT<BoardT, Color>, BoardT, Color>(newState, board);
     }
 
-    const bool DoDepth1Count = false;
+    const bool DoDepth1Count = true;
 
     template <typename BoardT, ColorT Color>
     inline void perftImpl(const PerftStateT state, const BoardT& board, const MoveInfoT moveInfo) {

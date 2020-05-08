@@ -291,7 +291,20 @@ namespace Chess {
     
     template <typename StateT, typename CountHandlerT, typename BoardT, ColorT Color>
     inline void handlePawnNonPromoMoves(const CountTag&, StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const MoveGen::PawnPushesAndCapturesT& pawnMoves, const BitBoardT directChecksBb, const BitBoardT pushDiscoveriesBb, const BitBoardT leftDiscoveriesBb, const BitBoardT rightDiscoveriesBb, const bool isLeftEpDiscovery, const bool isRightEpDiscovery) {
-      // TODO implement me
+      const BitBoardT pawnPushesBb = (pawnMoves.pushesOneBb | pawnMoves.pushesTwoBb) & ~LastRankBbT<Color>::LastRankBb;
+      const int pawnPushesCount = Bits::count(pawnPushesBb);
+
+      const BitBoardT pawnCapturesLeftBb = pawnMoves.capturesLeftBb & ~LastRankBbT<Color>::LastRankBb;
+      const int pawnCapturesLeftCount = Bits::count(pawnCapturesLeftBb);
+
+      const BitBoardT pawnCapturesRightBb = pawnMoves.capturesRightBb & ~LastRankBbT<Color>::LastRankBb;
+      const int pawnCapturesRightCount = Bits::count(pawnCapturesRightBb);
+
+      const int pawnEpCount = (int)(pawnMoves.epCaptures.epLeftCaptureBb != BbNone) + (int)(pawnMoves.epCaptures.epRightCaptureBb != BbNone);
+
+      const int nodes = pawnPushesCount + pawnCapturesLeftCount + pawnCapturesRightCount + pawnEpCount;
+
+      CountHandlerT::handleCount(state, nodes);
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color>
@@ -410,7 +423,9 @@ namespace Chess {
     // Count piece moves and send them to CountHandlerT
     template <typename StateT, typename CountHandlerT, typename BoardT, ColorT Color, PieceT Piece>
     inline void handlePieceMoves(const CountTag&, StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb) {
-      // TODO implement me
+      const int nodes = Bits::count(movesBb);
+
+      CountHandlerT::handleCount(state, nodes);
     }
     
     //
@@ -508,7 +523,9 @@ namespace Chess {
     
     template <typename StateT, typename CountHandlerT, typename BoardT, ColorT Color>
     inline void handleKingMoves(const CountTag&, StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb, const SquareT yourKingSq) {
-      // TODO - implement me...
+      const int nodes = Bits::count(movesBb);
+
+      CountHandlerT::handleCount(state, nodes);
     }
     
     //
@@ -605,9 +622,9 @@ namespace Chess {
       ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(CastlingMove, MoveGen::CastlingTraitsT<Color, CastlingRight>::KingFrom, MoveGen::CastlingTraitsT<Color, CastlingRight>::KingTo, /*isDirectCheck*/false, isDiscoveredCheck));
     }
 
-    template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color, CastlingRightsT CastlingRight>
+    template <typename StateT, typename CountHandlerT, typename BoardT, ColorT Color, CastlingRightsT CastlingRight>
     inline void handleCastlingMove(const CountTag&, StateT state, const BoardT& board, const bool isDiscoveredCheck) {
-      // TODO implement me
+      CountHandlerT::handleCount(state, 1);
     }
     
     template <typename BoardT>
