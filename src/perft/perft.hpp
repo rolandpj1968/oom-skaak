@@ -78,8 +78,11 @@ namespace Chess {
       typedef PerftCountHandlerT<typename BoardType<BoardT>::WithPromosT, Color> WithPromosT;
       typedef PerftCountHandlerT<typename BoardType<BoardT>::WithoutPromosT, Color> WithoutPromosT;
       
-      inline static void handleCount(PerftStatsT& stats, const u64 nodes) {
+      inline static void handleCount(PerftStatsT& stats, const u64 nodes, u64 captures, u64 eps, u64 castles) {
 	stats.nodes += nodes;
+	stats.captures += captures;
+	stats.eps += eps;
+	stats.castles += castles;
       }
     };
 

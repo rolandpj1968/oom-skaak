@@ -302,9 +302,12 @@ namespace Chess {
 
       const int pawnEpCount = (int)(pawnMoves.epCaptures.epLeftCaptureBb != BbNone) + (int)(pawnMoves.epCaptures.epRightCaptureBb != BbNone);
 
-      const int nodes = pawnPushesCount + pawnCapturesLeftCount + pawnCapturesRightCount + pawnEpCount;
+      const int captures = pawnCapturesLeftCount + pawnCapturesRightCount + pawnEpCount;
+      const int nodes = pawnPushesCount + captures;
+      const int eps = pawnEpCount;
+      const int castles = 0;
 
-      CountHandlerT::handleCount(state, nodes);
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles);
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color>
@@ -425,7 +428,13 @@ namespace Chess {
     inline void handlePieceMoves(const CountTag&, StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb) {
       const int nodes = Bits::count(movesBb);
 
-      CountHandlerT::handleCount(state, nodes);
+      const BitBoardT capturesBb = movesBb & allYourPiecesBb;
+      const int captures = Bits::count(capturesBb);
+
+      const int eps = 0;
+      const int castles = 0;
+
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles);
     }
     
     //
@@ -525,7 +534,13 @@ namespace Chess {
     inline void handleKingMoves(const CountTag&, StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb, const SquareT yourKingSq) {
       const int nodes = Bits::count(movesBb);
 
-      CountHandlerT::handleCount(state, nodes);
+      const int capturesBb = movesBb & allYourPiecesBb;
+      const int captures = Bits::count(capturesBb);
+
+      const int eps = 0;
+      const int castles = 0;
+
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles);
     }
     
     //
@@ -624,7 +639,11 @@ namespace Chess {
 
     template <typename StateT, typename CountHandlerT, typename BoardT, ColorT Color, CastlingRightsT CastlingRight>
     inline void handleCastlingMove(const CountTag&, StateT state, const BoardT& board, const bool isDiscoveredCheck) {
-      CountHandlerT::handleCount(state, 1);
+      const int nodes = 1;
+      const int captures = 0;
+      const int eps = 0;
+      const int castles = 1;
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles);
     }
     
     template <typename BoardT>
