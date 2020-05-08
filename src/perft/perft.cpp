@@ -26,7 +26,7 @@ static void do_special_and_die(int depthToGo) {
     BoardUtils::printBoard<FullBoardT>(board);
     printf("\n%s\n\n", Fen::toFen<FullBoardT>(board, White).c_str());
     
-    Perft::PerftStatsT stats = Perft::perft<FullBoardT, White>(board, 1);
+    Perft::PerftStatsT stats = Perft::perft<FullBoardT, White>(board, 1, true);
     
     printf("perft(%d) - nodes = %lu, captures = %lu, eps = %lu, castles = %lu, promos = %lu, checks = %lu, discoveries = %lu, doublechecks = %lu, checkmates = %lu\n", depthToGo, stats.nodes, stats.captures, stats.eps, stats.castles, stats.promos, stats.checks, stats.discoverychecks, stats.doublechecks, stats.checkmates);
   
@@ -38,13 +38,14 @@ static void usage_and_die(int argc, char* argv[], const char* msg = 0) {
     fprintf(stderr, "%s\n\n", msg);
   }
   
-  fprintf(stderr, "usage: %s <depth> [FEN] [--split] [--max-tt-depth <depth>] [--tt-size <size>]\n\n", argv[0]);
+  fprintf(stderr, "usage: %s <depth> [FEN] [--split] [--max-tt-depth <depth>] [--tt-size <size>] --make-moves\n\n", argv[0]);
   fprintf(stderr, "  Default position is the starting position; also use \"-\" for starting position, e.g. %s 6 \"-\" --max-tt-depth 4\n", argv[0]);
   fprintf(stderr, "  --split provides top-level subtree statistics per top-level move - this is useful for debugging\n");
   fprintf(stderr, "  --max-tt-depth <depth> enables tableauing of results for transpositions up to <depth>\n");
   fprintf(stderr, "      Transition tables (TTs) are only used from level 3 and deeper since no shallower transpositions are possible\n");
   fprintf(stderr, "  --tt-size <size> defines the maximum TT size for each level (default 262144)\n");
   fprintf(stderr, "      TT entries at each level are discarded according to LRU\n");
+  fprintf(stderr, "  --make-moves does all move do/undo up til leaf nodes which is slower that counting one level above\n");
   fprintf(stderr, "\n");
   
   exit(1);
@@ -76,6 +77,7 @@ int main(int argc, char* argv[]) {
   bool doSplit = false;
   int maxTtDepth = 0;
   int ttSize = 262144;
+  bool makeMoves = false;
   
   if(argc < 3 || std::string(argv[2]) == "-") {
     board = BoardUtils::startingPosition();
@@ -110,6 +112,8 @@ int main(int argc, char* argv[]) {
       if(ttSize < 1) {
 	usage_and_die(argc, argv, "Invalid TT size");
       }
+    } else if(arg == "--make-moves") {
+      makeMoves = true;
     } else {
 	usage_and_die(argc, argv, "Unrecognised argument");
     }
@@ -134,8 +138,8 @@ int main(int argc, char* argv[]) {
 
   if(maxTtDepth != 0) {
     auto allStats = colorToMove == White ?
-      Perft::ttPerft<BasicBoardT, White>(board, doSplit, depthToGo, maxTtDepth, ttSize) :
-      Perft::ttPerft<BasicBoardT, Black>(board, doSplit, depthToGo, maxTtDepth, ttSize);
+      Perft::ttPerft<BasicBoardT, White>(board, doSplit, depthToGo, maxTtDepth, ttSize, makeMoves) :
+      Perft::ttPerft<BasicBoardT, Black>(board, doSplit, depthToGo, maxTtDepth, ttSize, makeMoves);
     stats = allStats.first;
     if(doSplit) {
       printf("\n");
@@ -150,13 +154,13 @@ int main(int argc, char* argv[]) {
     printf("\n");
   } else if(doSplit) {
     stats = colorToMove == White ?
-      Perft::splitPerft<BasicBoardT, White>(board, depthToGo) :
-      Perft::splitPerft<BasicBoardT, Black>(board, depthToGo);
+      Perft::splitPerft<BasicBoardT, White>(board, depthToGo, makeMoves) :
+      Perft::splitPerft<BasicBoardT, Black>(board, depthToGo, makeMoves);
    printf("\n");
   } else {
    stats = colorToMove == White ?
-      Perft::perft<BasicBoardT, White>(board, depthToGo) :
-      Perft::perft<BasicBoardT, Black>(board, depthToGo);
+     Perft::perft<BasicBoardT, White>(board, depthToGo, makeMoves) :
+     Perft::perft<BasicBoardT, Black>(board, depthToGo, makeMoves);
   }
 
   printf("perft(%d) stats:\n\n", depthToGo);

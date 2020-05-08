@@ -534,8 +534,14 @@ namespace Chess {
     inline void handleKingMoves(const CountTag&, StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb, const SquareT yourKingSq) {
       const int nodes = Bits::count(movesBb);
 
-      const int capturesBb = movesBb & allYourPiecesBb;
+      printf("King moves counting - king moves are:\n\n");
+      BoardUtils::printBb(movesBb);
+      printf("\nallYourPieces:\n\n");
+      BoardUtils::printBb(allYourPiecesBb);
+
+      const BitBoardT capturesBb = movesBb & allYourPiecesBb;
       const int captures = Bits::count(capturesBb);
+      printf(">>>>>>>>>>>> captures = %d\n\n", captures);
 
       const int eps = 0;
       const int castles = 0;
