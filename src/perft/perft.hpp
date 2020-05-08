@@ -274,16 +274,29 @@ namespace Chess {
 
     using BoundedHashMap::BoundedHashMap;
 
+    struct DJBHashFn {
+      inline size_t operator()(const std::string& s) const noexcept {
+	size_t hash = 5381;
+	
+	const size_t length = s.length();
+	for (size_t i = 0; i < length; i++) {
+	  hash = ((hash << 5) + hash) + (size_t)s[i];
+	}
+	
+	return hash;
+      }
+    };
+
     struct TtPerftStateT {
       PerftStatsT& stats;
-      std::vector<BoundedHashMap<std::string, PerftStatsT>>& tts;
+      std::vector<BoundedHashMap<std::string, PerftStatsT, DJBHashFn>>& tts;
       std::vector<std::pair<u64, u64>>& ttStats; // (total-nodes, ht-hits)
       const bool doSplit;
       const u8 maxTtDepth;
       u8 depth;
       u8 depthToGo;
 
-      TtPerftStateT(PerftStatsT& stats, std::vector<BoundedHashMap<std::string, PerftStatsT>>& tts, std::vector<std::pair<u64, u64>>& ttStats, const bool doSplit, const u8 maxTtDepth, const u8 depth, const u8 depthToGo):
+      TtPerftStateT(PerftStatsT& stats, std::vector<BoundedHashMap<std::string, PerftStatsT, DJBHashFn>>& tts, std::vector<std::pair<u64, u64>>& ttStats, const bool doSplit, const u8 maxTtDepth, const u8 depth, const u8 depthToGo):
 	stats(stats), tts(tts), ttStats(ttStats), doSplit(doSplit), maxTtDepth(maxTtDepth), depth(depth), depthToGo(depthToGo) {}
     };
 
@@ -371,9 +384,9 @@ namespace Chess {
     inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> ttPerft(const BoardT& board, const bool doSplit, const int depthToGo, const int maxTtDepth, const int ttSize) {
       PerftStatsT stats = {};
       // map: fen->stats for each depth
-      std::vector<BoundedHashMap<std::string, PerftStatsT>> tts;
+      std::vector<BoundedHashMap<std::string, PerftStatsT, DJBHashFn>> tts;
       for(int i = MinTtDepth; i <= maxTtDepth; i++) {
-	tts.push_back(BoundedHashMap<std::string, PerftStatsT>(ttSize));
+	tts.push_back(BoundedHashMap<std::string, PerftStatsT, DJBHashFn>(ttSize));
       }
       std::vector<std::pair<u64, u64>> ttStats(maxTtDepth-MinTtDepth+1);
       

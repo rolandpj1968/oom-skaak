@@ -16,9 +16,9 @@ namespace Chess {
 	mru_it(mru_it), val(val) {}
     };
 
-    template <typename KeyT, typename ValT>
+    template <typename KeyT, typename ValT, typename HashT = std::hash<KeyT>>
     struct BoundedHashMap {
-      typedef typename std::unordered_map<KeyT, ValT>::size_type size_type;
+      typedef typename std::unordered_map<KeyT, ValT, HashT>::size_type size_type;
 
       const size_type max_size_val;
       std::list<KeyT> mru;
