@@ -176,12 +176,14 @@ namespace Chess {
       MakeMove::makeAllLegalMoves<const PerftStateT, PerftPosHandlerT<BoardT, Color>, BoardT, Color>(newState, board);
     }
 
+    const bool DoDepth1Count = false;
+
     template <typename BoardT, ColorT Color>
     inline void perftImpl(const PerftStateT state, const BoardT& board, const MoveInfoT moveInfo) {
       // If this is a leaf node, gather stats.
       if(state.depthToGo == 0) {
 	perft0Impl<BoardT, Color>(state.stats, board, moveInfo);
-      } else if(state.depthToGo == 1) {
+      } else if(DoDepth1Count && state.depthToGo == 1) {
 	perft1Impl<BoardT, Color>(state.stats, board);
       } else {
 	perftImplFull<BoardT, Color>(state, board);
