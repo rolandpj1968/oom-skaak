@@ -308,14 +308,19 @@ namespace Chess {
 	std::string fen;
 
 	// Probe the TT
+	const int ttIndex = state.depth - MinTtDepth;
 	if(MinTtDepth <= state.depth && state.depth <= state.maxTtDepth) {
-	  state.ttStats[state.depth - MinTtDepth].first++;
+	  state.ttStats[ttIndex].first++;
 	  // Omit the EP square in cases where EP capture is impossible - this gives us more transpositions
 	  fen = Fen::toFenFast<BoardT>(board, Color, /*trimEp*/true);
-	  if(state.tts[state.depth - MinTtDepth].contains(fen)) {
+	  auto it = state.tts[ttIndex].find(fen);
+	  if(it != state.tts[ttIndex].end()) {
 	    foundIt = true;
-	    state.ttStats[state.depth - MinTtDepth].second++;
-	    splitStats = state.tts[state.depth - MinTtDepth].at(fen);
+	    state.ttStats[ttIndex].second++;
+	    auto& elem = it->second;
+	    // move-to-front of mru
+	    state.tts[ttIndex].mru_move_to_front(elem.mru_it);
+	    splitStats = elem.val;
 	  }
 	}
 
@@ -336,7 +341,7 @@ namespace Chess {
 
 	// If it's not in the TT then insert it
 	if(MinTtDepth <= state.depth && state.depth <= state.maxTtDepth && !foundIt) {
-	  state.tts[state.depth - MinTtDepth].put(fen, splitStats);
+	  state.tts[ttIndex].put(fen, splitStats);
 	}
       }
     };

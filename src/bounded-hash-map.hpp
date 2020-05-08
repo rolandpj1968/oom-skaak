@@ -33,6 +33,14 @@ namespace Chess {
       size_type max_size() const noexcept { return max_size_val; }
       
       // Should do all of this more like STL standard but that's a lot of work
+
+      typename std::unordered_map<KeyT, BoundedHashMapVal<KeyT, ValT>>::iterator end() noexcept {
+	return map.end();
+      }
+      
+      typename std::unordered_map<KeyT, BoundedHashMapVal<KeyT, ValT>>::iterator find(const KeyT& key) noexcept {
+	return map.find(key);
+      }
       
       bool remove(const KeyT& key) noexcept {
 	auto map_it = map.find(key);
