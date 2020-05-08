@@ -311,7 +311,7 @@ namespace Chess {
 	if(MinTtDepth <= state.depth && state.depth <= state.maxTtDepth) {
 	  state.ttStats[state.depth - MinTtDepth].first++;
 	  // Omit the EP square in cases where EP capture is impossible - this gives us more transpositions
-	  fen = Fen::toFen<BoardT>(board, Color, /*trimEp*/true);
+	  fen = Fen::toFenFast<BoardT>(board, Color, /*trimEp*/true);
 	  if(state.tts[state.depth - MinTtDepth].contains(fen)) {
 	    foundIt = true;
 	    state.ttStats[state.depth - MinTtDepth].second++;
