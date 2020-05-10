@@ -1,6 +1,8 @@
 // Bounded hash-map that using LRU eviction
 
 #include <list>
+#include <memory>
+#include <mutex>
 #include <unordered_map>
 
 namespace Chess {
@@ -17,43 +19,20 @@ namespace Chess {
     };
 
     template <typename KeyT, typename ValT>
-    struct BoundedHashMap {
+    class BoundedHashMap {
       typedef typename std::unordered_map<KeyT, ValT>::size_type size_type;
 
       const size_type max_size_val;
       std::list<KeyT> mru;
       std::unordered_map<KeyT, BoundedHashMapVal<KeyT, ValT>> map;
+      std::shared_ptr<std::mutex> m; // consider shared_mutex to optimise attempted reads when key is not present
+                                     // shared_ptr is a ludicrous way to allow copying of BoundedHashMap's, e.g. in vector::push_back
 
+    public:
       BoundedHashMap(std::size_t max_size) :
-	max_size_val(max_size),
-	map(max_size) {}
+	max_size_val(max_size),	map(max_size), m(new std::mutex) {}
 
-      bool empty() const noexcept { return map.empty(); }
-      size_type size() const noexcept { return map.size(); }
-      size_type max_size() const noexcept { return max_size_val; }
-      
-      // Should do all of this more like STL standard but that's a lot of work
-
-      // typename std::unordered_map<KeyT, BoundedHashMapVal<KeyT, ValT>>::iterator end() noexcept {
-      // 	return map.end();
-      // }
-      
-      // typename std::unordered_map<KeyT, BoundedHashMapVal<KeyT, ValT>>::iterator find(const KeyT& key) noexcept {
-      // 	return map.find(key);
-      // }
-      
-      bool remove(const KeyT& key) noexcept {
-	auto map_it = map.find(key);
-	if(map_it == map.end()) {
-	  return false; // not present
-	}
-
-	mru.erase(map_it->second.mru_it);
-	map.erase(map_it);
-
-	return true; // was present
-      }
-    
+    private:
       bool remove_lru_entry() {
 	if(mru.empty()) {
 	  return false; // already empty
@@ -67,20 +46,24 @@ namespace Chess {
 	mru.splice(mru.begin(), mru, mru_it);
       }
 
-      // bool contains(const KeyT& key) const {
-      // 	return map.find(key) != map.end();
-      // }
-
-      // ValT& at(const KeyT& key) {
-      // 	BoundedHashMapVal<KeyT, ValT>& elem = map.at(key);
+    public:
+      bool remove(const KeyT& key) noexcept {
+	std::unique_lock<std::mutex> lock(*m);
 	
-      // 	// move-to-front of mru
-      // 	mru_move_to_front(elem.mru_it);
-			    
-      // 	return elem.val;
-      // }
+	auto map_it = map.find(key);
+	if(map_it == map.end()) {
+	  return false; // not present
+	}
 
+	mru.erase(map_it->second.mru_it);
+	map.erase(map_it);
+
+	return true; // was present
+      }
+    
       bool copy_if_present(const KeyT& key, ValT& to) noexcept {
+	std::unique_lock<std::mutex> lock(*m);
+	
 	auto map_it = map.find(key);
 	if(map_it == map.end()) {
 	  return false; // not present
@@ -96,6 +79,8 @@ namespace Chess {
       }
 
       bool put(const KeyT& key, const ValT& val) noexcept {
+	std::unique_lock<std::mutex> lock(*m);
+	
 	auto map_it = map.find(key);
 	if(map_it != map.end()) {
 	  // move-to-front of mru
@@ -108,7 +93,7 @@ namespace Chess {
 	}
 
 	// Make space for the new entry
-	if(max_size_val <= size()) {
+	if(max_size_val <= map.size()) {
 	  remove_lru_entry();
 	}
 
