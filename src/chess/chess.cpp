@@ -165,36 +165,36 @@ int main2(int argc, char* argv[]) {
 
   printf("bounded map: empty() is %d, size() is %lu, max_size is %lu\n", map.empty(), map.size(), map.max_size());
 
-  printf("mru list: {");
-  for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
-    printf(" %s", it->c_str());
-  }
-  printf(" }\n");
+  // printf("mru list: {");
+  // for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
+  //   printf(" %s", it->c_str());
+  // }
+  // printf(" }\n");
 
-  printf("map.at(three) is %d\n", map.at(three));
-  printf("mru list: {");
-  for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
-    printf(" %s", it->c_str());
-  }
-  printf(" }\n");
+  // printf("map.at(three) is %d\n", map.at(three));
+  // printf("mru list: {");
+  // for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
+  //   printf(" %s", it->c_str());
+  // }
+  // printf(" }\n");
 
-  printf("map.at(two) is %d\n", map.at(two));
-  printf("mru list: {");
-  for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
-    printf(" %s", it->c_str());
-  }
-  printf(" }\n");
+  // printf("map.at(two) is %d\n", map.at(two));
+  // printf("mru list: {");
+  // for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
+  //   printf(" %s", it->c_str());
+  // }
+  // printf(" }\n");
 
-  std::string six("6");
-  map.put(six, 6);
+  // std::string six("6");
+  // map.put(six, 6);
 
-  printf("bounded map: empty() is %d, size() is %lu, max_size is %lu\n", map.empty(), map.size(), map.max_size());
+  // printf("bounded map: empty() is %d, size() is %lu, max_size is %lu\n", map.empty(), map.size(), map.max_size());
 
-  printf("mru list: {");
-  for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
-    printf(" %s", it->c_str());
-  }
-  printf(" }\n");
+  // printf("mru list: {");
+  // for(auto it = map.mru.begin(); it != map.mru.end(); ++it) {
+  //   printf(" %s", it->c_str());
+  // }
+  // printf(" }\n");
 
   return 0;
 }

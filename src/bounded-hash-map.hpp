@@ -34,13 +34,13 @@ namespace Chess {
       
       // Should do all of this more like STL standard but that's a lot of work
 
-      typename std::unordered_map<KeyT, BoundedHashMapVal<KeyT, ValT>>::iterator end() noexcept {
-	return map.end();
-      }
+      // typename std::unordered_map<KeyT, BoundedHashMapVal<KeyT, ValT>>::iterator end() noexcept {
+      // 	return map.end();
+      // }
       
-      typename std::unordered_map<KeyT, BoundedHashMapVal<KeyT, ValT>>::iterator find(const KeyT& key) noexcept {
-	return map.find(key);
-      }
+      // typename std::unordered_map<KeyT, BoundedHashMapVal<KeyT, ValT>>::iterator find(const KeyT& key) noexcept {
+      // 	return map.find(key);
+      // }
       
       bool remove(const KeyT& key) noexcept {
 	auto map_it = map.find(key);
@@ -67,17 +67,32 @@ namespace Chess {
 	mru.splice(mru.begin(), mru, mru_it);
       }
 
-      bool contains(const KeyT& key) const {
-	return map.find(key) != map.end();
-      }
+      // bool contains(const KeyT& key) const {
+      // 	return map.find(key) != map.end();
+      // }
 
-      ValT& at(const KeyT& key) {
-	BoundedHashMapVal<KeyT, ValT>& elem = map.at(key);
+      // ValT& at(const KeyT& key) {
+      // 	BoundedHashMapVal<KeyT, ValT>& elem = map.at(key);
+	
+      // 	// move-to-front of mru
+      // 	mru_move_to_front(elem.mru_it);
+			    
+      // 	return elem.val;
+      // }
+
+      bool copy_if_present(const KeyT& key, ValT& to) noexcept {
+	auto map_it = map.find(key);
+	if(map_it == map.end()) {
+	  return false; // not present
+	}
 	
 	// move-to-front of mru
-	mru_move_to_front(elem.mru_it);
-			    
-	return elem.val;
+	mru_move_to_front(map_it->second.mru_it);
+	  
+	// Key already present - copy the val
+	to = map_it->second.val;
+
+	return true; // found
       }
 
       bool put(const KeyT& key, const ValT& val) noexcept {

@@ -310,14 +310,9 @@ namespace Chess {
 	  state.ttStats[ttIndex].first++;
 	  // Omit the EP square in cases where EP capture is impossible - this gives us more transpositions
 	  fen = Fen::toFenFast<BoardT>(board, Color, /*trimEp*/true);
-	  auto it = state.tts[ttIndex].find(fen);
-	  if(it != state.tts[ttIndex].end()) {
-	    foundIt = true;
+	  foundIt = state.tts[ttIndex].copy_if_present(fen, splitStats);
+	  if(foundIt) {
 	    state.ttStats[ttIndex].second++;
-	    auto& elem = it->second;
-	    // move-to-front of mru
-	    state.tts[ttIndex].mru_move_to_front(elem.mru_it);
-	    splitStats = elem.val;
 	  }
 	}
 
