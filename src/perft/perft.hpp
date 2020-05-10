@@ -48,12 +48,12 @@ namespace Chess {
     // Curiously adding just one more member here - depth - slows down perf substantially, particularly if they are int size!
     struct PerftStateT {
       PerftStatsT& stats;
+      const bool makeMoves;
       const u8 depth;
       const u8 depthToGo;
-      const bool makeMoves;
 
-      PerftStateT(PerftStatsT& stats, const u8 depth, const u8 depthToGo, const bool makeMoves):
-	stats(stats), depth(depth), depthToGo(depthToGo), makeMoves(makeMoves) {}
+      PerftStateT(PerftStatsT& stats, const bool makeMoves, const u8 depth, const u8 depthToGo):
+	stats(stats), makeMoves(makeMoves), depth(depth), depthToGo(depthToGo) {}
     };
 
     template <typename BoardT, ColorT Color>
@@ -76,11 +76,12 @@ namespace Chess {
       typedef PerftCountHandlerT<typename BoardType<BoardT>::WithPromosT, Color> WithPromosT;
       typedef PerftCountHandlerT<typename BoardType<BoardT>::WithoutPromosT, Color> WithoutPromosT;
       
-      inline static void handleCount(PerftStatsT& stats, const u64 nodes, u64 captures, u64 eps, u64 castles) {
+      inline static void handleCount(PerftStatsT& stats, const u64 nodes, u64 captures, u64 eps, u64 castles, u64 promos) {
 	stats.nodes += nodes;
 	stats.captures += captures;
 	stats.eps += eps;
 	stats.castles += castles;
+	stats.promos += promos;
       }
     };
 
@@ -172,7 +173,7 @@ namespace Chess {
     template <typename BoardT, ColorT Color>
     inline void perftImplFull(const PerftStateT state, const BoardT& board) {
       
-      const PerftStateT newState(state.stats, state.depth+1, state.depthToGo-1, state.makeMoves);
+      const PerftStateT newState(state.stats, state.makeMoves, state.depth+1, state.depthToGo-1);
       
       MakeMove::makeAllLegalMoves<const PerftStateT, PerftPosHandlerT<BoardT, Color>, BoardT, Color>(newState, board);
     }
@@ -192,11 +193,11 @@ namespace Chess {
     }
       
     template <typename BoardT, ColorT Color>
-    inline PerftStatsT perft(const BoardT& board, const int depthToGo, const bool makeMoves) {
+    inline PerftStatsT perft(const BoardT& board, const bool makeMoves, const int depthToGo) {
       PerftStatsT stats = {};
       const int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
       MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
-      const PerftStateT state(stats, 0, depthToGo, makeMoves);
+      const PerftStateT state(stats, makeMoves, 0, depthToGo);
 
       perftImpl<BoardT, Color>(state, board, dummyMoveInfo);
 
@@ -207,9 +208,6 @@ namespace Chess {
     // Split perft implementation
     //
 
-    // template <typename BoardT, ColorT Color>
-    // inline PerftStatsT splitPerft(const BoardT& board, const int depthToGo);
-    
     template <typename BoardT, ColorT Color>
     inline void splitPerftImpl(const PerftStateT state, const BoardT& board, const MoveInfoT moveInfo);
   
@@ -221,7 +219,7 @@ namespace Chess {
       
       inline static void handlePos(const PerftStateT state, const BoardT& board, MoveInfoT moveInfo) {
 	PerftStatsT splitStats = {};
-	const PerftStateT splitState(splitStats, state.depth, state.depthToGo, state.makeMoves);
+	const PerftStateT splitState(splitStats, state.makeMoves, state.depth, state.depthToGo);
 	
 	splitPerftImpl<BoardT, Color>(splitState, board, moveInfo);
 
@@ -238,7 +236,7 @@ namespace Chess {
     template <typename BoardT, ColorT Color>
     inline void splitPerftImplFull(const PerftStateT state, const BoardT& board) {
       
-      const PerftStateT newState(state.stats, state.depth+1, state.depthToGo-1, state.makeMoves);
+      const PerftStateT newState(state.stats, state.makeMoves, state.depth+1, state.depthToGo-1);
 
       MakeMove::makeAllLegalMoves<const PerftStateT, SplitPerftPosHandlerT<BoardT, Color>, BoardT, Color>(newState, board);
     }
@@ -256,11 +254,11 @@ namespace Chess {
     }
       
     template <typename BoardT, ColorT Color>
-    inline PerftStatsT splitPerft(const BoardT& board, const int depthToGo, const bool makeMoves) {
+    inline PerftStatsT splitPerft(const BoardT& board, const bool makeMoves, const int depthToGo) {
       PerftStatsT stats = {};
       const int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
       MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
-      const PerftStateT state(stats, 0, depthToGo, makeMoves);
+      const PerftStateT state(stats, makeMoves, 0, depthToGo);
 
       splitPerftImpl<BoardT, Color>(state, board, dummyMoveInfo);
 
@@ -290,9 +288,6 @@ namespace Chess {
     };
 
     const int MinTtDepth = 3;
-    
-    // template <typename BoardT, ColorT Color>
-    // inline PerftStatsT ttPerft(const BoardT& board, const int depthToGo);
     
     template <typename BoardT, ColorT Color>
     inline void ttPerftImpl(const TtPerftStateT state, const BoardT& board, const MoveInfoT moveInfo);
@@ -364,13 +359,13 @@ namespace Chess {
       } else if(state.depth <= state.maxTtDepth) {
 	ttPerftImplFull<BoardT, Color>(state, board);
       } else {
-	PerftStateT perftState(state.stats, state.depth, state.depthToGo, state.makeMoves);
+	PerftStateT perftState(state.stats, state.makeMoves, state.depth, state.depthToGo);
 	perftImplFull<BoardT, Color>(perftState, board);
       }
     }
       
     template <typename BoardT, ColorT Color>
-    inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> ttPerft(const BoardT& board, const bool doSplit, const bool makeMoves, const int depthToGo, const int maxTtDepth, const int ttSize) {
+    inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> ttPerft(const BoardT& board, const bool doSplit, const bool makeMoves, const int maxTtDepth, const int depthToGo, const int ttSize) {
       PerftStatsT stats = {};
       // map: fen->stats for each depth
       std::vector<BoundedHashMap<std::string, PerftStatsT>> tts;

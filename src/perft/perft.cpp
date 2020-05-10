@@ -138,8 +138,8 @@ int main(int argc, char* argv[]) {
 
   if(maxTtDepth != 0) {
     auto allStats = colorToMove == White ?
-      Perft::ttPerft<BasicBoardT, White>(board, doSplit, depthToGo, maxTtDepth, ttSize, makeMoves) :
-      Perft::ttPerft<BasicBoardT, Black>(board, doSplit, depthToGo, maxTtDepth, ttSize, makeMoves);
+      Perft::ttPerft<BasicBoardT, White>(board, doSplit, makeMoves, maxTtDepth, depthToGo, ttSize) :
+      Perft::ttPerft<BasicBoardT, Black>(board, doSplit, makeMoves, maxTtDepth, depthToGo, ttSize);
     stats = allStats.first;
     if(doSplit) {
       printf("\n");
@@ -149,18 +149,18 @@ int main(int argc, char* argv[]) {
     for(int i = MinTtDepth; i <= maxTtDepth; i++) {
       u64 nodes = ttStats[i - MinTtDepth].first;
       u64 hits = ttStats[i - MinTtDepth].second;
-      printf("Depth %d: %lu nodes, %lu HT hits - %.2f%% hit rate\n", i, nodes, hits, ((double)hits/(double)nodes)*100.0);
+      printf("Depth %d: %lu nodes, %lu TT hits - %.2f%% hit rate\n", i, nodes, hits, ((double)hits/(double)nodes)*100.0);
     }
     printf("\n");
   } else if(doSplit) {
     stats = colorToMove == White ?
-      Perft::splitPerft<BasicBoardT, White>(board, depthToGo, makeMoves) :
-      Perft::splitPerft<BasicBoardT, Black>(board, depthToGo, makeMoves);
+      Perft::splitPerft<BasicBoardT, White>(board, makeMoves, depthToGo) :
+      Perft::splitPerft<BasicBoardT, Black>(board, makeMoves, depthToGo);
    printf("\n");
   } else {
    stats = colorToMove == White ?
-     Perft::perft<BasicBoardT, White>(board, depthToGo, makeMoves) :
-     Perft::perft<BasicBoardT, Black>(board, depthToGo, makeMoves);
+     Perft::perft<BasicBoardT, White>(board, makeMoves, depthToGo) :
+     Perft::perft<BasicBoardT, Black>(board, makeMoves, depthToGo);
   }
 
   printf("perft(%d) stats:\n\n", depthToGo);

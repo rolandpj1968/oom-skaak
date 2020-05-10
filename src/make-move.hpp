@@ -306,8 +306,9 @@ namespace Chess {
       const int nodes = pawnPushesCount + captures;
       const int eps = pawnEpCount;
       const int castles = 0;
+      const int promos = 0;
 
-      CountHandlerT::handleCount(state, nodes, captures, eps, castles);
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos);
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color>
@@ -324,7 +325,22 @@ namespace Chess {
 
     template <typename StateT, typename CountHandlerT, typename BoardT, ColorT Color>
     inline void handlePawnPromoMoves(const CountTag&, StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const MoveGen::PawnPushesAndCapturesT& pawnMoves, const BitBoardT directChecksBb, const BitBoardT pushDiscoveriesBb, const BitBoardT leftDiscoveriesBb, const BitBoardT rightDiscoveriesBb, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb) {
-      // TODO implement me
+      const BitBoardT pawnPushesBb = pawnMoves.pushesOneBb & LastRankBbT<Color>::LastRankBb;
+      const int pawnPushesCount = Bits::count(pawnPushesBb);
+
+      const BitBoardT pawnCapturesLeftBb = pawnMoves.capturesLeftBb & LastRankBbT<Color>::LastRankBb;
+      const int pawnCapturesLeftCount = Bits::count(pawnCapturesLeftBb);
+
+      const BitBoardT pawnCapturesRightBb = pawnMoves.capturesRightBb & LastRankBbT<Color>::LastRankBb;
+      const int pawnCapturesRightCount = Bits::count(pawnCapturesRightBb);
+
+      const int captures = pawnCapturesLeftCount + pawnCapturesRightCount;
+      const int nodes = pawnPushesCount + captures;
+      const int eps = 0;
+      const int castles = 0;
+      const int promos = nodes;
+      
+      CountHandlerT::handleCount(state, nodes*4/*qnrb*/, captures*4/*qnrb*/, eps, castles, promos*4/*qnrb*/);
     }
     
     //
@@ -433,8 +449,9 @@ namespace Chess {
 
       const int eps = 0;
       const int castles = 0;
+      const int promos = 0;
 
-      CountHandlerT::handleCount(state, nodes, captures, eps, castles);
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos);
     }
     
     //
@@ -539,8 +556,9 @@ namespace Chess {
 
       const int eps = 0;
       const int castles = 0;
+      const int promos = 0;
 
-      CountHandlerT::handleCount(state, nodes, captures, eps, castles);
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos);
     }
     
     //
@@ -619,7 +637,16 @@ namespace Chess {
 
     template <typename StateT, typename CountHandlerT, typename BoardT, ColorT Color>
     inline void handlePromoPieceMoves(const CountTag&, StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const int promoIndex, const PromoPieceT promoPiece, const SquareT from, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb) {
-      // TODO implement me
+      const int nodes = Bits::count(movesBb);
+
+      const BitBoardT capturesBb = movesBb & allYourPiecesBb;
+      const int captures = Bits::count(capturesBb);
+
+      const int eps = 0;
+      const int castles = 0;
+      const int promos = 0;
+
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos);
     }
     
     //
@@ -643,7 +670,9 @@ namespace Chess {
       const int captures = 0;
       const int eps = 0;
       const int castles = 1;
-      CountHandlerT::handleCount(state, nodes, captures, eps, castles);
+      const int promos = 0;
+      
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos);
     }
     
     template <typename BoardT>
