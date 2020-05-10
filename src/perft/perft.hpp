@@ -10,6 +10,10 @@
 #include "make-move.hpp"
 #include "bits.hpp"
 
+#include <list>
+#include <map>
+#include <mutex>
+#include <thread>
 #include <vector>
 
 namespace Chess {
@@ -377,6 +381,81 @@ namespace Chess {
 
       return std::make_pair(stats, ttStats);
     }
+
+    //
+    // Parallel perft
+    //
+    struct Depth2CollectorStateT {
+      std::list<std::string>& depth2Fens;
+      const int depth;
+
+      Depth2CollectorStateT(std::list<std::string>& depth2Fens, const int depth) :
+	depth2Fens(depth2Fens), depth(depth) {}
+    };
+    
+    template <typename BoardT, ColorT Color>
+    struct Depth2CollectorPosHandlerT {
+      typedef Depth2CollectorPosHandlerT<BoardT, OtherColorT<Color>::value> ReverseT;
+      typedef Depth2CollectorPosHandlerT<typename BoardType<BoardT>::WithPromosT, Color> WithPromosT;
+      typedef Depth2CollectorPosHandlerT<typename BoardType<BoardT>::WithoutPromosT, Color> WithoutPromosT;
+      
+      inline static void handlePos(const Depth2CollectorStateT& state, const BoardT& board, MoveInfoT moveInfo) {
+	// This is a child node of the given depth and we're collecting depth-2 FEN's, hence when state.depth == 1
+	if(state.depth == 1) {
+	  state.depth2Fens.push_back(Fen::toFenFast(board, Color, /*trimEp*/true));
+	} else {
+	  Depth2CollectorStateT newState(state.depth2Fens, state.depth+1);
+	  MakeMove::makeAllLegalMoves<const Depth2CollectorStateT&, Depth2CollectorPosHandlerT<BoardT, Color>, BoardT, Color>(newState, board);
+	}
+      }
+    };
+
+    void paraPerftWorkerFn(int n, std::mutex& m, std::list<std::string>& depth2Fens, std::map<std::string, PerftStatsT>& depth2PosStats, const int depthToGo) {
+      printf("Worker #%d starting...", n);
+      int nFens = 0;
+      // Finish when the list is empty
+      while(true) {
+	std::string fen;
+	{
+	  std::unique_lock<std::mutex> lock(m);
+	  if(depth2Fens.empty()) {
+	    printf("Worker #%d finished after %d FENs\n", n, nFens);
+	    return;
+	  }
+	  fen = depth2Fens.front();
+	  depth2Fens.pop_front();
+	  nFens++;
+	}
+      }
+    }
+
+    template <typename BoardT, ColorT Color>
+    inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> paraPerft(const BoardT& board, const bool doSplit, const bool makeMoves, const int maxTtDepth, const int depthToGo, const int ttSize, const int nThreads) {
+      // Collect all depth-2 positions - set of FEN's
+      std::list<std::string> depth2Fens;
+      const Depth2CollectorStateT depth2CollectorState(depth2Fens, /*depth*/0);
+      MakeMove::makeAllLegalMoves<const Depth2CollectorStateT&, Depth2CollectorPosHandlerT<BoardT, Color>, BoardT, Color>(depth2CollectorState, board);
+
+      // Perft stats for each depth-2 position
+      std::map<std::string, PerftStatsT> depth2PosStats;
+      // Mutex to lock all accesses to input list of depth2Fens and output map 
+      std::mutex workerMutex;
+      // Run worker threads to process the depth-2 positions in parallel
+      printf("Spawning %d workers...\n", nThreads);
+      std::vector<std::thread> workers;
+      for(int i = 0; i < nThreads; i++) {
+	workers.push_back(std::thread(paraPerftWorkerFn, i, std::ref(workerMutex), std::ref(depth2Fens), std::ref(depth2PosStats), depthToGo)); 
+      }
+      printf("...waiting for %d workers...\n", nThreads);
+      for(int i = 0; i < nThreads; i++) {
+	workers[i].join();
+      }
+      printf("...and we're all done.\n");
+      
+      return std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>>();
+    }
+
+    
   } // namespace Perf
 } // namespace Chess
 

@@ -38,7 +38,7 @@ static void usage_and_die(int argc, char* argv[], const char* msg = 0) {
     fprintf(stderr, "%s\n\n", msg);
   }
   
-  fprintf(stderr, "usage: %s <depth> [FEN] [--split] [--max-tt-depth <depth>] [--tt-size <size>] --make-moves\n\n", argv[0]);
+  fprintf(stderr, "usage: %s <depth> [FEN] [--split] [--max-tt-depth <depth>] [--tt-size <size>] [--make-moves] [--threads <N>]\n\n", argv[0]);
   fprintf(stderr, "  Default position is the starting position; also use \"-\" for starting position, e.g. %s 6 \"-\" --max-tt-depth 4\n", argv[0]);
   fprintf(stderr, "  --split provides top-level subtree statistics per top-level move - this is useful for debugging\n");
   fprintf(stderr, "  --max-tt-depth <depth> enables tableauing of results for transpositions up to <depth>\n");
@@ -46,6 +46,7 @@ static void usage_and_die(int argc, char* argv[], const char* msg = 0) {
   fprintf(stderr, "  --tt-size <size> defines the maximum TT size for each level (default 262144)\n");
   fprintf(stderr, "      TT entries at each level are discarded according to LRU\n");
   fprintf(stderr, "  --make-moves does all move do/undo up til leaf nodes which is slower that counting one level above\n");
+  fprintf(stderr, "  --threads <N> runs N threads which distribute perft calculations from depth 2 and deeper\n");
   fprintf(stderr, "\n");
   
   exit(1);
@@ -78,6 +79,7 @@ int main(int argc, char* argv[]) {
   int maxTtDepth = 0;
   int ttSize = 262144;
   bool makeMoves = false;
+  int nThreads = 0;
   
   if(argc < 3 || std::string(argv[2]) == "-") {
     board = BoardUtils::startingPosition();
@@ -114,6 +116,18 @@ int main(int argc, char* argv[]) {
       }
     } else if(arg == "--make-moves") {
       makeMoves = true;
+    } else if(arg == "--threads") {
+      i++;
+      if(argc <= i) {
+	usage_and_die(argc, argv, "--threads missing <N> argument");
+      }
+      nThreads = atol(argv[i]);
+      if(nThreads < 1 || nThreads > 8192) {
+	usage_and_die(argc, argv, "Invalid #threads <N> - --threads 1 through --threads 8192 are valid");
+      }
+      if(nThreads > 1 && depthToGo <= 2) {
+	usage_and_die(argc, argv, "Multi-threading is only valid for depth > 2");
+      }
     } else {
 	usage_and_die(argc, argv, "Unrecognised argument");
     }
@@ -130,37 +144,62 @@ int main(int argc, char* argv[]) {
     printf("  using TTs with %d entries at depths 3-%d\n", ttSize, maxTtDepth);
     doNewline = true;
   }
+  if(nThreads > 0) {
+    printf("  using %d worker threads\n", nThreads);
+    doNewline = true;
+  }
   if(doNewline) {
     printf("\n");
   }
 
   Perft::PerftStatsT stats;
 
-  if(maxTtDepth != 0) {
+  // When --threads argument is not specified then we run inline
+  if(nThreads == 0) {
+    if(maxTtDepth != 0) {
+      auto allStats = colorToMove == White ?
+	Perft::ttPerft<BasicBoardT, White>(board, doSplit, makeMoves, maxTtDepth, depthToGo, ttSize) :
+	Perft::ttPerft<BasicBoardT, Black>(board, doSplit, makeMoves, maxTtDepth, depthToGo, ttSize);
+      stats = allStats.first;
+      if(doSplit) {
+	printf("\n");
+      }
+      const auto& ttStats = allStats.second;
+      using Perft::MinTtDepth;
+      for(int i = MinTtDepth; i <= maxTtDepth; i++) {
+	u64 nodes = ttStats[i - MinTtDepth].first;
+	u64 hits = ttStats[i - MinTtDepth].second;
+	printf("Depth %d: %lu nodes, %lu TT hits - %.2f%% hit rate\n", i, nodes, hits, ((double)hits/(double)nodes)*100.0);
+      }
+      printf("\n");
+    } else if(doSplit) {
+      stats = colorToMove == White ?
+	Perft::splitPerft<BasicBoardT, White>(board, makeMoves, depthToGo) :
+	Perft::splitPerft<BasicBoardT, Black>(board, makeMoves, depthToGo);
+      printf("\n");
+    } else {
+      stats = colorToMove == White ?
+	Perft::perft<BasicBoardT, White>(board, makeMoves, depthToGo) :
+	Perft::perft<BasicBoardT, Black>(board, makeMoves, depthToGo);
+    }
+  } else {
+    // Multi-threaded  
     auto allStats = colorToMove == White ?
-      Perft::ttPerft<BasicBoardT, White>(board, doSplit, makeMoves, maxTtDepth, depthToGo, ttSize) :
-      Perft::ttPerft<BasicBoardT, Black>(board, doSplit, makeMoves, maxTtDepth, depthToGo, ttSize);
+      Perft::paraPerft<BasicBoardT, White>(board, doSplit, makeMoves, maxTtDepth, depthToGo, ttSize, nThreads) :
+      Perft::paraPerft<BasicBoardT, Black>(board, doSplit, makeMoves, maxTtDepth, depthToGo, ttSize, nThreads);
     stats = allStats.first;
     if(doSplit) {
       printf("\n");
     }
     const auto& ttStats = allStats.second;
     using Perft::MinTtDepth;
+    // TODO factor this out
     for(int i = MinTtDepth; i <= maxTtDepth; i++) {
       u64 nodes = ttStats[i - MinTtDepth].first;
       u64 hits = ttStats[i - MinTtDepth].second;
       printf("Depth %d: %lu nodes, %lu TT hits - %.2f%% hit rate\n", i, nodes, hits, ((double)hits/(double)nodes)*100.0);
     }
     printf("\n");
-  } else if(doSplit) {
-    stats = colorToMove == White ?
-      Perft::splitPerft<BasicBoardT, White>(board, makeMoves, depthToGo) :
-      Perft::splitPerft<BasicBoardT, Black>(board, makeMoves, depthToGo);
-   printf("\n");
-  } else {
-   stats = colorToMove == White ?
-     Perft::perft<BasicBoardT, White>(board, makeMoves, depthToGo) :
-     Perft::perft<BasicBoardT, Black>(board, makeMoves, depthToGo);
   }
 
   printf("perft(%d) stats:\n\n", depthToGo);
