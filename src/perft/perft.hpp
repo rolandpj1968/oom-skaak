@@ -432,10 +432,11 @@ namespace Chess {
     struct Depth2AccumulatorStateT {
       PerftStatsT& stats;
       const std::map<std::string, PerftStatsT>& depth2PosStats;
+      const bool doSplit;
       const int depth;
 
-      Depth2AccumulatorStateT(PerftStatsT& stats, const std::map<std::string, PerftStatsT>& depth2PosStats, const int depth) :
-	stats(stats), depth2PosStats(depth2PosStats), depth(depth) {}
+      Depth2AccumulatorStateT(PerftStatsT& stats, const std::map<std::string, PerftStatsT>& depth2PosStats, const bool doSplit, const int depth) :
+	stats(stats), depth2PosStats(depth2PosStats), doSplit(doSplit), depth(depth) {}
     };
     
     template <typename BoardT, ColorT Color>
@@ -449,14 +450,19 @@ namespace Chess {
 	if(state.depth == 1) {
 	  addAll(state.stats, state.depth2PosStats.at(Fen::toFenFast(board, Color, /*trimEp*/true)));
 	} else {
-	  Depth2AccumulatorStateT newState(state.stats, state.depth2PosStats, state.depth+1);
+	  PerftStatsT splitStats = {};
+	  Depth2AccumulatorStateT newState(splitStats, state.depth2PosStats, state.doSplit, state.depth+1);
 	  MakeMove::makeAllLegalMoves<const Depth2AccumulatorStateT&, Depth2AccumulatorPosHandlerT<BoardT, Color>, BoardT, Color>(newState, board);
+	  if(state.doSplit) {
+	    printf("  move %s-%s: ", SquareStr[moveInfo.from], SquareStr[moveInfo.to]);
+	    dumpStats(splitStats);
+	  }
+	  addAll(state.stats, splitStats);
 	}
       }
     };
 
     inline void paraPerftWorkerFn(int n, std::mutex& m, std::list<std::pair<std::string, MoveInfoT>>& depth2FensAndMoves, std::map<std::string, PerftStatsT>& depth2PosStats, std::vector<BoundedHashMap<std::string, PerftStatsT>>& tts, std::vector<std::pair<au64, au64>>& ttStats, const bool makeMoves, const int maxTtDepth, const int depthToGo) {
-      printf("Worker #%d starting...\n", n);
       int nFens = 0;
       // Finish when the list is empty
       while(true) {
@@ -466,7 +472,6 @@ namespace Chess {
 	{
 	  std::unique_lock<std::mutex> lock(m);
 	  if(depth2FensAndMoves.empty()) {
-	    printf("Worker #%d finished after %d FENs\n", n, nFens);
 	    return; // no more work
 	  }
 	  auto& fenAndMove = depth2FensAndMoves.front();
@@ -514,19 +519,16 @@ namespace Chess {
       // Mutex to lock all accesses to input list of depth2FensAndMoves and output map 
       std::mutex workerMutex;
       // Run worker threads to process the depth-2 positions in parallel
-      printf("Spawning %d workers...\n", nThreads);
       std::vector<std::thread> workers;
       for(int i = 0; i < nThreads; i++) {
 	workers.push_back(std::thread(paraPerftWorkerFn, i, std::ref(workerMutex), std::ref(depth2FensAndMoves), std::ref(depth2PosStats), std::ref(tts), std::ref(ttStats), makeMoves, maxTtDepth, depthToGo)); 
       }
-      printf("...waiting for %d workers...\n", nThreads);
       for(int i = 0; i < nThreads; i++) {
 	workers[i].join();
       }
-      printf("...and we're all done.\n");
 
       PerftStatsT stats = {};
-      Depth2AccumulatorStateT depth2AccumulatorState(stats, depth2PosStats, /*depth*/0);
+      Depth2AccumulatorStateT depth2AccumulatorState(stats, depth2PosStats, doSplit, /*depth*/0);
       MakeMove::makeAllLegalMoves<const Depth2AccumulatorStateT&, Depth2AccumulatorPosHandlerT<BoardT, Color>, BoardT, Color>(depth2AccumulatorState, board);
 
       // Copy the atomic u64's to non-atomic so we can return them
