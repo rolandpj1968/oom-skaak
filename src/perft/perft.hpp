@@ -368,23 +368,18 @@ namespace Chess {
     }
       
     template <typename BoardT, ColorT Color>
-    inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> ttPerft(const BoardT& board, const MoveInfoT moveInfo, std::vector<BoundedHashMap<std::string, PerftStatsT>>& tts, std::vector<std::pair<au64, au64>>& ttStats, const bool doSplit, const bool makeMoves, const int maxTtDepth, const int depthToGo) {
+    inline PerftStatsT ttPerft(const BoardT& board, const MoveInfoT moveInfo, std::vector<BoundedHashMap<std::string, PerftStatsT>>& tts, std::vector<std::pair<au64, au64>>& ttStats, const bool doSplit, const bool makeMoves, const int maxTtDepth, const int depth, const int depthToGo) {
       PerftStatsT stats = {};
-      const TtPerftStateT state(stats, tts, ttStats, doSplit, makeMoves, maxTtDepth, 0, depthToGo);
+      const TtPerftStateT state(stats, tts, ttStats, doSplit, makeMoves, maxTtDepth, depth, depthToGo);
 
       ttPerftImpl<BoardT, Color>(state, board, moveInfo);
-
-      // Copy the atomic u64's to non-atomic so we can return them
-      std::vector<std::pair<u64, u64>> ttStats2;
-      for(auto it = ttStats.begin(); it != ttStats.end(); ++it) {
-	ttStats2.push_back(std::make_pair(it->first.load(), it->second.load()));
-      }
 	
-      return std::make_pair(stats, ttStats2);
+      return stats;
     }
 
     template <typename BoardT, ColorT Color>
     inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> ttPerft(const BoardT& board, const bool doSplit, const bool makeMoves, const int maxTtDepth, const int depthToGo, const int ttSize) {
+
       // map: fen->stats for each depth
       std::vector<BoundedHashMap<std::string, PerftStatsT>> tts;
       for(int i = MinTtDepth; i <= maxTtDepth; i++) {
@@ -395,7 +390,15 @@ namespace Chess {
       const int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
       MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
 
-      return ttPerft<BoardT, Color>(board, dummyMoveInfo, tts, ttStats, doSplit, makeMoves, maxTtDepth, depthToGo);
+      PerftStatsT stats = ttPerft<BoardT, Color>(board, dummyMoveInfo, tts, ttStats, doSplit, makeMoves, maxTtDepth, /*depth*/0, depthToGo);
+
+      // Copy the atomic u64's to non-atomic so we can return them
+      std::vector<std::pair<u64, u64>> ttStats2;
+      for(auto it = ttStats.begin(); it != ttStats.end(); ++it) {
+	ttStats2.push_back(std::make_pair(it->first.load(), it->second.load()));
+      }
+      
+      return std::make_pair(stats, ttStats2);
     }
     
     //
@@ -452,7 +455,7 @@ namespace Chess {
       }
     };
 
-    inline void paraPerftWorkerFn(int n, std::mutex& m, std::list<std::pair<std::string, MoveInfoT>>& depth2FensAndMoves, std::map<std::string, PerftStatsT>& depth2PosStats, const bool makeMoves, const int maxTtDepth, const int depthToGo) {
+    inline void paraPerftWorkerFn(int n, std::mutex& m, std::list<std::pair<std::string, MoveInfoT>>& depth2FensAndMoves, std::map<std::string, PerftStatsT>& depth2PosStats, std::vector<BoundedHashMap<std::string, PerftStatsT>>& tts, std::vector<std::pair<au64, au64>>& ttStats, const bool makeMoves, const int maxTtDepth, const int depthToGo) {
       printf("Worker #%d starting...\n", n);
       int nFens = 0;
       // Finish when the list is empty
@@ -477,13 +480,10 @@ namespace Chess {
 	auto boardAndColor = Fen::parseFen(fen);
 	const BasicBoardT& board = boardAndColor.first;
 	const ColorT colorToMove = boardAndColor.second;
-	PerftStatsT stats = {};
-	const PerftStateT state(stats, makeMoves, 0, depthToGo-2);
-	if(colorToMove == White) {
-	  perftImpl<BasicBoardT, White>(state, board, moveInfo);
-	} else {
-	  perftImpl<BasicBoardT, Black>(state, board, moveInfo);
-	}
+	
+	PerftStatsT stats = colorToMove == White ?
+	  ttPerft<BasicBoardT, White>(board, moveInfo, tts, ttStats, /*doSplit*/false, makeMoves, maxTtDepth, /*depth*/2, depthToGo-2) :
+	  ttPerft<BasicBoardT, Black>(board, moveInfo, tts, ttStats, /*doSplit*/false, makeMoves, maxTtDepth, /*depth*/2, depthToGo-2);
 
 	// Record the perft results
 	{
@@ -494,7 +494,7 @@ namespace Chess {
     }
 
     template <typename BoardT, ColorT Color>
-    inline std::pair<PerftStatsT, std::vector<std::pair<au64, au64>>> paraPerft(const BoardT& board, const bool doSplit, const bool makeMoves, const int maxTtDepth, const int depthToGo, const int ttSize, const int nThreads) {
+    inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> paraPerft(const BoardT& board, const bool doSplit, const bool makeMoves, const int maxTtDepth, const int depthToGo, const int ttSize, const int nThreads) {
       // Collect all depth-2 positions - set of FEN's
       std::list<std::pair<std::string, MoveInfoT>> depth2FensAndMoves;
       const Depth2CollectorStateT depth2CollectorState(depth2FensAndMoves, /*depth*/0);
@@ -502,13 +502,22 @@ namespace Chess {
 
       // Perft stats for each depth-2 position
       std::map<std::string, PerftStatsT> depth2PosStats;
+      
+      // TT map: fen->stats for each depth
+      std::vector<BoundedHashMap<std::string, PerftStatsT>> tts;
+      for(int i = MinTtDepth; i <= maxTtDepth; i++) {
+	tts.push_back(BoundedHashMap<std::string, PerftStatsT>(ttSize));
+      }
+      // TT usage stats
+      std::vector<std::pair<au64, au64>> ttStats(maxTtDepth == 0 ? 0 : (maxTtDepth-MinTtDepth+1));
+      
       // Mutex to lock all accesses to input list of depth2FensAndMoves and output map 
       std::mutex workerMutex;
       // Run worker threads to process the depth-2 positions in parallel
       printf("Spawning %d workers...\n", nThreads);
       std::vector<std::thread> workers;
       for(int i = 0; i < nThreads; i++) {
-	workers.push_back(std::thread(paraPerftWorkerFn, i, std::ref(workerMutex), std::ref(depth2FensAndMoves), std::ref(depth2PosStats), makeMoves, maxTtDepth, depthToGo)); 
+	workers.push_back(std::thread(paraPerftWorkerFn, i, std::ref(workerMutex), std::ref(depth2FensAndMoves), std::ref(depth2PosStats), std::ref(tts), std::ref(ttStats), makeMoves, maxTtDepth, depthToGo)); 
       }
       printf("...waiting for %d workers...\n", nThreads);
       for(int i = 0; i < nThreads; i++) {
@@ -519,8 +528,14 @@ namespace Chess {
       PerftStatsT stats = {};
       Depth2AccumulatorStateT depth2AccumulatorState(stats, depth2PosStats, /*depth*/0);
       MakeMove::makeAllLegalMoves<const Depth2AccumulatorStateT&, Depth2AccumulatorPosHandlerT<BoardT, Color>, BoardT, Color>(depth2AccumulatorState, board);
+
+      // Copy the atomic u64's to non-atomic so we can return them
+      std::vector<std::pair<u64, u64>> ttStats2;
+      for(auto it = ttStats.begin(); it != ttStats.end(); ++it) {
+	ttStats2.push_back(std::make_pair(it->first.load(), it->second.load()));
+      }
       
-      return std::pair<PerftStatsT, std::vector<std::pair<au64, au64>>>(stats, std::vector<std::pair<au64, au64>>());
+      return std::make_pair(stats, ttStats2);
     }
 
     
