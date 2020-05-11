@@ -17,8 +17,8 @@
 #include <thread>
 #include <vector>
 
+// For TT stats in multi-threaded mode
 typedef std::atomic<u64> au64;
-// typedef u64 au64; // Grrr, can't copy atomics so vectors of them suck
 
 namespace Chess {
   
@@ -363,25 +363,16 @@ namespace Chess {
 	ttPerftImplFull<BoardT, Color>(state, board);
       } else {
 	PerftStateT perftState(state.stats, state.makeMoves, state.depth, state.depthToGo);
-	perftImplFull<BoardT, Color>(perftState, board);
+	perftImpl<BoardT, Color>(perftState, board, moveInfo);
       }
     }
       
     template <typename BoardT, ColorT Color>
-    inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> ttPerft(const BoardT& board, const bool doSplit, const bool makeMoves, const int maxTtDepth, const int depthToGo, const int ttSize) {
+    inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> ttPerft(const BoardT& board, const MoveInfoT moveInfo, std::vector<BoundedHashMap<std::string, PerftStatsT>>& tts, std::vector<std::pair<au64, au64>>& ttStats, const bool doSplit, const bool makeMoves, const int maxTtDepth, const int depthToGo) {
       PerftStatsT stats = {};
-      // map: fen->stats for each depth
-      std::vector<BoundedHashMap<std::string, PerftStatsT>> tts;
-      for(int i = MinTtDepth; i <= maxTtDepth; i++) {
-	tts.push_back(BoundedHashMap<std::string, PerftStatsT>(ttSize));
-      }
-      std::vector<std::pair<au64, au64>> ttStats(maxTtDepth-MinTtDepth+1);
-      
-      const int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
-      MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
       const TtPerftStateT state(stats, tts, ttStats, doSplit, makeMoves, maxTtDepth, 0, depthToGo);
 
-      ttPerftImpl<BoardT, Color>(state, board, dummyMoveInfo);
+      ttPerftImpl<BoardT, Color>(state, board, moveInfo);
 
       // Copy the atomic u64's to non-atomic so we can return them
       std::vector<std::pair<u64, u64>> ttStats2;
@@ -392,6 +383,21 @@ namespace Chess {
       return std::make_pair(stats, ttStats2);
     }
 
+    template <typename BoardT, ColorT Color>
+    inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> ttPerft(const BoardT& board, const bool doSplit, const bool makeMoves, const int maxTtDepth, const int depthToGo, const int ttSize) {
+      // map: fen->stats for each depth
+      std::vector<BoundedHashMap<std::string, PerftStatsT>> tts;
+      for(int i = MinTtDepth; i <= maxTtDepth; i++) {
+	tts.push_back(BoundedHashMap<std::string, PerftStatsT>(ttSize));
+      }
+      std::vector<std::pair<au64, au64>> ttStats(maxTtDepth-MinTtDepth+1);
+      
+      const int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
+      MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
+
+      return ttPerft<BoardT, Color>(board, dummyMoveInfo, tts, ttStats, doSplit, makeMoves, maxTtDepth, depthToGo);
+    }
+    
     //
     // Parallel perft
     //
