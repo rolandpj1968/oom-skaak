@@ -288,7 +288,44 @@ namespace Chess {
       // Pawn en-passant capture right
       handlePawnEpCapture<StateT, PosHandlerT, BoardT, Color, PawnAttackRightTo2FromFn<Color>>(state, board, pawnMoves.epCaptures.epRightCaptureBb, directChecksBb, rightDiscoveriesBb, isRightEpDiscovery);
     }
+
+    template <ColorT> BitBoardT pawnsLeftAttacksTo2FromBb(const BitBoardT leftAttacksBb);
+    template <ColorT> BitBoardT pawnsRightAttacksTo2FromBb(const BitBoardT rightAttacksBb);
+    template <ColorT> BitBoardT pawnsPushOneTo2FromBb(const BitBoardT pushesOneBb);
+    template <ColorT> BitBoardT pawnsPushTwoTo2FromBb(const BitBoardT pushesTwoBb);
+
+    template <> inline BitBoardT pawnsLeftAttacksTo2FromBb<White>(const BitBoardT leftAttacksBb) {
+      return leftAttacksBb >> 7;
+    }
     
+    template <> inline BitBoardT pawnsRightAttacksTo2FromBb<White>(const BitBoardT rightAttacksBb) {
+      return rightAttacksBb >> 9;
+    }
+    
+    template <> inline BitBoardT pawnsPushOneTo2FromBb<White>(const BitBoardT pushesOneBb) {
+      return pushesOneBb >> 8;
+    }
+    
+    template <> inline BitBoardT pawnsPushTwoTo2FromBb<White>(const BitBoardT pushesTwoBb) {
+      return pushesTwoBb >> 16;
+    }
+
+    template <> inline BitBoardT pawnsLeftAttacksTo2FromBb<Black>(const BitBoardT leftAttacksBb) {
+      return leftAttacksBb << 9;
+    }
+    
+    template <> inline BitBoardT pawnsRightAttacksTo2FromBb<Black>(const BitBoardT rightAttacksBb) {
+      return rightAttacksBb << 7;
+    }
+    
+    template <> inline BitBoardT pawnsPushOneTo2FromBb<Black>(const BitBoardT pushesOneBb) {
+      return pushesOneBb << 8;
+    }
+    
+    template <> inline BitBoardT pawnsPushTwoTo2FromBb<Black>(const BitBoardT pushesTwoBb) {
+      return pushesTwoBb << 16;
+    }
+
     template <typename StateT, typename CountHandlerT, typename BoardT, ColorT Color>
     inline void handlePawnNonPromoMoves(const CountTag&, StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const MoveGen::PawnPushesAndCapturesT& pawnMoves, const BitBoardT directChecksBb, const BitBoardT pushDiscoveriesBb, const BitBoardT leftDiscoveriesBb, const BitBoardT rightDiscoveriesBb, const bool isLeftEpDiscovery, const bool isRightEpDiscovery) {
       const BitBoardT pawnPushesBb = (pawnMoves.pushesOneBb | pawnMoves.pushesTwoBb) & ~LastRankBbT<Color>::LastRankBb;
@@ -308,7 +345,78 @@ namespace Chess {
       const int castles = 0;
       const int promos = 0;
 
-      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos);
+      // Push checks
+      
+      const int pawnPushesDirectCheckCount = Bits::count(pawnPushesBb & directChecksBb);
+
+      const BitBoardT pawnPushesOneFromBb = pawnsPushOneTo2FromBb<Color>(pawnMoves.pushesOneBb);
+      const int pawnPushesOneDiscoveriesCount = Bits::count(pawnPushesOneFromBb & pushDiscoveriesBb);
+
+      const BitBoardT pawnPushesTwoFromBb = pawnsPushTwoTo2FromBb<Color>(pawnMoves.pushesTwoBb);
+      const int pawnPushesTwoDiscoveriesCount = Bits::count(pawnPushesTwoFromBb & pushDiscoveriesBb);
+
+      const int pawnPushesDiscoveryChecksCount = pawnPushesOneDiscoveriesCount + pawnPushesTwoDiscoveriesCount;
+      const int pawnPushesChecksCount = pawnPushesDirectCheckCount + pawnPushesDiscoveryChecksCount; // pawn push is never double check
+
+      // Left-capture checks
+      
+      const BitBoardT pawnCapturesLeftDirectChecksBb = pawnCapturesLeftBb & directChecksBb;
+      const int pawnCapturesLeftDirectChecksCount = Bits::count(pawnCapturesLeftDirectChecksBb);
+
+      const BitBoardT pawnCapturesLeftFromBb = pawnsLeftAttacksTo2FromBb<Color>(pawnCapturesLeftBb);
+      const int pawnCapturesLeftDiscoveriesCount = Bits::count(pawnCapturesLeftFromBb & leftDiscoveriesBb);
+      
+      const int pawnCapturesLeftDoubleChecksFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnCapturesLeftDirectChecksBb) & leftDiscoveriesBb;
+      const int pawnCapturesLeftDoubleChecksCount = Bits::count(pawnCapturesLeftDoubleChecksFromBb);
+
+      const int pawnCapturesLeftDiscoveredChecksCount = pawnCapturesLeftDiscoveriesCount - pawnCapturesLeftDoubleChecksCount;
+      const int pawnCapturesLeftChecksCount = pawnCapturesLeftDirectChecksCount + pawnCapturesLeftDiscoveredChecksCount;
+
+      // Right-capture checks
+      
+      const BitBoardT pawnCapturesRightDirectChecksBb = pawnCapturesRightBb & directChecksBb;
+      const int pawnCapturesRightDirectChecksCount = Bits::count(pawnCapturesRightDirectChecksBb);
+
+      const BitBoardT pawnCapturesRightFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnCapturesRightBb);
+      const int pawnCapturesRightDiscoveriesCount = Bits::count(pawnCapturesRightFromBb & rightDiscoveriesBb);
+      
+      const int pawnCapturesRightDoubleChecksFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnCapturesRightDirectChecksBb) & rightDiscoveriesBb;
+      const int pawnCapturesRightDoubleChecksCount = Bits::count(pawnCapturesRightDoubleChecksFromBb);
+
+      const int pawnCapturesRightDiscoveredChecksCount = pawnCapturesRightDiscoveriesCount - pawnCapturesRightDoubleChecksCount;
+      const int pawnCapturesRightChecksCount = pawnCapturesRightDirectChecksCount + pawnCapturesRightDiscoveredChecksCount;
+      
+      // EP check left
+
+      const int epLeftDirectChecksCount = (pawnMoves.epCaptures.epLeftCaptureBb & directChecksBb) == BbNone ? 0 : 1;
+
+      const BitBoardT epLeftCaptureFromBb = pawnsLeftAttacksTo2FromBb<Color>(pawnMoves.epCaptures.epLeftCaptureBb);
+      const int epLeftDiscoveriesCount = (isLeftEpDiscovery || (epLeftCaptureFromBb & leftDiscoveriesBb) != BbNone) ? 1 : 0;
+
+      const int epLeftDoubleChecksCount = epLeftDirectChecksCount & epLeftDiscoveriesCount;
+
+      const int epLeftDiscoveredChecksCount = epLeftDiscoveriesCount - epLeftDoubleChecksCount;
+      const int epLeftChecksCount = epLeftDirectChecksCount + epLeftDiscoveredChecksCount;
+      
+      // EP check right
+
+      const int epRightDirectChecksCount = (pawnMoves.epCaptures.epRightCaptureBb & directChecksBb) == BbNone ? 0 : 1;
+
+      const BitBoardT epRightCaptureFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnMoves.epCaptures.epRightCaptureBb);
+      const int epRightDiscoveriesCount = (isRightEpDiscovery || (epRightCaptureFromBb & rightDiscoveriesBb) != BbNone) ? 1 : 0;
+
+      const int epRightDoubleChecksCount = epRightDirectChecksCount & epRightDiscoveriesCount;
+
+      const int epRightDiscoveredChecksCount = epRightDiscoveriesCount - epRightDoubleChecksCount;
+      const int epRightChecksCount = epRightDirectChecksCount + epRightDiscoveredChecksCount;
+      
+      // And finally the check totals
+      
+      const int checks = pawnPushesChecksCount + pawnCapturesLeftChecksCount + pawnCapturesRightChecksCount + epLeftChecksCount + epRightChecksCount;
+      const int discoverychecks = pawnPushesDiscoveryChecksCount + pawnCapturesLeftDiscoveredChecksCount + pawnCapturesRightDiscoveredChecksCount + epLeftDiscoveredChecksCount + epRightDiscoveredChecksCount;
+      const int doublechecks = pawnCapturesLeftDoubleChecksCount + pawnCapturesRightDoubleChecksCount + epLeftDoubleChecksCount + epRightDoubleChecksCount;
+      
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks);
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color>
@@ -340,7 +448,11 @@ namespace Chess {
       const int castles = 0;
       const int promos = nodes;
       
-      CountHandlerT::handleCount(state, nodes*4/*qnrb*/, captures*4/*qnrb*/, eps, castles, promos*4/*qnrb*/);
+      const int checks = 0; // TODO!!!
+      const int discoverychecks = 0; // TODO!!!
+      const int doublechecks = 0; // TODO!!!
+      
+      CountHandlerT::handleCount(state, nodes*4/*qnrb*/, captures*4/*qnrb*/, eps, castles, promos*4/*qnrb*/, checks, discoverychecks, doublechecks);
     }
     
     //
@@ -442,6 +554,8 @@ namespace Chess {
     // Count piece moves and send them to CountHandlerT
     template <typename StateT, typename CountHandlerT, typename BoardT, ColorT Color, PieceT Piece>
     inline void handlePieceMoves(const CountTag&, StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb) {
+      typedef typename BoardT::ColorStateT ColorStateT;
+      
       const int nodes = Bits::count(movesBb);
 
       const BitBoardT capturesBb = movesBb & allYourPiecesBb;
@@ -451,7 +565,17 @@ namespace Chess {
       const int castles = 0;
       const int promos = 0;
 
-      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos);
+      const int directchecks = Bits::count(movesBb & directChecksBb);
+      
+      const ColorStateT& myState = board.state[(size_t)Color];
+      const SquareT from = myState.basic.pieceSquares[Piece];
+      const int discoveries = ((bbForSquare(from) & discoveriesBb) == BbNone) ? 0 : nodes;
+
+      const int checks = discoveries == 0 ? directchecks : discoveries;
+      const int doublechecks = discoveries == 0 ? 0 : directchecks;
+      const int discoverychecks = discoveries - doublechecks;
+
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks);
     }
     
     //
@@ -558,7 +682,19 @@ namespace Chess {
       const int castles = 0;
       const int promos = 0;
 
-      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos);
+      typedef typename BoardT::ColorStateT ColorStateT;
+      const ColorStateT& myState = board.state[(size_t)Color];
+      
+      const SquareT from = myState.basic.pieceSquares[TheKing];
+      const BitBoardT fromBb = bbForSquare(from);
+      
+      const BitBoardT yourKingRaysBb = MoveGen::BishopRays[yourKingSq] | MoveGen::RookRays[yourKingSq];
+      
+      const int discoverychecks = (fromBb & discoveriesBb) == BbNone ? 0 : Bits::count(movesBb & ~yourKingRaysBb);
+      const int checks = discoverychecks;
+      const int doublechecks = 0;
+      
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks);
     }
     
     //
@@ -646,7 +782,15 @@ namespace Chess {
       const int castles = 0;
       const int promos = 0;
 
-      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos);
+      const int directchecks = Bits::count(movesBb & directChecksBb);
+      
+      const int discoveries = ((bbForSquare(from) & discoveriesBb) == BbNone) ? 0 : nodes;
+
+      const int checks = discoveries == 0 ? directchecks : discoveries;
+      const int doublechecks = discoveries == 0 ? 0 : directchecks;
+      const int discoverychecks = discoveries - doublechecks;
+      
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks);
     }
     
     //
@@ -671,8 +815,11 @@ namespace Chess {
       const int eps = 0;
       const int castles = 1;
       const int promos = 0;
+      const int checks = (int)isDiscoveredCheck;
+      const int discoverychecks = checks;
+      const int doublechecks = 0;
       
-      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos);
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks);
     }
     
     template <typename BoardT>
