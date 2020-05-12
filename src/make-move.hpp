@@ -388,10 +388,11 @@ namespace Chess {
       
       // EP check left
 
-      const int epLeftDirectChecksCount = (pawnMoves.epCaptures.epLeftCaptureBb & directChecksBb) == BbNone ? 0 : 1;
+      const BitBoardT epLeftCaptureBb = pawnMoves.epCaptures.epLeftCaptureBb;
+      const int epLeftDirectChecksCount = (epLeftCaptureBb & directChecksBb) == BbNone ? 0 : 1;
 
-      const BitBoardT epLeftCaptureFromBb = pawnsLeftAttacksTo2FromBb<Color>(pawnMoves.epCaptures.epLeftCaptureBb);
-      const int epLeftDiscoveriesCount = (isLeftEpDiscovery || (epLeftCaptureFromBb & leftDiscoveriesBb) != BbNone) ? 1 : 0;
+      const BitBoardT epLeftCaptureFromBb = pawnsLeftAttacksTo2FromBb<Color>(epLeftCaptureBb);
+      const int epLeftDiscoveriesCount = (int)((epLeftCaptureBb != BbNone) && (isLeftEpDiscovery || (epLeftCaptureFromBb & leftDiscoveriesBb) != BbNone));
 
       const int epLeftDoubleChecksCount = epLeftDirectChecksCount & epLeftDiscoveriesCount;
 
@@ -400,10 +401,11 @@ namespace Chess {
       
       // EP check right
 
-      const int epRightDirectChecksCount = (pawnMoves.epCaptures.epRightCaptureBb & directChecksBb) == BbNone ? 0 : 1;
+      const BitBoardT epRightCaptureBb = pawnMoves.epCaptures.epRightCaptureBb;
+      const int epRightDirectChecksCount = (epRightCaptureBb & directChecksBb) == BbNone ? 0 : 1;
 
-      const BitBoardT epRightCaptureFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnMoves.epCaptures.epRightCaptureBb);
-      const int epRightDiscoveriesCount = (isRightEpDiscovery || (epRightCaptureFromBb & rightDiscoveriesBb) != BbNone) ? 1 : 0;
+      const BitBoardT epRightCaptureFromBb = pawnsRightAttacksTo2FromBb<Color>(epRightCaptureBb);
+      const int epRightDiscoveriesCount = (int)((epRightCaptureBb != BbNone) && (isRightEpDiscovery || (epRightCaptureFromBb & rightDiscoveriesBb) != BbNone));
 
       const int epRightDoubleChecksCount = epRightDirectChecksCount & epRightDiscoveriesCount;
 
@@ -913,7 +915,7 @@ namespace Chess {
 	// Evaluate moves
 
 	// Pawns
-	handlePawnNonPromoMoves<StateT, PosOrCountHandlerT, BoardT, Color>(PosOrCountTag(), state, board, yourPieceMap, legalMoves.pawnMoves, legalMoves.directChecks.pawnChecksBb, legalMoves.discoveredChecks.pawnPushDiscoveryMasksBb, legalMoves.discoveredChecks.pawnLeftDiscoveryMasksBb, legalMoves.discoveredChecks.pawnRightDiscoveryMasksBb, legalMoves.discoveredChecks.isLeftEpDiscovery, legalMoves.discoveredChecks.isRightEpDiscovery/*, BbNone, BbNone*/);
+	handlePawnNonPromoMoves<StateT, PosOrCountHandlerT, BoardT, Color>(PosOrCountTag(), state, board, yourPieceMap, legalMoves.pawnMoves, legalMoves.directChecks.pawnChecksBb, legalMoves.discoveredChecks.pawnPushDiscoveryMasksBb, legalMoves.discoveredChecks.pawnLeftDiscoveryMasksBb, legalMoves.discoveredChecks.pawnRightDiscoveryMasksBb, legalMoves.discoveredChecks.isLeftEpDiscovery, legalMoves.discoveredChecks.isRightEpDiscovery);
 
 	const BitBoardT allPawnPromoMovesBb = (legalMoves.pawnMoves.pushesOneBb | legalMoves.pawnMoves.capturesLeftBb | legalMoves.pawnMoves.capturesRightBb) & LastRankBbT<Color>::LastRankBb;
 	if(allPawnPromoMovesBb != BbNone) {
