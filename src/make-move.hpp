@@ -366,7 +366,7 @@ namespace Chess {
       const BitBoardT pawnCapturesLeftFromBb = pawnsLeftAttacksTo2FromBb<Color>(pawnCapturesLeftBb);
       const int pawnCapturesLeftDiscoveriesCount = Bits::count(pawnCapturesLeftFromBb & leftDiscoveriesBb);
       
-      const int pawnCapturesLeftDoubleChecksFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnCapturesLeftDirectChecksBb) & leftDiscoveriesBb;
+      const BitBoardT pawnCapturesLeftDoubleChecksFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnCapturesLeftDirectChecksBb) & leftDiscoveriesBb;
       const int pawnCapturesLeftDoubleChecksCount = Bits::count(pawnCapturesLeftDoubleChecksFromBb);
 
       const int pawnCapturesLeftDiscoveredChecksCount = pawnCapturesLeftDiscoveriesCount - pawnCapturesLeftDoubleChecksCount;
@@ -380,7 +380,7 @@ namespace Chess {
       const BitBoardT pawnCapturesRightFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnCapturesRightBb);
       const int pawnCapturesRightDiscoveriesCount = Bits::count(pawnCapturesRightFromBb & rightDiscoveriesBb);
       
-      const int pawnCapturesRightDoubleChecksFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnCapturesRightDirectChecksBb) & rightDiscoveriesBb;
+      const BitBoardT pawnCapturesRightDoubleChecksFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnCapturesRightDirectChecksBb) & rightDiscoveriesBb;
       const int pawnCapturesRightDoubleChecksCount = Bits::count(pawnCapturesRightDoubleChecksFromBb);
 
       const int pawnCapturesRightDiscoveredChecksCount = pawnCapturesRightDiscoveriesCount - pawnCapturesRightDoubleChecksCount;
