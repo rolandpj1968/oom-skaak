@@ -270,6 +270,8 @@ namespace Chess {
 
   struct MoveInfoT {
     MoveTypeT moveType;
+    // For promos, this is the promo piece
+    PieceTypeT pieceType;
     // For castling this is the king 'from' square.
     SquareT from;
     // For castling this is the king 'to' square;
@@ -281,8 +283,8 @@ namespace Chess {
     // True iff this is a pawn promotion
     bool isPromo;
 
-    MoveInfoT(const MoveTypeT moveType, const SquareT from, const SquareT to, const bool isDirectCheck, const bool isDiscoveredCheck, const bool isPromo = false):
-      moveType(moveType), from(from), to(to), isDirectCheck(isDirectCheck), isDiscoveredCheck(isDiscoveredCheck), isPromo(isPromo) {}
+    MoveInfoT(const MoveTypeT moveType, const PieceTypeT pieceType, const SquareT from, const SquareT to, const bool isDirectCheck, const bool isDiscoveredCheck, const bool isPromo = false):
+      moveType(moveType), pieceType(pieceType), from(from), to(to), isDirectCheck(isDirectCheck), isDiscoveredCheck(isDiscoveredCheck), isPromo(isPromo) {}
   };
 
   enum SliderDirectionT {

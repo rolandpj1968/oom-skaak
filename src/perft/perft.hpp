@@ -37,6 +37,10 @@ namespace Chess {
       u64 discoverychecks;
       u64 doublechecks;
       u64 checkmates;
+
+      u64 pawndirectchecks;
+      u64 kingmovefromchecks;
+      u64 threekingmovesfromchecks;
     };
 
     inline void addAll(PerftStatsT& to, const PerftStatsT& from) {
@@ -96,6 +100,21 @@ namespace Chess {
       }
     };
 
+    inline bool hasLegalPromoPieceMoves(const BasicColorStateImplT& colorState, const typename MoveGen::LegalMovesImplType<BasicBoardT>::LegalMovesT& legalMoves) {
+      return false; // no promo pieces
+    }
+    
+    inline bool hasLegalPromoPieceMoves(const FullColorStateImplT& colorState, const typename MoveGen::LegalMovesImplType<FullBoardT>::LegalMovesT& legalMoves) {
+      BitBoardT activePromos = (BitBoardT)colorState.promos.activePromos;
+      while(activePromos) {
+	const int promoIndex = Bits::popLsb(activePromos);
+	if(legalMoves.promoPieceMoves[promoIndex] != BbNone) {
+	  return true;
+	}
+      }
+      return false;
+    }
+    
     template <typename BoardT, ColorT Color>
     inline bool hasLegalMoves(const BoardT& board) {
       typedef typename MoveGen::LegalMovesImplType<BoardT>::LegalMovesT LegalMovesT;
@@ -104,7 +123,7 @@ namespace Chess {
       const LegalMovesT legalMoves = MoveGen::genLegalMoves<BoardT, Color>(board);
 
       // Are there any?
-      const BitBoardT anyLegalMovesBb =
+      const BitBoardT legalNonPromoMovesBb =
 	  
 	legalMoves.pawnMoves.pushesOneBb | legalMoves.pawnMoves.pushesTwoBb |
 	legalMoves.pawnMoves.capturesLeftBb | legalMoves.pawnMoves.capturesRightBb |
@@ -125,11 +144,19 @@ namespace Chess {
 
 	(BitBoardT)legalMoves.canCastleFlags;
 
-      // TODO - promos TODO TODO TODO!!!
-	
-      return anyLegalMovesBb != BbNone;
+      return legalNonPromoMovesBb != BbNone || hasLegalPromoPieceMoves(board.state[(size_t)Color], legalMoves);
     }
 
+    template <typename BoardT, ColorT Color>
+    inline int nLegalKingMoves(const BoardT& board) {
+      typedef typename MoveGen::LegalMovesImplType<BoardT>::LegalMovesT LegalMovesT;
+      
+      // Generate (legal) moves
+      const LegalMovesT legalMoves = MoveGen::genLegalMoves<BoardT, Color>(board);
+
+      return Bits::count(legalMoves.pieceMoves[TheKing]);
+    }
+    
     template <typename BoardT, ColorT Color>
     inline void perft0Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
       stats.nodes++;
@@ -153,6 +180,9 @@ namespace Chess {
 
       if(moveInfo.isDirectCheck) {
 	stats.checks++;
+	if(moveInfo.pieceType == Pawn) {
+	  stats.pawndirectchecks++;
+	}
       }
       if(moveInfo.isDiscoveredCheck) {
 	// Double checks are counted independently of discoveries
@@ -171,6 +201,14 @@ namespace Chess {
 	  // It's checkmate if there are no legal moves
 	  if(!hasLegalMoves<BoardT, Color>(board)) {
 	    stats.checkmates++;
+	  } else {
+	    const int nKingMoves = nLegalKingMoves<BoardT, Color>(board);
+	    if(nKingMoves != 0) {
+	      stats.kingmovefromchecks++;
+	      if(nKingMoves >= 3) {
+		stats.threekingmovesfromchecks++;
+	      }
+	    }
 	  }
 	}
       }
@@ -207,7 +245,7 @@ namespace Chess {
     inline PerftStatsT perft(const BoardT& board, const bool makeMoves, const int depthToGo) {
       PerftStatsT stats = {};
       const int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
-      MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
+      MoveInfoT dummyMoveInfo(PushMove, NoPieceType, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
       const PerftStateT state(stats, makeMoves, 0, depthToGo);
 
       perftImpl<BoardT, Color>(state, board, dummyMoveInfo);
@@ -268,7 +306,7 @@ namespace Chess {
     inline PerftStatsT splitPerft(const BoardT& board, const bool makeMoves, const int depthToGo) {
       PerftStatsT stats = {};
       const int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
-      MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
+      MoveInfoT dummyMoveInfo(PushMove, NoPieceType, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
       const PerftStateT state(stats, makeMoves, 0, depthToGo);
 
       splitPerftImpl<BoardT, Color>(state, board, dummyMoveInfo);
@@ -391,7 +429,7 @@ namespace Chess {
       std::vector<std::pair<au64, au64>> ttStats(maxTtDepth-MinTtDepth+1);
       
       const int nChecks = BoardUtils::getNChecks<BoardT, Color>(board);
-      MoveInfoT dummyMoveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
+      MoveInfoT dummyMoveInfo(PushMove, NoPieceType, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/(nChecks > 0), /*isDiscoveredCheck*/(nChecks > 1));
 
       PerftStatsT stats = ttPerft<BoardT, Color>(board, dummyMoveInfo, tts, ttStats, doSplit, makeMoves, maxTtDepth, /*depth*/0, depthToGo);
 
@@ -471,7 +509,7 @@ namespace Chess {
       while(true) {
 	// Get a depth-2 FEN to calculate
 	std::string fen;
-	MoveInfoT moveInfo(PushMove, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/false, /*isDiscoveredCheck*/false); // not used
+	MoveInfoT moveInfo(PushMove, NoPieceType, /*from*/InvalidSquare, /*to*/InvalidSquare, /*isDirectCheck*/false, /*isDiscoveredCheck*/false); // not used
 	{
 	  std::unique_lock<std::mutex> lock(m);
 	  if(depth2FensAndMoves.empty()) {

@@ -11,6 +11,7 @@ using namespace Chess;
 void Perft::dumpStats(const Perft::PerftStatsT& stats) {
   printf("nodes = %lu, captures = %lu, eps = %lu, castles = %lu, promos = %lu, checks = %lu, discoveries = %lu, doublechecks = %lu, checkmates = %lu\n", stats.nodes, stats.captures, stats.eps, stats.castles, stats.promos, stats.checks, stats.discoverychecks, stats.doublechecks, stats.checkmates);
   //printf("depth-0-with-eps = %lu, epdiscoveries = %lu, ephorizdiscoveries = %lu, epdiagfromdiscoveries = %lu, epdiagcapturediscoveries = %lu\n", stats.nposwitheps, stats.epdiscoveries, stats.ephorizdiscoveries, stats.epdiagfromdiscoveries, stats.epdiagcapturediscoveries);
+  printf("pawn-direct-checks = %lu, king-moves-from-checks = %lu, 3-king-moves-from-checks = %lu\n", stats.pawndirectchecks, stats.kingmovefromchecks, stats.threekingmovesfromchecks);
 }
 
 static void do_special_and_die(int depthToGo) {

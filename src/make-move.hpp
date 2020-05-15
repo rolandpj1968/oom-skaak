@@ -60,7 +60,7 @@ namespace Chess {
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
 	
-	ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(MoveType, from, to, isDirectCheck, isDiscoveredCheck));
+	ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(MoveType, Pawn, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
 
@@ -133,19 +133,19 @@ namespace Chess {
 	
 	const BoardT queenPromoBoard = PawnPromoMoveFn::fn(board, yourPieceMap, from, to, PromoQueen);
 	const bool isQueenCheck = isOrthogCheck || isDiagCheck;
-	ReversePosHandlerT::handlePos(state, queenPromoBoard, MoveInfoT(MoveType, from, to, isQueenCheck, isDiscoveredCheck, /*isPromo*/true));
+	ReversePosHandlerT::handlePos(state, queenPromoBoard, MoveInfoT(MoveType, Queen, from, to, isQueenCheck, isDiscoveredCheck, /*isPromo*/true));
 	
 	const BoardT knightPromoBoard = PawnPromoMoveFn::fn(board, yourPieceMap, from, to, PromoKnight);
 	const bool isKnightCheck = (MoveGen::KnightAttacks[yourKingSq] & toBb) != BbNone;
-	ReversePosHandlerT::handlePos(state, knightPromoBoard, MoveInfoT(MoveType, from, to, isKnightCheck, isDiscoveredCheck, /*isPromo*/true));
+	ReversePosHandlerT::handlePos(state, knightPromoBoard, MoveInfoT(MoveType, Knight, from, to, isKnightCheck, isDiscoveredCheck, /*isPromo*/true));
 	
 	const BoardT rookPromoBoard = PawnPromoMoveFn::fn(board, yourPieceMap, from, to, PromoRook);
 	const bool isRookCheck = isOrthogCheck;
-	ReversePosHandlerT::handlePos(state, rookPromoBoard, MoveInfoT(MoveType, from, to, isRookCheck, isDiscoveredCheck, /*isPromo*/true));
+	ReversePosHandlerT::handlePos(state, rookPromoBoard, MoveInfoT(MoveType, Rook, from, to, isRookCheck, isDiscoveredCheck, /*isPromo*/true));
 	
 	const BoardT bishopPromoBoard = PawnPromoMoveFn::fn(board, yourPieceMap, from, to, PromoBishop);
 	const bool isBishopCheck = isDiagCheck;
-	ReversePosHandlerT::handlePos(state, bishopPromoBoard, MoveInfoT(MoveType, from, to, isBishopCheck, isDiscoveredCheck, /*isPromo*/true));
+	ReversePosHandlerT::handlePos(state, bishopPromoBoard, MoveInfoT(MoveType, Bishop, from, to, isBishopCheck, isDiscoveredCheck, /*isPromo*/true));
       }
     }
 
@@ -162,7 +162,7 @@ namespace Chess {
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = (bbForSquare(from) & discoveriesBb) != BbNone;
 	
-	ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(PushMove, from, to, isDirectCheck, isDiscoveredCheck));
+	ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(PushMove, Pawn, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
 
@@ -266,7 +266,7 @@ namespace Chess {
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	const bool isDiscoveredCheck = isEpDiscovery || (bbForSquare(from) & discoveriesBb) != BbNone;
 	
-	ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(EpCaptureMove, from, to, isDirectCheck, isDiscoveredCheck));
+	ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(EpCaptureMove, Pawn, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
 
@@ -328,7 +328,10 @@ namespace Chess {
 
     template <typename StateT, typename CountHandlerT, typename BoardT, ColorT Color>
     inline void handlePawnNonPromoMoves(const CountTag&, StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const MoveGen::PawnPushesAndCapturesT& pawnMoves, const BitBoardT directChecksBb, const BitBoardT pushDiscoveriesBb, const BitBoardT leftDiscoveriesBb, const BitBoardT rightDiscoveriesBb, const bool isLeftEpDiscovery, const bool isRightEpDiscovery) {
-      const BitBoardT pawnPushesBb = (pawnMoves.pushesOneBb | pawnMoves.pushesTwoBb) & ~LastRankBbT<Color>::LastRankBb;
+      const BitBoardT pawnPushesOneBb = pawnMoves.pushesOneBb & ~LastRankBbT<Color>::LastRankBb;
+      const BitBoardT pawnPushesTwoBb = pawnMoves.pushesTwoBb & ~LastRankBbT<Color>::LastRankBb;
+      
+      const BitBoardT pawnPushesBb = pawnPushesOneBb | pawnPushesTwoBb;
       const int pawnPushesCount = Bits::count(pawnPushesBb);
 
       const BitBoardT pawnCapturesLeftBb = pawnMoves.capturesLeftBb & ~LastRankBbT<Color>::LastRankBb;
@@ -349,10 +352,10 @@ namespace Chess {
       
       const int pawnPushesDirectCheckCount = Bits::count(pawnPushesBb & directChecksBb);
 
-      const BitBoardT pawnPushesOneFromBb = pawnsPushOneTo2FromBb<Color>(pawnMoves.pushesOneBb);
+      const BitBoardT pawnPushesOneFromBb = pawnsPushOneTo2FromBb<Color>(pawnPushesOneBb);
       const int pawnPushesOneDiscoveriesCount = Bits::count(pawnPushesOneFromBb & pushDiscoveriesBb);
 
-      const BitBoardT pawnPushesTwoFromBb = pawnsPushTwoTo2FromBb<Color>(pawnMoves.pushesTwoBb);
+      const BitBoardT pawnPushesTwoFromBb = pawnsPushTwoTo2FromBb<Color>(pawnPushesTwoBb);
       const int pawnPushesTwoDiscoveriesCount = Bits::count(pawnPushesTwoFromBb & pushDiscoveriesBb);
 
       const int pawnPushesDiscoveryChecksCount = pawnPushesOneDiscoveriesCount + pawnPushesTwoDiscoveriesCount;
@@ -444,17 +447,65 @@ namespace Chess {
       const BitBoardT pawnCapturesRightBb = pawnMoves.capturesRightBb & LastRankBbT<Color>::LastRankBb;
       const int pawnCapturesRightCount = Bits::count(pawnCapturesRightBb);
 
-      const int captures = pawnCapturesLeftCount + pawnCapturesRightCount;
-      const int nodes = pawnPushesCount + captures;
+      const int captures = (pawnCapturesLeftCount + pawnCapturesRightCount)*4/*qnrb*/;
+      const int nodes = pawnPushesCount*4/*qnrb*/ + captures;
       const int eps = 0;
       const int castles = 0;
       const int promos = nodes;
       
-      const int checks = 0; // TODO!!!
-      const int discoverychecks = 0; // TODO!!!
-      const int doublechecks = 0; // TODO!!!
+      int checks = 0;
+      int discoverychecks = 0;
+      int doublechecks = 0;
+
+      const SquareT yourKingSq = board.state[(size_t)OtherColorT<Color>::value].basic.pieceSquares[TheKing];
       
-      CountHandlerT::handleCount(state, nodes*4/*qnrb*/, captures*4/*qnrb*/, eps, castles, promos*4/*qnrb*/, checks, discoverychecks, doublechecks);
+      // Push promos
+      if(pawnPushesBb != BbNone) {
+	const BitBoardT pushesFromBb = pawnsPushOneTo2FromBb<Color>(pawnPushesBb);
+	const BitBoardT pushesDiscoveriesFromBb = pushesFromBb & pushDiscoveriesBb;
+	const int pushesDiscoveriesCount = Bits::count(pushesDiscoveriesFromBb);
+
+	const BitBoardT horizDirectChecksToBb = pawnPushesBb & yourKingRookAttacksBb;
+	const BitBoardT verticDirectChecksFromBb = pushesFromBb & yourKingRookAttacksBb & FileBbs[fileOf(yourKingSq)];
+
+	const BitBoardT orthogDirectChecksFromBb = pawnsPushOneTo2FromBb<Color>(horizDirectChecksToBb) | verticDirectChecksFromBb;
+	const BitBoardT diagDirectChecksFromBb = pawnsPushOneTo2FromBb<Color>(pawnPushesBb & yourKingBishopAttacksBb);
+	const BitBoardT knightDirectChecksFromBb = pawnsPushOneTo2FromBb<Color>(pawnPushesBb & MoveGen::KnightAttacks[yourKingSq]);
+
+	const BitBoardT rookDoubleChecksFromBb = orthogDirectChecksFromBb & pushesDiscoveriesFromBb;
+	const BitBoardT bishopDoubleChecksFromBb = diagDirectChecksFromBb & pushesDiscoveriesFromBb;
+	const BitBoardT queenDoubleChecksFromBb = rookDoubleChecksFromBb | bishopDoubleChecksFromBb;
+	const BitBoardT knightDoubleChecksFromBb = knightDirectChecksFromBb & pushesDiscoveriesFromBb;
+
+	const int rookDirectChecksCount = Bits::count(orthogDirectChecksFromBb);
+	const int bishopDirectChecksCount = Bits::count(diagDirectChecksFromBb);
+	const int queenDirectChecksCount = rookDirectChecksCount + bishopDirectChecksCount;
+	const int knightDirectChecksCount = Bits::count(knightDirectChecksFromBb);
+
+	const int rookDoubleChecksCount = Bits::count(rookDoubleChecksFromBb);
+	const int bishopDoubleChecksCount = Bits::count(bishopDoubleChecksFromBb);
+	const int queenDoubleChecksCount = Bits::count(queenDoubleChecksFromBb);
+	const int knightDoubleChecksCount = Bits::count(knightDoubleChecksFromBb);
+
+	const int rookDiscoveredChecksCount = pushesDiscoveriesCount - rookDoubleChecksCount;
+	const int bishopDiscoveredChecksCount = pushesDiscoveriesCount - bishopDoubleChecksCount;
+	const int queenDiscoveredChecksCount = pushesDiscoveriesCount - queenDoubleChecksCount;
+	const int knightDiscoveredChecksCount = pushesDiscoveriesCount - knightDoubleChecksCount;
+
+	const int directChecksCount = queenDirectChecksCount + knightDirectChecksCount + rookDirectChecksCount + bishopDirectChecksCount;
+	const int discoveredChecksCount = queenDiscoveredChecksCount + knightDiscoveredChecksCount + rookDiscoveredChecksCount + bishopDiscoveredChecksCount;
+	const int doubleChecksCount = queenDoubleChecksCount + knightDoubleChecksCount + rookDoubleChecksCount + bishopDoubleChecksCount;
+
+	checks += directChecksCount + discoveredChecksCount;
+	discoverychecks += discoveredChecksCount;
+	doublechecks += doubleChecksCount;
+      }
+
+      // Left captures
+
+      // Right captures
+
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks);
     }
     
     //
@@ -493,10 +544,7 @@ namespace Chess {
       }
     };
 
-    // template <typename StateT, typename PosOrCountType, typename PosOrCountHandlerT, typename BoardT, ColorT Color, typename PieceMoveFn, MoveTypeT MoveType>
-    // inline void handlePieceMoves(StateT state, const BoardT& board, const typename PieceMoveFn::PieceMapImplT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck);
-    
-    template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color, typename PieceMoveFn, MoveTypeT MoveType>
+    template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color, typename PieceMoveFn, MoveTypeT MoveType, PieceT Piece>
     inline void handlePieceMoves(StateT state, const BoardT& board, const typename PieceMoveFn::PieceMapImplT& yourPieceMap, const SquareT from, BitBoardT toBb, const BitBoardT directChecksBb, const bool isDiscoveredCheck) {
       typedef typename PosHandlerT::ReverseT ReversePosHandlerT;
 	
@@ -507,7 +555,7 @@ namespace Chess {
 
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	
-	ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(MoveType, from, to, isDirectCheck, isDiscoveredCheck));
+	ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(MoveType, PieceTypeForPieceT<Piece>::value, from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
     
@@ -523,7 +571,7 @@ namespace Chess {
 
       // (Non-promo-)piece captures of promo pieces
       typedef PieceMoveFn<FullBoardT, Color, Piece, PiecePromoCapture, ColorPieceMapT> PiecePromoCaptureFn;
-      handlePieceMoves<StateT, PosHandlerT, FullBoardT, Color, PiecePromoCaptureFn, CaptureMove>(state, board, yourPieceMap, from, promoPieceCapturesBb, directChecksBb, isDiscoveredCheck);
+      handlePieceMoves<StateT, PosHandlerT, FullBoardT, Color, PiecePromoCaptureFn, CaptureMove, Piece>(state, board, yourPieceMap, from, promoPieceCapturesBb, directChecksBb, isDiscoveredCheck);
 
       return pieceCapturesBb & ~promoPieceCapturesBb;
     }
@@ -541,7 +589,7 @@ namespace Chess {
 
       // (Non-promo-)piece pushes
       typedef PieceMoveFn<BoardT, Color, Piece, PiecePush, NoPieceMapT> PiecePushFn;
-      handlePieceMoves<StateT, PosHandlerT, BoardT, Color, PiecePushFn, PushMove>(state, board, NoPieceMapT(), from, piecePushesBb, directChecksBb, isDiscoveredCheck);
+      handlePieceMoves<StateT, PosHandlerT, BoardT, Color, PiecePushFn, PushMove, Piece>(state, board, NoPieceMapT(), from, piecePushesBb, directChecksBb, isDiscoveredCheck);
 
       const BitBoardT pieceCapturesBb = movesBb & allYourPiecesBb;
 
@@ -550,7 +598,7 @@ namespace Chess {
 
       // (Non-promo-)piece captures of non-promo pieces
       typedef PieceMoveFn<BoardT, Color, Piece, PieceCapture, ColorPieceMapT> PieceCaptureFn;
-      handlePieceMoves<StateT, PosHandlerT, BoardT, Color, PieceCaptureFn, CaptureMove>(state, board, yourPieceMap, from, pieceNonPromoCapturesBb, directChecksBb, isDiscoveredCheck);
+      handlePieceMoves<StateT, PosHandlerT, BoardT, Color, PieceCaptureFn, CaptureMove, Piece>(state, board, yourPieceMap, from, pieceNonPromoCapturesBb, directChecksBb, isDiscoveredCheck);
     }
 
     // Count piece moves and send them to CountHandlerT
@@ -630,7 +678,7 @@ namespace Chess {
 
 	const bool isDiscoveredCheck = (fromBb & discoveriesBb) != BbNone && (toBb & yourKingRaysBb) == BbNone;
 	
-	ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(MoveType, from, to, false/*isDirectCheck*/, isDiscoveredCheck));
+	ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(MoveType, King, from, to, false/*isDirectCheck*/, isDiscoveredCheck));
       }
     }
     
@@ -746,7 +794,7 @@ namespace Chess {
 	
 	const bool isDirectCheck = (bbForSquare(to) & directChecksBb) != BbNone;
 	
-	ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(MoveType, from, to, isDirectCheck, isDiscoveredCheck));
+	ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(MoveType, PieceTypeForPromoPiece[promoPiece], from, to, isDirectCheck, isDiscoveredCheck));
       }
     }
 
@@ -807,7 +855,7 @@ namespace Chess {
       typedef typename PosHandlerT::ReverseT ReversePosHandlerT;
  
       // We use the king (from and) to square by convention
-      ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(CastlingMove, MoveGen::CastlingTraitsT<Color, CastlingRight>::KingFrom, MoveGen::CastlingTraitsT<Color, CastlingRight>::KingTo, /*isDirectCheck*/false, isDiscoveredCheck));
+      ReversePosHandlerT::handlePos(state, newBoard, MoveInfoT(CastlingMove, King, MoveGen::CastlingTraitsT<Color, CastlingRight>::KingFrom, MoveGen::CastlingTraitsT<Color, CastlingRight>::KingTo, /*isDirectCheck*/false, isDiscoveredCheck));
     }
 
     template <typename StateT, typename CountHandlerT, typename BoardT, ColorT Color, CastlingRightsT CastlingRight>
