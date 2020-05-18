@@ -503,7 +503,89 @@ namespace Chess {
 
       // Left captures
 
+      if(pawnCapturesLeftBb != BbNone) {
+	const BitBoardT capturesLeftFromBb = pawnsLeftAttacksTo2FromBb<Color>(pawnCapturesLeftBb);
+	const BitBoardT capturesLeftDiscoveriesFromBb = capturesLeftFromBb & leftDiscoveriesBb;
+	const int capturesLeftDiscoveriesCount = Bits::count(capturesLeftDiscoveriesFromBb);
+
+	const BitBoardT rightDirectChecksToBb = pawnCapturesLeftBb & yourKingBishopAttacksBb;
+	const BitBoardT leftDirectChecksFromBb = capturesLeftFromBb & yourKingBishopAttacksBb & MoveGen::BishopUniRays[Color == White ? MoveGen::Left : MoveGen::Right][yourKingSq];
+
+	const BitBoardT orthogDirectChecksFromBb = pawnsLeftAttacksTo2FromBb<Color>(pawnCapturesLeftBb & yourKingRookAttacksBb);
+	const BitBoardT diagDirectChecksFromBb = pawnsLeftAttacksTo2FromBb<Color>(rightDirectChecksToBb) | leftDirectChecksFromBb;
+	const BitBoardT knightDirectChecksFromBb = pawnsLeftAttacksTo2FromBb<Color>(pawnCapturesLeftBb & MoveGen::KnightAttacks[yourKingSq]);
+
+	const BitBoardT rookDoubleChecksFromBb = orthogDirectChecksFromBb & capturesLeftDiscoveriesFromBb;
+	const BitBoardT bishopDoubleChecksFromBb = diagDirectChecksFromBb & capturesLeftDiscoveriesFromBb;
+	const BitBoardT queenDoubleChecksFromBb = rookDoubleChecksFromBb | bishopDoubleChecksFromBb;
+	const BitBoardT knightDoubleChecksFromBb = knightDirectChecksFromBb & capturesLeftDiscoveriesFromBb;
+
+	const int rookDirectChecksCount = Bits::count(orthogDirectChecksFromBb);
+	const int bishopDirectChecksCount = Bits::count(diagDirectChecksFromBb);
+	const int queenDirectChecksCount = rookDirectChecksCount + bishopDirectChecksCount;
+	const int knightDirectChecksCount = Bits::count(knightDirectChecksFromBb);
+
+	const int rookDoubleChecksCount = Bits::count(rookDoubleChecksFromBb);
+	const int bishopDoubleChecksCount = Bits::count(bishopDoubleChecksFromBb);
+	const int queenDoubleChecksCount = Bits::count(queenDoubleChecksFromBb);
+	const int knightDoubleChecksCount = Bits::count(knightDoubleChecksFromBb);
+
+	const int rookDiscoveredChecksCount = capturesLeftDiscoveriesCount - rookDoubleChecksCount;
+	const int bishopDiscoveredChecksCount = capturesLeftDiscoveriesCount - bishopDoubleChecksCount;
+	const int queenDiscoveredChecksCount = capturesLeftDiscoveriesCount - queenDoubleChecksCount;
+	const int knightDiscoveredChecksCount = capturesLeftDiscoveriesCount - knightDoubleChecksCount;
+
+	const int directChecksCount = queenDirectChecksCount + knightDirectChecksCount + rookDirectChecksCount + bishopDirectChecksCount;
+	const int discoveredChecksCount = queenDiscoveredChecksCount + knightDiscoveredChecksCount + rookDiscoveredChecksCount + bishopDiscoveredChecksCount;
+	const int doubleChecksCount = queenDoubleChecksCount + knightDoubleChecksCount + rookDoubleChecksCount + bishopDoubleChecksCount;
+
+	checks += directChecksCount + discoveredChecksCount;
+	discoverychecks += discoveredChecksCount;
+	doublechecks += doubleChecksCount;
+      }
+
       // Right captures
+
+      if(pawnCapturesRightBb != BbNone) {
+	const BitBoardT capturesRightFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnCapturesRightBb);
+	const BitBoardT capturesRightDiscoveriesFromBb = capturesRightFromBb & rightDiscoveriesBb;
+	const int capturesRightDiscoveriesCount = Bits::count(capturesRightDiscoveriesFromBb);
+
+	const BitBoardT rightDirectChecksToBb = pawnCapturesRightBb & yourKingBishopAttacksBb;
+	const BitBoardT rightDirectChecksFromBb = capturesRightFromBb & yourKingBishopAttacksBb & MoveGen::BishopUniRays[Color == White ? MoveGen::Right : MoveGen::Left][yourKingSq];
+
+	const BitBoardT orthogDirectChecksFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnCapturesRightBb & yourKingRookAttacksBb);
+	const BitBoardT diagDirectChecksFromBb = pawnsRightAttacksTo2FromBb<Color>(rightDirectChecksToBb) | rightDirectChecksFromBb;
+	const BitBoardT knightDirectChecksFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnCapturesRightBb & MoveGen::KnightAttacks[yourKingSq]);
+
+	const BitBoardT rookDoubleChecksFromBb = orthogDirectChecksFromBb & capturesRightDiscoveriesFromBb;
+	const BitBoardT bishopDoubleChecksFromBb = diagDirectChecksFromBb & capturesRightDiscoveriesFromBb;
+	const BitBoardT queenDoubleChecksFromBb = rookDoubleChecksFromBb | bishopDoubleChecksFromBb;
+	const BitBoardT knightDoubleChecksFromBb = knightDirectChecksFromBb & capturesRightDiscoveriesFromBb;
+
+	const int rookDirectChecksCount = Bits::count(orthogDirectChecksFromBb);
+	const int bishopDirectChecksCount = Bits::count(diagDirectChecksFromBb);
+	const int queenDirectChecksCount = rookDirectChecksCount + bishopDirectChecksCount;
+	const int knightDirectChecksCount = Bits::count(knightDirectChecksFromBb);
+
+	const int rookDoubleChecksCount = Bits::count(rookDoubleChecksFromBb);
+	const int bishopDoubleChecksCount = Bits::count(bishopDoubleChecksFromBb);
+	const int queenDoubleChecksCount = Bits::count(queenDoubleChecksFromBb);
+	const int knightDoubleChecksCount = Bits::count(knightDoubleChecksFromBb);
+
+	const int rookDiscoveredChecksCount = capturesRightDiscoveriesCount - rookDoubleChecksCount;
+	const int bishopDiscoveredChecksCount = capturesRightDiscoveriesCount - bishopDoubleChecksCount;
+	const int queenDiscoveredChecksCount = capturesRightDiscoveriesCount - queenDoubleChecksCount;
+	const int knightDiscoveredChecksCount = capturesRightDiscoveriesCount - knightDoubleChecksCount;
+
+	const int directChecksCount = queenDirectChecksCount + knightDirectChecksCount + rookDirectChecksCount + bishopDirectChecksCount;
+	const int discoveredChecksCount = queenDiscoveredChecksCount + knightDiscoveredChecksCount + rookDiscoveredChecksCount + bishopDiscoveredChecksCount;
+	const int doubleChecksCount = queenDoubleChecksCount + knightDoubleChecksCount + rookDoubleChecksCount + bishopDoubleChecksCount;
+
+	checks += directChecksCount + discoveredChecksCount;
+	discoverychecks += discoveredChecksCount;
+	doublechecks += doubleChecksCount;
+      }
 
       CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks);
     }
