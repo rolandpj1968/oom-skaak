@@ -353,12 +353,10 @@ namespace Chess {
       return std::make_pair(board, color);
     }
 
-    template <typename BoardT>
-    inline std::string genPieces(const BoardT& board) {
+    template </*typename BoardT,*/ typename PieceMapT>
+    inline std::string genPieces(const PieceMapT& pieceMap/*const BoardT& board*/) {
       std::stringstream ss;
       
-      auto pieceMap = BoardUtils::genPieceMap(board);
-
       // FEN does rank 8 first
       for(int rank = 7; rank >= 0; --rank) {
 	if(rank != 7) {
@@ -436,7 +434,23 @@ namespace Chess {
     inline std::string toFen(const BoardT& board, const ColorT colorToMove, const bool trimEp = false) {
       std::stringstream ss;
 
-      ss << genPieces(board) << ' ' << genColor(colorToMove) << ' ' << genCastlingRights(board) << ' ' << genEpSquare(board, colorToMove, trimEp);
+      auto pieceMap = BoardUtils::genPieceMap(board);
+
+      ss << genPieces(pieceMap) << ' ' << genColor(colorToMove) << ' ' << genCastlingRights(board) << ' ' << genEpSquare(board, colorToMove, trimEp);
+
+      return ss.str();
+    }
+    
+    // TODO - halfmove clock and fullmove number when we support those
+    // trimEp is used to omit the EP square in cases where it's not capturable so we get a consistent FEN for transpositions
+    template <typename BoardT>
+    inline std::string toFenFast(const BoardT& board, const ColorT colorToMove, const bool trimEp = false) {
+      std::stringstream ss;
+
+      std::pair<ColorT, PieceTypeT> pieceMap[64] = { std::pair<ColorT, PieceTypeT>() };
+      BoardUtils::addPiecesToMap(pieceMap, board);
+
+      ss << genPieces(pieceMap) << ' ' << genColor(colorToMove) << ' ' << genCastlingRights(board) << ' ' << genEpSquare(board, colorToMove, trimEp);
 
       return ss.str();
     }

@@ -54,13 +54,30 @@ namespace Chess {
       board.state[(size_t)color].basic.castlingRights = (CastlingRightsT)(CanCastleQueenside | CanCastleKingside);
     }
 
-    extern void addPawnsForColor(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const ColorT color, BitBoardT pawnsBb);
+    inline void addPieceToMap(std::pair<ColorT, PieceTypeT> pieceMap[64], const SquareT square, const std::pair<ColorT, PieceTypeT>& colorAndPiece) {
+	pieceMap[square] = colorAndPiece;
+    }
 
-    inline void addPromoPiecesForColor(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const ColorT color, const typename BasicBoardT::ColorStateT& colorState) {
+    inline void addPieceToMap(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const SquareT square, const std::pair<ColorT, PieceTypeT>& colorAndPiece) {
+	pieceMap[square].push_back(colorAndPiece);
+    }
+
+    template <typename PieceMapT>
+    inline void addPawnsForColor(PieceMapT & pieceMap, const ColorT color, BitBoardT pawnsBb) {
+      while(pawnsBb) {
+	const SquareT square = Bits::popLsb(pawnsBb);
+	addPieceToMap(pieceMap, square, std::pair<ColorT, PieceTypeT>(color, Pawn));
+      }
+    }
+
+
+    template <typename PieceMapT>
+    inline void addPromoPiecesForColor(PieceMapT& pieceMap, const ColorT color, const typename BasicBoardT::ColorStateT& colorState) {
       // No promo pieces
     }
     
-    inline void addPromoPiecesForColor(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const ColorT color, const typename FullBoardT::ColorStateT& colorState) {
+    template <typename PieceMapT>
+    inline void addPromoPiecesForColor(PieceMapT& pieceMap, const ColorT color, const typename FullBoardT::ColorStateT& colorState) {
       // Ugh the bit stuff operates on BitBoardT type
       BitBoardT activePromos = (BitBoardT)colorState.promos.activePromos;
       while(activePromos) {
@@ -69,12 +86,12 @@ namespace Chess {
 	const PromoPieceT promoPiece = promoPieceOf(promoPieceAndSquare);
 	const SquareT promoPieceSq = squareOf(promoPieceAndSquare);
 
-	pieceMap[promoPieceSq].push_back(std::pair<ColorT, PieceTypeT>(color, PieceTypeForPromoPiece[promoPiece]));
+	addPieceToMap(pieceMap, promoPieceSq, std::pair<ColorT, PieceTypeT>(color, PieceTypeForPromoPiece[promoPiece]));
       }
     }
     
-    template <typename BoardT>
-    inline void addPiecesForColor(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const ColorT color, const typename BoardT::ColorStateT& colorState) {
+    template <typename BoardT, typename PieceMapT>
+    inline void addPiecesForColor(PieceMapT& pieceMap, const ColorT color, const typename BoardT::ColorStateT& colorState) {
       const NonPromosColorStateImplT& basicState = colorState.basic;
 
       addPawnsForColor(pieceMap, color, basicState.pawnsBb);
@@ -82,7 +99,7 @@ namespace Chess {
       for(PieceT piece = Knight1; piece < NPieces; piece = (PieceT)(piece+1)) {
 	SquareT square = basicState.pieceSquares[piece];
 	if(square != InvalidSquare) {
-	  pieceMap[square].push_back(std::pair<ColorT, PieceTypeT>(color, PieceTypeForPiece[piece]));
+	  addPieceToMap(pieceMap, square, std::pair<ColorT, PieceTypeT>(color, PieceTypeForPiece[piece]));
 	}
       }
 
@@ -90,12 +107,18 @@ namespace Chess {
       addPromoPiecesForColor(pieceMap, color, colorState);
     }
 
+    template <typename BoardT, typename PieceMapT>
+    inline void addPiecesToMap(PieceMapT& pieceMap, const BoardT& board) {
+      addPiecesForColor<BoardT, PieceMapT>(pieceMap, White, board.state[(size_t)White]);
+      addPiecesForColor<BoardT, PieceMapT>(pieceMap, Black, board.state[(size_t)Black]);
+    }
+
     template <typename BoardT>
     std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64> genPieceMap(const BoardT& board) {
-      std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64> pieceMap;
+      typedef std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64> PieceMapT;
+      PieceMapT pieceMap;
 
-      addPiecesForColor<BoardT>(pieceMap, White, board.state[(size_t)White]);
-      addPiecesForColor<BoardT>(pieceMap, Black, board.state[(size_t)Black]);
+      addPiecesToMap(pieceMap, board);
 
       return pieceMap;
     }
@@ -103,7 +126,7 @@ namespace Chess {
     // Validate board
     template <typename BoardT>
     bool isValid(const BoardT& board, const BitBoardT allYourKingAttackersBb) {
-      std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64> pieceMap = genPieceMap<BoardT>(board);
+      auto pieceMap = genPieceMap<BoardT>(board);
 
       // Are there any squares with multiple pieces on them?
       for(int i = 0; i < 64; i++) {
@@ -122,6 +145,12 @@ namespace Chess {
       return true;
     }
 
+    extern char PieceChar[NColors][NPieceTypes+1];
+      
+    inline char pieceChar(std::pair<ColorT, PieceTypeT> squarePiece) {
+      return PieceChar[(size_t)squarePiece.first][squarePiece.second];
+    }
+    
     extern char pieceChar(const std::vector<std::pair<ColorT, PieceTypeT>>& squarePieces);
     
     extern void printRank(const std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, int rank);

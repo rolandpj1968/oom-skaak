@@ -11,14 +11,7 @@ namespace Chess {
 
     using namespace Board;
 
-     void addPawnsForColor(std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, const ColorT color, BitBoardT pawnsBb) {
-      while(pawnsBb) {
-	const SquareT square = Bits::popLsb(pawnsBb);
-	pieceMap[square].push_back(std::pair<ColorT, PieceTypeT>(color, Pawn));
-      }
-    }
-
-    static char PieceChar[NColors][NPieceTypes+1] = {
+    char PieceChar[NColors][NPieceTypes+1] = {
       // White
       { ".PNBRQK" },
       // Black
@@ -28,20 +21,20 @@ namespace Chess {
     char pieceChar(const std::vector<std::pair<ColorT, PieceTypeT>>& squarePieces) {
       // Pieces clash on the square?
       if(squarePieces.size() > 1) {
-	return 'X';
+       return 'X';
       }
       
       ColorT color = White;
       PieceTypeT pieceType = NoPieceType;
 
       if(squarePieces.size() == 1) {
-	color = squarePieces[0].first;
-	pieceType = squarePieces[0].second;
+       color = squarePieces[0].first;
+       pieceType = squarePieces[0].second;
       }
       
       return PieceChar[(size_t)color][pieceType];
     }
-    
+
     void printRank(const std::array<std::vector<std::pair<ColorT, PieceTypeT>>, 64>& pieceMap, int rank) {
       printf("%d | ", rank+1);
       for(int file = 0; file < 8; file++) {
