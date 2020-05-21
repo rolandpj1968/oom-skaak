@@ -37,7 +37,7 @@ static void usage_and_die(int argc, char* argv[], const char* msg = 0) {
     fprintf(stderr, "%s\n\n", msg);
   }
   
-  fprintf(stderr, "usage: %s <depth> [FEN] [--split] [--max-tt-depth <depth>] [--tt-size <size>] [--make-moves] [--threads <N>]\n\n", argv[0]);
+  fprintf(stderr, "usage: %s <depth> [FEN] [--split] [--max-tt-depth <depth>] [--tt-size <size>] [--tt-partitions <parts>] [--make-moves] [--threads <N>]\n\n", argv[0]);
   fprintf(stderr, "  Default position is the starting position; also use \"-\" for starting position, e.g. %s 6 \"-\" --max-tt-depth 4\n", argv[0]);
   fprintf(stderr, "  --split provides top-level subtree statistics per top-level move - this is useful for debugging\n");
   fprintf(stderr, "  --max-tt-depth <depth> enables tableauing of results for transpositions up to <depth>\n");
@@ -61,13 +61,13 @@ static std::pair<Perft::PerftStatsT, std::vector<std::pair<u64, u64>>> runPerft(
   if(nThreads == 0) {
     // Single-threaded
     if(maxTtDepth != 0) {
-      auto allStats = Perft::ttPerft<BoardT, Color>(board, doSplit, makeMoves, maxTtDepth, depthToGo, ttSize);
+      auto allStats = Perft::ttPerft<BoardT, Color>(board, depthToGo, doSplit, makeMoves, maxTtDepth, ttSize);
       stats = allStats.first;
       ttStats = allStats.second;
     } else if(doSplit) {
-      stats = Perft::splitPerft<BoardT, Color>(board, makeMoves, depthToGo);
+      stats = Perft::splitPerft<BoardT, Color>(board, depthToGo, makeMoves);
     } else {
-      stats = Perft::perft<BoardT, Color>(board, makeMoves, depthToGo);
+      stats = Perft::perft<BoardT, Color>(board, depthToGo, makeMoves);
     }
   } else {
     // Multi-threaded  
@@ -80,11 +80,11 @@ static std::pair<Perft::PerftStatsT, std::vector<std::pair<u64, u64>>> runPerft(
 }
 
 int main(int argc, char* argv[]) {
-  printf("sizeof(NonPromosColorStateImplT) is %lu - NPieces is %d\n", sizeof(NonPromosColorStateImplT), NPieces);
-  printf("sizeof(BasicBoardT) is %lu\n", sizeof(BasicBoardT));
-  printf("sizeof(FullBoardT) is %lu\n", sizeof(FullBoardT));
-  printf("sizeof(FullColorStateImplT) is %lu\n", sizeof(FullColorStateImplT));
-  printf("\n");
+  // printf("sizeof(NonPromosColorStateImplT) is %lu - NPieces is %d\n", sizeof(NonPromosColorStateImplT), NPieces);
+  // printf("sizeof(BasicBoardT) is %lu\n", sizeof(BasicBoardT));
+  // printf("sizeof(FullBoardT) is %lu\n", sizeof(FullBoardT));
+  // printf("sizeof(FullColorStateImplT) is %lu\n", sizeof(FullColorStateImplT));
+  // printf("\n");
   //printf("sizeof(FullColorStateImpl2T) is %lu\n", sizeof(FullColorStateImpl2T));
   
   if(argc <= 1) {
