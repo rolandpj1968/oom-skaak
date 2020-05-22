@@ -348,7 +348,8 @@ namespace Chess {
 
 	bool foundIt = false;
 	std::string fen;
-	const size_t partMask = 0;
+	const size_t nParts = state.tts.size();
+	const size_t partMask = nParts - 1;
 	size_t part = 0;
 
 	// Probe the TT
