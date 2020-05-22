@@ -42,9 +42,9 @@ static void usage_and_die(int argc, char* argv[], const char* msg = 0) {
   fprintf(stderr, "  --split provides top-level subtree statistics per top-level move - this is useful for debugging\n");
   fprintf(stderr, "  --max-tt-depth <depth> enables tableauing of results for transpositions up to <depth>\n");
   fprintf(stderr, "      Transition tables (TTs) are only used from level 3 and deeper since no shallower transpositions are possible\n");
-  fprintf(stderr, "  --tt-size <size> defines the maximum TT size for each level for each partition (default 262144)\n");
+  fprintf(stderr, "  --tt-size <size> defines the maximum TT size for each level for each partition (default 16384)\n");
   fprintf(stderr, "      TT entries at each level are discarded according to LRU\n");
-  fprintf(stderr, "  --tt-partitions <parts> defines the number of partitions that the TT's are split into (default 1)\n");
+  fprintf(stderr, "  --tt-partitions <parts> defines the number of partitions that the TT's are split into (default 16)\n");
   fprintf(stderr, "      Partioned TT's are required to scale multi-threading beyond 16 threads. MUST be a power of 2\n");
   fprintf(stderr, "  --make-moves does all move do/undo up til leaf nodes which is slower that counting one level above\n");
   fprintf(stderr, "  --threads <N> runs N threads which distribute perft calculations from depth 2 and deeper\n");
@@ -55,7 +55,7 @@ static void usage_and_die(int argc, char* argv[], const char* msg = 0) {
 
 
 template <typename BoardT, ColorT Color>
-static std::pair<Perft::PerftStatsT, std::vector<std::pair<u64, u64>>> runPerft(const BoardT& board, const int depthToGo, const bool doSplit, const int maxTtDepth, const int ttSize, const bool makeMoves, const int nThreads) {
+static std::pair<Perft::PerftStatsT, std::vector<std::pair<u64, u64>>> runPerft(const BoardT& board, const int depthToGo, const bool doSplit, const int maxTtDepth, const int ttSize, const int nTtParts, const bool makeMoves, const int nThreads) {
   Perft::PerftStatsT stats;
   std::vector<std::pair<u64, u64>> ttStats;
 
@@ -63,7 +63,7 @@ static std::pair<Perft::PerftStatsT, std::vector<std::pair<u64, u64>>> runPerft(
   if(nThreads == 0) {
     // Single-threaded
     if(maxTtDepth != 0) {
-      auto allStats = Perft::ttPerft<BoardT, Color>(board, depthToGo, doSplit, makeMoves, maxTtDepth, ttSize);
+      auto allStats = Perft::ttPerft<BoardT, Color>(board, depthToGo, doSplit, makeMoves, maxTtDepth, ttSize, nTtParts);
       stats = allStats.first;
       ttStats = allStats.second;
     } else if(doSplit) {
@@ -73,7 +73,7 @@ static std::pair<Perft::PerftStatsT, std::vector<std::pair<u64, u64>>> runPerft(
     }
   } else {
     // Multi-threaded  
-    auto allStats = Perft::paraPerft<BoardT, Color>(board, doSplit, makeMoves, maxTtDepth, depthToGo, ttSize, nThreads);
+    auto allStats = Perft::paraPerft<BoardT, Color>(board, doSplit, makeMoves, maxTtDepth, depthToGo, ttSize, nTtParts, nThreads);
     stats = allStats.first;
     ttStats = allStats.second;
   }
@@ -98,8 +98,8 @@ int main(int argc, char* argv[]) {
   ColorT colorToMove;
   bool doSplit = false;
   int maxTtDepth = 0;
-  int ttSize = 262144;
-  int nTtParts = 1;
+  int ttSize = 16384;
+  int nTtParts = 16;
   bool makeMoves = false;
   int nThreads = 0;
 
@@ -180,7 +180,7 @@ int main(int argc, char* argv[]) {
     doNewline = true;
   }
   if(maxTtDepth != 0) {
-    printf("  using TTs with %d entries at depths 3-%d\n", ttSize, maxTtDepth);
+    printf("  using TTs of %d partitions with %d entries at depths 3-%d\n", nTtParts, ttSize, maxTtDepth);
     doNewline = true;
   }
   if(nThreads > 0) {
@@ -192,8 +192,8 @@ int main(int argc, char* argv[]) {
   }
 
   auto allStats = colorToMove == White ?
-    runPerft<BasicBoardT, White>(board, depthToGo, doSplit, maxTtDepth, ttSize, makeMoves, nThreads) :
-    runPerft<BasicBoardT, Black>(board, depthToGo, doSplit, maxTtDepth, ttSize, makeMoves, nThreads);
+    runPerft<BasicBoardT, White>(board, depthToGo, doSplit, maxTtDepth, ttSize, nTtParts, makeMoves, nThreads) :
+    runPerft<BasicBoardT, Black>(board, depthToGo, doSplit, maxTtDepth, ttSize, nTtParts, makeMoves, nThreads);
 
   if(doSplit) {
     printf("\n");

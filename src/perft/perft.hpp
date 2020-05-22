@@ -418,15 +418,14 @@ namespace Chess {
     }
 
     template <typename BoardT, ColorT Color>
-    inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> ttPerft(const BoardT& board, const int depthToGo, const bool doSplit, const bool makeMoves, const int maxTtDepth, const int ttSize) {
+    inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> ttPerft(const BoardT& board, const int depthToGo, const bool doSplit, const bool makeMoves, const int maxTtDepth, const int ttSize, const int nTtParts) {
 
-      const size_t nTtParts = 1;
       std::vector<std::vector<BoundedHashMap<std::string, PerftStatsT>>> tts(nTtParts);
 
-      for(size_t part = 0; part < nTtParts; part++) {
+      for(int partNo = 0; partNo < nTtParts; partNo++) {
 	// map: fen->stats for each depth for each partition
 	for(int i = MinTtDepth; i <= maxTtDepth; i++) {
-	  tts[part].push_back(BoundedHashMap<std::string, PerftStatsT>(ttSize));
+	  tts[partNo].push_back(BoundedHashMap<std::string, PerftStatsT>(ttSize));
 	}
       }
       std::vector<std::pair<u64, u64>> ttStats(maxTtDepth-MinTtDepth+1);
@@ -537,7 +536,7 @@ namespace Chess {
     }
 
     template <typename BoardT, ColorT Color>
-    inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> paraPerft(const BoardT& board, const bool doSplit, const bool makeMoves, const int maxTtDepth, const int depthToGo, const int ttSize, const int nThreads) {
+    inline std::pair<PerftStatsT, std::vector<std::pair<u64, u64>>> paraPerft(const BoardT& board, const bool doSplit, const bool makeMoves, const int maxTtDepth, const int depthToGo, const int ttSize, const int nTtParts, const int nThreads) {
       // Collect all depth-2 positions - set of FEN's
       std::list<std::pair<std::string, MoveInfoT>> depth2FensAndMoves;
       const Depth2CollectorStateT depth2CollectorState(depth2FensAndMoves, /*depth*/0);
@@ -546,13 +545,11 @@ namespace Chess {
       // Perft stats for each depth-2 position
       std::map<std::string, PerftStatsT> depth2PosStats;
 
-      const size_t nTtParts = 1;
-      
       // TT map: fen->stats for each depth
       std::vector<std::vector<BoundedHashMap<std::string, PerftStatsT>>> tts(nTtParts);
-      for(size_t part = 0; part < nTtParts; part++) {
+      for(int partNo = 0; partNo < nTtParts; partNo++) {
 	for(int i = MinTtDepth; i <= maxTtDepth; i++) {
-	  tts[part].push_back(BoundedHashMap<std::string, PerftStatsT>(ttSize));
+	  tts[partNo].push_back(BoundedHashMap<std::string, PerftStatsT>(ttSize));
 	}
       }
       // TT usage stats - for each thread
