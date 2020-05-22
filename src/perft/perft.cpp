@@ -42,8 +42,10 @@ static void usage_and_die(int argc, char* argv[], const char* msg = 0) {
   fprintf(stderr, "  --split provides top-level subtree statistics per top-level move - this is useful for debugging\n");
   fprintf(stderr, "  --max-tt-depth <depth> enables tableauing of results for transpositions up to <depth>\n");
   fprintf(stderr, "      Transition tables (TTs) are only used from level 3 and deeper since no shallower transpositions are possible\n");
-  fprintf(stderr, "  --tt-size <size> defines the maximum TT size for each level (default 262144)\n");
+  fprintf(stderr, "  --tt-size <size> defines the maximum TT size for each level for each partition (default 262144)\n");
   fprintf(stderr, "      TT entries at each level are discarded according to LRU\n");
+  fprintf(stderr, "  --tt-partitions <parts> defines the number of partitions that the TT's are split into (default 1)\n");
+  fprintf(stderr, "      Partioned TT's are required to scale multi-threading beyond 16 threads. MUST be a power of 2\n");
   fprintf(stderr, "  --make-moves does all move do/undo up til leaf nodes which is slower that counting one level above\n");
   fprintf(stderr, "  --threads <N> runs N threads which distribute perft calculations from depth 2 and deeper\n");
   fprintf(stderr, "\n");
@@ -97,6 +99,7 @@ int main(int argc, char* argv[]) {
   bool doSplit = false;
   int maxTtDepth = 0;
   int ttSize = 262144;
+  int nTtParts = 1;
   bool makeMoves = false;
   int nThreads = 0;
 
@@ -140,6 +143,15 @@ int main(int argc, char* argv[]) {
       ttSize = atol(argv[i]);
       if(ttSize < 1) {
 	usage_and_die(argc, argv, "Invalid TT size");
+      }
+    } else if(arg == "--tt-partitions") {
+      i++;
+      if(argc <= i) {
+	usage_and_die(argc, argv, "--tt-partitions missing <parts> argument");
+      }
+      nTtParts = atol(argv[i]);
+      if(nTtParts < 1 || (nTtParts & (nTtParts-1)) != 0) {
+	usage_and_die(argc, argv, "Invalid TT partitions - must be a positive power of two.");
       }
     } else if(arg == "--make-moves") {
       makeMoves = true;
