@@ -577,7 +577,7 @@ namespace Chess {
       // Accumulate the stats from all threads
       std::vector<std::pair<u64, u64>> ttStats(maxTtDepth == 0 ? 0 : (maxTtDepth-MinTtDepth+1));
       for(int threadNo = 0; threadNo < nThreads; threadNo++) {
-	for(size_t i = 0; i < threadTtStats[i].size(); i++) {
+	for(size_t i = 0; i < threadTtStats[threadNo].size(); i++) {
 	  ttStats[i].first += threadTtStats[threadNo][i].first;
 	  ttStats[i].second += threadTtStats[threadNo][i].second;
 	}
