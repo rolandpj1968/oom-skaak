@@ -904,6 +904,7 @@ namespace Chess {
       const int discoverychecks = (fromBb & discoveriesBb) == BbNone ? 0 : Bits::count(checkMovesBb);
       const int checks = discoverychecks;
       const int doublechecks = 0;
+      
       int checkmates = 0;
 
       if(checks != 0) {
@@ -999,6 +1000,21 @@ namespace Chess {
       handlePromoPieceMoves<StateT, PosHandlerT, BoardT, Color, PromoPieceCaptureFn, CaptureMove>(state, board, yourPieceMap, promoIndex, promoPiece, from, nonPromoPieceCaptures, directChecksBb, isDiscoveredCheck);
     }
 
+    template <typename BoardT, ColorT Color, typename PromoPieceMoveFn>
+    inline int countPromoPieceMoveCheckmates(const BoardT& board, const typename PromoPieceMoveFn::PieceMapImplT& yourPieceMap, const int promoIndex, const PromoPieceT promoPiece, const SquareT from, BitBoardT toBb) {
+      int checkmates = 0;
+      
+      while(toBb) {
+	const SquareT to = Bits::popLsb(toBb);
+
+	const BoardT newBoard = PromoPieceMoveFn::fn(board, promoIndex, promoPiece, yourPieceMap, from, to);
+
+	checkmates += !BoardUtils::hasLegalMoves<BoardT, OtherColorT<Color>::value>(newBoard);
+      }
+
+      return checkmates;
+    }
+    
     template <typename StateT, typename CountHandlerT, typename BoardT, ColorT Color>
     inline void handlePromoPieceMoves(const CountTag&, StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const int promoIndex, const PromoPieceT promoPiece, const SquareT from, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb) {
       const int nodes = Bits::count(movesBb);
@@ -1010,14 +1026,38 @@ namespace Chess {
       const int castles = 0;
       const int promos = 0;
 
-      const int directchecks = Bits::count(movesBb & directChecksBb);
+      const BitBoardT directCheckMovesBb = movesBb & directChecksBb;
+      const int directchecks = Bits::count(directCheckMovesBb);
       
       const int discoveries = ((bbForSquare(from) & discoveriesBb) == BbNone) ? 0 : nodes;
 
       const int checks = discoveries == 0 ? directchecks : discoveries;
       const int doublechecks = discoveries == 0 ? 0 : directchecks;
       const int discoverychecks = discoveries - doublechecks;
-      const int checkmates = 0;
+      
+      int checkmates = 0;
+
+      if(checks != 0) {
+	const BitBoardT checkMovesBb = discoveries == 0 ? directCheckMovesBb : movesBb;
+
+	const BitBoardT checkPushesBb = checkMovesBb & ~allYourPiecesBb;
+	
+	// Promo-piece pushes
+	typedef PromoPieceMoveFn<BoardT, Color, PromoPiecePush, NoPieceMapT> PromoPiecePushFn;
+	checkmates += countPromoPieceMoveCheckmates<BoardT, Color, PromoPiecePushFn>(board, NoPieceMapT(), promoIndex, promoPiece, from, checkPushesBb);
+	
+	const BitBoardT checkCapturesBb = checkMovesBb & allYourPiecesBb;
+	
+	// Promo-piece captures of promo pieces
+	const BitBoardT checkPromoCapturesBb = checkCapturesBb & yourPieceMap.allPromoPiecesBb;
+	typedef PromoPieceMoveFn<BoardT, Color, PromoPiecePromoCapture, ColorPieceMapT> PromoPiecePromoCaptureFn;
+	checkmates += countPromoPieceMoveCheckmates<BoardT, Color, PromoPiecePromoCaptureFn>(board, yourPieceMap, promoIndex, promoPiece, from, checkPromoCapturesBb);
+
+	// Promo-piece captures of non-promo pieces
+	const BitBoardT checkNonPromoCapturesBb = checkCapturesBb & ~checkPromoCapturesBb;
+	typedef PromoPieceMoveFn<BoardT, Color, PromoPieceCapture, ColorPieceMapT> PromoPieceCaptureFn;
+	checkmates += countPromoPieceMoveCheckmates<BoardT, Color, PromoPieceCaptureFn>(board, yourPieceMap, promoIndex, promoPiece, from, checkNonPromoCapturesBb);
+      }
       
       CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks, checkmates);
     }
