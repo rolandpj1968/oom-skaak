@@ -198,7 +198,6 @@ namespace Chess {
       return isValid(board, allYourKingAttackersBb);
     }
 
-    // TODO - this shouldn't be in this header file but it has awkward dependencies
     template <typename BoardT, ColorT Color>
     int getNChecks(const BoardT& board) {
       typedef typename BoardT::ColorStateT ColorStateT;
@@ -224,6 +223,63 @@ namespace Chess {
       const BitBoardT allMyKingAttackersBb = myKingAttackerBbs.pieceAttackerBbs[AllPieceTypes];
 
       return Bits::count(allMyKingAttackersBb);
+    }
+    
+    inline bool hasLegalPromoPieceMoves(const BasicColorStateImplT& colorState, const typename MoveGen::LegalMovesImplType<BasicBoardT>::LegalMovesT& legalMoves) {
+      return false; // no promo pieces
+    }
+    
+    inline bool hasLegalPromoPieceMoves(const FullColorStateImplT& colorState, const typename MoveGen::LegalMovesImplType<FullBoardT>::LegalMovesT& legalMoves) {
+      BitBoardT activePromos = (BitBoardT)colorState.promos.activePromos;
+      while(activePromos) {
+	const int promoIndex = Bits::popLsb(activePromos);
+	if(legalMoves.promoPieceMoves[promoIndex] != BbNone) {
+	  return true;
+	}
+      }
+      return false;
+    }
+    
+    template <typename BoardT, ColorT Color>
+    inline bool hasLegalMoves(const BoardT& board) {
+      typedef typename MoveGen::LegalMovesImplType<BoardT>::LegalMovesT LegalMovesT;
+      
+      // Generate (legal) moves
+      const LegalMovesT legalMoves = MoveGen::genLegalMoves<BoardT, Color>(board);
+
+      // Are there any?
+      const BitBoardT legalNonPromoMovesBb =
+	  
+	legalMoves.pawnMoves.pushesOneBb | legalMoves.pawnMoves.pushesTwoBb |
+	legalMoves.pawnMoves.capturesLeftBb | legalMoves.pawnMoves.capturesRightBb |
+	legalMoves.pawnMoves.epCaptures.epLeftCaptureBb | legalMoves.pawnMoves.epCaptures.epRightCaptureBb |
+
+	legalMoves.pieceMoves[Knight1] |
+	legalMoves.pieceMoves[Knight2] |
+	  
+	legalMoves.pieceMoves[Bishop1] |
+	legalMoves.pieceMoves[Bishop2] |
+	  
+	legalMoves.pieceMoves[Rook1] |
+	legalMoves.pieceMoves[Rook2] |
+	  
+	legalMoves.pieceMoves[TheQueen] |
+
+	legalMoves.pieceMoves[TheKing] |
+
+	(BitBoardT)legalMoves.canCastleFlags;
+
+      return legalNonPromoMovesBb != BbNone || hasLegalPromoPieceMoves(board.state[(size_t)Color], legalMoves);
+    }
+
+    template <typename BoardT, ColorT Color>
+    inline int nLegalKingMoves(const BoardT& board) {
+      typedef typename MoveGen::LegalMovesImplType<BoardT>::LegalMovesT LegalMovesT;
+      
+      // Generate (legal) moves
+      const LegalMovesT legalMoves = MoveGen::genLegalMoves<BoardT, Color>(board);
+
+      return Bits::count(legalMoves.pieceMoves[TheKing]);
     }
     
     template <typename BoardT>

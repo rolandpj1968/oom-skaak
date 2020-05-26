@@ -27,16 +27,12 @@ namespace Chess {
       u64 castles;
       u64 promos;
       u64 checks;
-      // Note that 'discoverychecks' here includes checks delivered by castling, which is contraversial.
+      // Note that 'discoverychecks' here includes checks delivered by castling, which is controversial.
       // According to stats from: https://www.chessprogramming.org/Perft_Results
       // Would probably be better to separate this out into real discoveries and checks-from-castling
       u64 discoverychecks;
       u64 doublechecks;
       u64 checkmates;
-
-      u64 pawndirectchecks;
-      u64 kingmovefromchecks;
-      u64 threekingmovesfromchecks;
     };
 
     inline void addAll(PerftStatsT& to, const PerftStatsT& from) {
@@ -84,7 +80,7 @@ namespace Chess {
       typedef PerftCountHandlerT<typename BoardType<BoardT>::WithPromosT, Color> WithPromosT;
       typedef PerftCountHandlerT<typename BoardType<BoardT>::WithoutPromosT, Color> WithoutPromosT;
       
-      inline static void handleCount(PerftStatsT& stats, const u64 nodes, u64 captures, u64 eps, u64 castles, u64 promos, u64 checks, u64 discoverychecks, u64 doublechecks) {
+      inline static void handleCount(PerftStatsT& stats, const u64 nodes, u64 captures, u64 eps, u64 castles, u64 promos, u64 checks, u64 discoverychecks, u64 doublechecks, u64 checkmates) {
 	stats.nodes += nodes;
 	stats.captures += captures;
 	stats.eps += eps;
@@ -93,80 +89,20 @@ namespace Chess {
 	stats.checks += checks;
 	stats.discoverychecks += discoverychecks;
 	stats.doublechecks += doublechecks;
+	stats.checkmates += checkmates;
       }
     };
 
-    inline bool hasLegalPromoPieceMoves(const BasicColorStateImplT& colorState, const typename MoveGen::LegalMovesImplType<BasicBoardT>::LegalMovesT& legalMoves) {
-      return false; // no promo pieces
-    }
-    
-    inline bool hasLegalPromoPieceMoves(const FullColorStateImplT& colorState, const typename MoveGen::LegalMovesImplType<FullBoardT>::LegalMovesT& legalMoves) {
-      BitBoardT activePromos = (BitBoardT)colorState.promos.activePromos;
-      while(activePromos) {
-	const int promoIndex = Bits::popLsb(activePromos);
-	if(legalMoves.promoPieceMoves[promoIndex] != BbNone) {
-	  return true;
-	}
-      }
-      return false;
-    }
-    
-    template <typename BoardT, ColorT Color>
-    inline bool hasLegalMoves(const BoardT& board) {
-      typedef typename MoveGen::LegalMovesImplType<BoardT>::LegalMovesT LegalMovesT;
-      
-      // Generate (legal) moves
-      const LegalMovesT legalMoves = MoveGen::genLegalMoves<BoardT, Color>(board);
-
-      // Are there any?
-      const BitBoardT legalNonPromoMovesBb =
-	  
-	legalMoves.pawnMoves.pushesOneBb | legalMoves.pawnMoves.pushesTwoBb |
-	legalMoves.pawnMoves.capturesLeftBb | legalMoves.pawnMoves.capturesRightBb |
-	legalMoves.pawnMoves.epCaptures.epLeftCaptureBb | legalMoves.pawnMoves.epCaptures.epRightCaptureBb |
-
-	legalMoves.pieceMoves[Knight1] |
-	legalMoves.pieceMoves[Knight2] |
-	  
-	legalMoves.pieceMoves[Bishop1] |
-	legalMoves.pieceMoves[Bishop2] |
-	  
-	legalMoves.pieceMoves[Rook1] |
-	legalMoves.pieceMoves[Rook2] |
-	  
-	legalMoves.pieceMoves[TheQueen] |
-
-	legalMoves.pieceMoves[TheKing] |
-
-	(BitBoardT)legalMoves.canCastleFlags;
-
-      return legalNonPromoMovesBb != BbNone || hasLegalPromoPieceMoves(board.state[(size_t)Color], legalMoves);
-    }
-
-    template <typename BoardT, ColorT Color>
-    inline int nLegalKingMoves(const BoardT& board) {
-      typedef typename MoveGen::LegalMovesImplType<BoardT>::LegalMovesT LegalMovesT;
-      
-      // Generate (legal) moves
-      const LegalMovesT legalMoves = MoveGen::genLegalMoves<BoardT, Color>(board);
-
-      return Bits::count(legalMoves.pieceMoves[TheKing]);
-    }
-    
     template <typename BoardT, ColorT Color>
     inline void perft0Impl(PerftStatsT& stats, const BoardT& board, const MoveInfoT moveInfo) {
       stats.nodes++;
 
       if(moveInfo.moveType == CaptureMove) {
 	stats.captures++;
-      }
-
-      if(moveInfo.moveType == EpCaptureMove) {
+      } else if(moveInfo.moveType == EpCaptureMove) {
 	stats.captures++;
 	stats.eps++;
-      }
-
-      if(moveInfo.moveType == CastlingMove) {
+      } else if(moveInfo.moveType == CastlingMove) {
 	stats.castles++;
       }
 
@@ -176,10 +112,8 @@ namespace Chess {
 
       if(moveInfo.isDirectCheck) {
 	stats.checks++;
-	if(moveInfo.pieceType == Pawn) {
-	  stats.pawndirectchecks++;
-	}
       }
+      
       if(moveInfo.isDiscoveredCheck) {
 	// Double checks are counted independently of discoveries
 	if(moveInfo.isDirectCheck) {
@@ -193,18 +127,9 @@ namespace Chess {
       static const bool DoCheckMateStats = true;
       if(DoCheckMateStats) {
 	if(moveInfo.isDirectCheck || moveInfo.isDiscoveredCheck) {
-	  // Only bother if it is check
 	  // It's checkmate if there are no legal moves
-	  if(!hasLegalMoves<BoardT, Color>(board)) {
+	  if(!BoardUtils::hasLegalMoves<BoardT, Color>(board)) {
 	    stats.checkmates++;
-	  } else {
-	    const int nKingMoves = nLegalKingMoves<BoardT, Color>(board);
-	    if(nKingMoves != 0) {
-	      stats.kingmovefromchecks++;
-	      if(nKingMoves >= 3) {
-		stats.threekingmovesfromchecks++;
-	      }
-	    }
 	  }
 	}
       }

@@ -420,8 +420,10 @@ namespace Chess {
       const int checks = pawnPushesChecksCount + pawnCapturesLeftChecksCount + pawnCapturesRightChecksCount + epLeftChecksCount + epRightChecksCount;
       const int discoverychecks = pawnPushesDiscoveryChecksCount + pawnCapturesLeftDiscoveredChecksCount + pawnCapturesRightDiscoveredChecksCount + epLeftDiscoveredChecksCount + epRightDiscoveredChecksCount;
       const int doublechecks = pawnCapturesLeftDoubleChecksCount + pawnCapturesRightDoubleChecksCount + epLeftDoubleChecksCount + epRightDoubleChecksCount;
+
+      const int checkmates = 0;
       
-      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks);
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks, checkmates);
     }
     
     template <typename StateT, typename PosHandlerT, typename BoardT, ColorT Color>
@@ -559,6 +561,7 @@ namespace Chess {
       int checks = 0;
       int discoverychecks = 0;
       int doublechecks = 0;
+      int checkmates = 0;
 
       const SquareT yourKingSq = board.state[(size_t)OtherColorT<Color>::value].basic.pieceSquares[TheKing];
       
@@ -577,7 +580,7 @@ namespace Chess {
 	calculatePromoChecks<Color, PawnPromoCaptureRightDir>(pawnCapturesRightBb, rightDiscoveriesBb, yourKingSq, yourKingRookAttacksBb, yourKingBishopAttacksBb, checks, discoverychecks, doublechecks);
       }
 
-      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks);
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks, checkmates);
     }
     
     //
@@ -673,6 +676,21 @@ namespace Chess {
       handlePieceMoves<StateT, PosHandlerT, BoardT, Color, PieceCaptureFn, CaptureMove, Piece>(state, board, yourPieceMap, from, pieceNonPromoCapturesBb, directChecksBb, isDiscoveredCheck);
     }
 
+    template <typename BoardT, ColorT Color, typename PieceMoveFn>
+    inline int countPieceMoveCheckmates(const BoardT& board, const typename PieceMoveFn::PieceMapImplT& yourPieceMap, const SquareT from, BitBoardT toBb) {
+      int checkmates = 0;
+      
+      while(toBb) {
+	const SquareT to = Bits::popLsb(toBb);
+
+	const BoardT newBoard = PieceMoveFn::fn(board, yourPieceMap, from, to);
+
+	checkmates += !BoardUtils::hasLegalMoves<BoardT, OtherColorT<Color>::value>(newBoard);
+      }
+
+      return checkmates;
+    }
+    
     // Count piece moves and send them to CountHandlerT
     template <typename StateT, typename CountHandlerT, typename BoardT, ColorT Color, PieceT Piece>
     inline void handlePieceMoves(const CountTag&, StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const BitBoardT movesBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb, const BitBoardT allYourPiecesBb) {
@@ -687,7 +705,8 @@ namespace Chess {
       const int castles = 0;
       const int promos = 0;
 
-      const int directchecks = Bits::count(movesBb & directChecksBb);
+      const BitBoardT directCheckMovesBb = movesBb & directChecksBb;
+      const int directchecks = Bits::count(directCheckMovesBb);
       
       const ColorStateT& myState = board.state[(size_t)Color];
       const SquareT from = myState.basic.pieceSquares[Piece];
@@ -697,7 +716,31 @@ namespace Chess {
       const int doublechecks = discoveries == 0 ? 0 : directchecks;
       const int discoverychecks = discoveries - doublechecks;
 
-      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks);
+      int checkmates = 0;
+
+      if(checks != 0) {
+	const BitBoardT checkMovesBb = discoveries == 0 ? directCheckMovesBb : movesBb;
+	printf("Got %d checks\n", checks);
+	BoardUtils::printBb(checkMovesBb);
+
+	const BitBoardT checkPushesBb = checkMovesBb & ~allYourPiecesBb;
+	// (Non-promo-)piece pushes
+	typedef PieceMoveFn<BoardT, Color, Piece, PiecePush, NoPieceMapT> PiecePushFn;
+	checkmates += countPieceMoveCheckmates<BoardT, Color, PiecePushFn>(board, NoPieceMapT(), from, checkPushesBb);
+	printf("checkmates = %d\n", checkmates);
+	
+	const BitBoardT checkCapturesBb = checkMovesBb & allYourPiecesBb;
+	
+	// (Non-promo-)piece captures of promo pieces
+	const BitBoardT checkNonPromoCapturesBb = checkCapturesBb; //countPiecePromoCaptureCheckmates<StateT, Color, Piece>(state, board, yourPieceMap, from, pieceCapturesBb, directChecksBb, isDiscoveredCheck, checkmates);
+	
+	// (Non-promo-)piece captures of non-promo pieces
+	typedef PieceMoveFn<BoardT, Color, Piece, PieceCapture, ColorPieceMapT> PieceCaptureFn;
+	checkmates += countPieceMoveCheckmates<BoardT, Color, PieceCaptureFn>(board, yourPieceMap, from, checkNonPromoCapturesBb);
+	printf("checkmates = %d\n", checkmates);
+      }
+
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks, checkmates);
     }
     
     //
@@ -815,8 +858,9 @@ namespace Chess {
       const int discoverychecks = (fromBb & discoveriesBb) == BbNone ? 0 : Bits::count(movesBb & ~yourKingRaysBb);
       const int checks = discoverychecks;
       const int doublechecks = 0;
+      const int checkmates = 0;
       
-      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks);
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks, checkmates);
     }
     
     //
@@ -911,8 +955,9 @@ namespace Chess {
       const int checks = discoveries == 0 ? directchecks : discoveries;
       const int doublechecks = discoveries == 0 ? 0 : directchecks;
       const int discoverychecks = discoveries - doublechecks;
+      const int checkmates = 0;
       
-      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks);
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks, checkmates);
     }
     
     //
@@ -940,8 +985,17 @@ namespace Chess {
       const int checks = (int)isDiscoveredCheck;
       const int discoverychecks = checks;
       const int doublechecks = 0;
+      int checkmates = 0;
       
-      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks);
+      if(isDiscoveredCheck) {
+	const BoardT newBoard1 = pushPiece<BoardT, Color, TheKing>(board, MoveGen::CastlingTraitsT<Color, CastlingRight>::KingFrom, MoveGen::CastlingTraitsT<Color, CastlingRight>::KingTo);
+	const BoardT newBoard = pushPiece<BoardT, Color, MoveGen::CastlingTraitsT<Color, CastlingRight>::TheRook>(newBoard1, MoveGen::CastlingTraitsT<Color, CastlingRight>::RookFrom, MoveGen::CastlingTraitsT<Color, CastlingRight>::RookTo);
+
+	// It's checkmate if there are no legal moves
+	checkmates = (int) !BoardUtils::hasLegalMoves<BoardT, OtherColorT<Color>::value>(newBoard);
+      }
+      
+      CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks, checkmates);
     }
     
     template <typename BoardT>
