@@ -387,6 +387,24 @@ namespace Chess {
       return checkmates;
     }
 
+    template <typename BoardT, ColorT Color, typename To2FromFn>
+    inline int countPawnEpCaptureCheckmates(const BoardT& board, BitBoardT pawnsEpCaptureBb) {
+      int checkmates = 0;
+      
+      // There can be only 1 en-passant capture, so no need to loop
+      if(pawnsEpCaptureBb) {
+	const SquareT to = Bits::lsb(pawnsEpCaptureBb);
+	const SquareT from = To2FromFn::fn(to);
+	const SquareT captureSq = MoveGen::pawnPushOneTo2From<Color>(to);
+
+	const BoardT newBoard = captureEp<BoardT, Color>(board, from, to, captureSq);
+	
+	checkmates += !BoardUtils::hasLegalMoves<BoardT, OtherColorT<Color>::value>(newBoard);
+      }
+
+      return checkmates;
+    }
+
     template <typename StateT, typename CountHandlerT, typename BoardT, ColorT Color>
     inline void handlePawnNonPromoMoves(const CountTag&, StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const MoveGen::PawnPushesAndCapturesT& pawnMoves, const BitBoardT directChecksBb, const BitBoardT pushDiscoveriesBb, const BitBoardT leftDiscoveriesBb, const BitBoardT rightDiscoveriesBb, const bool isLeftEpDiscovery, const bool isRightEpDiscovery) {
       const BitBoardT pawnPushesOneBb = pawnMoves.pushesOneBb & ~LastRankBbT<Color>::LastRankBb;
@@ -457,10 +475,12 @@ namespace Chess {
       // EP check left
 
       const BitBoardT epLeftCaptureBb = pawnMoves.epCaptures.epLeftCaptureBb;
-      const int epLeftDirectChecksCount = (epLeftCaptureBb & directChecksBb) == BbNone ? 0 : 1;
+      const BitBoardT epLeftDirectChecksBb = epLeftCaptureBb & directChecksBb;
+      const int epLeftDirectChecksCount = (int)(epLeftDirectChecksBb != BbNone);
 
       const BitBoardT epLeftCaptureFromBb = pawnsLeftAttacksTo2FromBb<Color>(epLeftCaptureBb);
-      const int epLeftDiscoveriesCount = (int)((epLeftCaptureBb != BbNone) && (isLeftEpDiscovery || (epLeftCaptureFromBb & leftDiscoveriesBb) != BbNone));
+      const BitBoardT epLeftDiscoveriesFromBb = isLeftEpDiscovery ? epLeftCaptureFromBb : (epLeftCaptureFromBb & leftDiscoveriesBb);
+      const int epLeftDiscoveriesCount = (int)(epLeftCaptureFromBb != BbNone);
 
       const int epLeftDoubleChecksCount = epLeftDirectChecksCount & epLeftDiscoveriesCount;
 
@@ -518,6 +538,8 @@ namespace Chess {
 
 	// EP check left
 	if(epLeftChecksCount != 0) {
+	  const BitBoardT epLeftChecksBb = epLeftDirectChecksBb | MoveGen::pawnsLeftAttacks<Color>(epLeftDiscoveriesFromBb);
+	  checkmates += countPawnEpCaptureCheckmates< BoardT, Color, PawnAttackLeftTo2FromFn<Color>>(board, epLeftChecksBb);
 	}
 
 	// EP check right
