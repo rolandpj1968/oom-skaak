@@ -342,6 +342,51 @@ namespace Chess {
       return checkmates;
     }
     
+    template <typename BoardT, ColorT Color, typename To2FromFn, typename PawnMoveFn>
+    inline int countPawnsMoveCheckmates(const BoardT& board, const typename PawnMoveFn::PieceMapImplT& yourPieceMap, BitBoardT pawnsMoveBb) {
+      int checkmates = 0;
+      
+      while(pawnsMoveBb) {
+	const SquareT to = Bits::popLsb(pawnsMoveBb);
+	const SquareT from = To2FromFn::fn(to);
+
+	const BoardT newBoard = PawnMoveFn::fn(board, yourPieceMap, from, to);
+	
+	checkmates += !BoardUtils::hasLegalMoves<BoardT, OtherColorT<Color>::value>(newBoard);
+      }
+
+      return checkmates;
+    }
+    
+    template <ColorT Color, typename To2FromFn>
+    inline BitBoardT countPawnsNonPromoCaptureOfPromosCheckmates(const BasicBoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureBb, int& checkmates) {
+      // No promos
+      return pawnsCaptureBb;
+    }
+
+    template <ColorT Color, typename To2FromFn>
+    inline BitBoardT countPawnsNonPromoCaptureOfPromosCheckmates(const FullBoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureBb, int& checkmates) {
+      BitBoardT promoPieceCapturesBb = pawnsCaptureBb & yourPieceMap.allPromoPiecesBb;
+	
+      typedef PawnMoveFn<FullBoardT, Color, PawnPromoCapture, ColorPieceMapT> PawnPromoCaptureFn;
+      checkmates += countPawnsMoveCheckmates<FullBoardT, Color, To2FromFn, PawnPromoCaptureFn>(board, yourPieceMap, promoPieceCapturesBb);
+	
+      return pawnsCaptureBb & ~promoPieceCapturesBb;
+    }
+
+    template <typename BoardT, ColorT Color, typename To2FromFn>
+    inline int countPawnsNonPromoCaptureCheckmates(const BoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureBb) {
+      int checkmates = 0;
+      
+      const BitBoardT pawnsCaptureOfNonPromosBb = countPawnsNonPromoCaptureOfPromosCheckmates<Color, To2FromFn>(board, yourPieceMap, pawnsCaptureBb, checkmates);
+
+      // (Non-promo-piece) capture (without pawn promo)
+      typedef PawnMoveFn<BoardT, Color, PawnCapture, ColorPieceMapT> PawnCaptureFn;
+      checkmates += countPawnsMoveCheckmates<BoardT, Color, To2FromFn, PawnCaptureFn>(board, yourPieceMap, pawnsCaptureOfNonPromosBb);
+
+      return checkmates;
+    }
+
     template <typename StateT, typename CountHandlerT, typename BoardT, ColorT Color>
     inline void handlePawnNonPromoMoves(const CountTag&, StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const MoveGen::PawnPushesAndCapturesT& pawnMoves, const BitBoardT directChecksBb, const BitBoardT pushDiscoveriesBb, const BitBoardT leftDiscoveriesBb, const BitBoardT rightDiscoveriesBb, const bool isLeftEpDiscovery, const bool isRightEpDiscovery) {
       const BitBoardT pawnPushesOneBb = pawnMoves.pushesOneBb & ~LastRankBbT<Color>::LastRankBb;
@@ -383,7 +428,8 @@ namespace Chess {
       const int pawnCapturesLeftDirectChecksCount = Bits::count(pawnCapturesLeftDirectChecksBb);
 
       const BitBoardT pawnCapturesLeftFromBb = pawnsLeftAttacksTo2FromBb<Color>(pawnCapturesLeftBb);
-      const int pawnCapturesLeftDiscoveriesCount = Bits::count(pawnCapturesLeftFromBb & leftDiscoveriesBb);
+      const BitBoardT pawnCapturesLeftDiscoveriesFromBb = pawnCapturesLeftFromBb & leftDiscoveriesBb;
+      const int pawnCapturesLeftDiscoveriesCount = Bits::count(pawnCapturesLeftDiscoveriesFromBb);
       
       const BitBoardT pawnCapturesLeftDoubleChecksFromBb = pawnsLeftAttacksTo2FromBb<Color>(pawnCapturesLeftDirectChecksBb) & leftDiscoveriesBb;
       const int pawnCapturesLeftDoubleChecksCount = Bits::count(pawnCapturesLeftDoubleChecksFromBb);
@@ -392,7 +438,7 @@ namespace Chess {
       const int pawnCapturesLeftChecksCount = pawnCapturesLeftDirectChecksCount + pawnCapturesLeftDiscoveredChecksCount;
 
       // Right-capture checks
-      
+
       const BitBoardT pawnCapturesRightDirectChecksBb = pawnCapturesRightBb & directChecksBb;
       const int pawnCapturesRightDirectChecksCount = Bits::count(pawnCapturesRightDirectChecksBb);
 
@@ -457,6 +503,8 @@ namespace Chess {
 
 	// Left-capture checks
 	if(pawnCapturesLeftChecksCount != 0) {
+	  const BitBoardT pawnCapturesLeftChecksBb = pawnCapturesLeftDirectChecksBb | MoveGen::pawnsLeftAttacks<Color>(pawnCapturesLeftDiscoveriesFromBb);
+	  checkmates += countPawnsNonPromoCaptureCheckmates<BoardT, Color, PawnAttackLeftTo2FromFn<Color>>(board, yourPieceMap, pawnCapturesLeftChecksBb);
 	}
 
 	// Right-capture checks
