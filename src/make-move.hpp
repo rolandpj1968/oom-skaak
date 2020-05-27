@@ -480,7 +480,7 @@ namespace Chess {
 
       const BitBoardT epLeftCaptureFromBb = pawnsLeftAttacksTo2FromBb<Color>(epLeftCaptureBb);
       const BitBoardT epLeftDiscoveriesFromBb = isLeftEpDiscovery ? epLeftCaptureFromBb : (epLeftCaptureFromBb & leftDiscoveriesBb);
-      const int epLeftDiscoveriesCount = (int)(epLeftCaptureFromBb != BbNone);
+      const int epLeftDiscoveriesCount = (int)(epLeftDiscoveriesFromBb != BbNone);
 
       const int epLeftDoubleChecksCount = epLeftDirectChecksCount & epLeftDiscoveriesCount;
 
@@ -495,7 +495,7 @@ namespace Chess {
 
       const BitBoardT epRightCaptureFromBb = pawnsRightAttacksTo2FromBb<Color>(epRightCaptureBb);
       const BitBoardT epRightDiscoveriesFromBb = isRightEpDiscovery ? epRightCaptureFromBb : (epRightCaptureFromBb & rightDiscoveriesBb);
-      const int epRightDiscoveriesCount = (int)(epRightCaptureFromBb != BbNone);
+      const int epRightDiscoveriesCount = (int)(epRightDiscoveriesFromBb != BbNone);
 
       const int epRightDoubleChecksCount = epRightDirectChecksCount & epRightDiscoveriesCount;
 
