@@ -326,10 +326,26 @@ namespace Chess {
       return pushesTwoBb << 16;
     }
 
+    template <typename BoardT, ColorT Color, typename To2FromFn, bool IsPushTwo>
+    inline int countPawnsNonPromoPushCheckmates(const BoardT& board, BitBoardT pawnsPushBb) {
+      int checkmates = 0;
+      
+      while(pawnsPushBb) {
+	const SquareT to = Bits::popLsb(pawnsPushBb);
+	const SquareT from = To2FromFn::fn(to);
+
+	const BoardT newBoard = pushPawn<BoardT, Color, IsPushTwo>(board, from, to);
+
+	checkmates += !BoardUtils::hasLegalMoves<BoardT, OtherColorT<Color>::value>(newBoard);
+      }
+
+      return checkmates;
+    }
+    
     template <typename StateT, typename CountHandlerT, typename BoardT, ColorT Color>
     inline void handlePawnNonPromoMoves(const CountTag&, StateT state, const BoardT& board, const ColorPieceMapT& yourPieceMap, const MoveGen::PawnPushesAndCapturesT& pawnMoves, const BitBoardT directChecksBb, const BitBoardT pushDiscoveriesBb, const BitBoardT leftDiscoveriesBb, const BitBoardT rightDiscoveriesBb, const bool isLeftEpDiscovery, const bool isRightEpDiscovery) {
       const BitBoardT pawnPushesOneBb = pawnMoves.pushesOneBb & ~LastRankBbT<Color>::LastRankBb;
-      const BitBoardT pawnPushesTwoBb = pawnMoves.pushesTwoBb & ~LastRankBbT<Color>::LastRankBb;
+      const BitBoardT pawnPushesTwoBb = pawnMoves.pushesTwoBb; // pawn push two is never a promotion
       
       const BitBoardT pawnPushesBb = pawnPushesOneBb | pawnPushesTwoBb;
       const int pawnPushesCount = Bits::count(pawnPushesBb);
@@ -421,7 +437,41 @@ namespace Chess {
       const int discoverychecks = pawnPushesDiscoveryChecksCount + pawnCapturesLeftDiscoveredChecksCount + pawnCapturesRightDiscoveredChecksCount + epLeftDiscoveredChecksCount + epRightDiscoveredChecksCount;
       const int doublechecks = pawnCapturesLeftDoubleChecksCount + pawnCapturesRightDoubleChecksCount + epLeftDoubleChecksCount + epRightDoubleChecksCount;
 
-      const int checkmates = 0;
+      int checkmates = 0;
+
+      // Seldom taken
+      if(checks != 0) {
+	// Push checks
+	if(pawnPushesChecksCount != 0) {
+	  // Push one checks
+	  const BitBoardT pawnPushesOneChecksBb = pawnPushesOneBb & directChecksBb;
+	  if(pawnPushesOneChecksBb != BbNone) {
+	    checkmates += countPawnsNonPromoPushCheckmates<BoardT, Color, MoveGen::PawnPushOneTo2FromFn<Color>, /*IsPushTwo =*/false>(board, pawnPushesOneChecksBb);
+	  }
+
+	  const BitBoardT pawnPushesTwoChecksBb = pawnPushesTwoBb & directChecksBb;
+	  if(pawnPushesTwoChecksBb != BbNone) {
+	    checkmates += countPawnsNonPromoPushCheckmates<BoardT, Color, MoveGen::PawnPushTwoTo2FromFn<Color>, /*IsPushTwo =*/true>(board, pawnPushesTwoChecksBb);
+	  }
+	}
+
+	// Left-capture checks
+	if(pawnCapturesLeftChecksCount != 0) {
+	}
+
+	// Right-capture checks
+	if(pawnCapturesRightChecksCount != 0) {
+	}
+
+	// EP check left
+	if(epLeftChecksCount != 0) {
+	}
+
+	// EP check right
+	if(epRightChecksCount != 0) {
+	}
+	
+      }
       
       CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks, checkmates);
     }
