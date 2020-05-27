@@ -490,10 +490,12 @@ namespace Chess {
       // EP check right
 
       const BitBoardT epRightCaptureBb = pawnMoves.epCaptures.epRightCaptureBb;
-      const int epRightDirectChecksCount = (epRightCaptureBb & directChecksBb) == BbNone ? 0 : 1;
+      const BitBoardT epRightDirectChecksBb = epRightCaptureBb & directChecksBb;
+      const int epRightDirectChecksCount = (int)(epRightDirectChecksBb != BbNone);
 
       const BitBoardT epRightCaptureFromBb = pawnsRightAttacksTo2FromBb<Color>(epRightCaptureBb);
-      const int epRightDiscoveriesCount = (int)((epRightCaptureBb != BbNone) && (isRightEpDiscovery || (epRightCaptureFromBb & rightDiscoveriesBb) != BbNone));
+      const BitBoardT epRightDiscoveriesFromBb = isRightEpDiscovery ? epRightCaptureFromBb : (epRightCaptureFromBb & rightDiscoveriesBb);
+      const int epRightDiscoveriesCount = (int)(epRightCaptureFromBb != BbNone);
 
       const int epRightDoubleChecksCount = epRightDirectChecksCount & epRightDiscoveriesCount;
 
@@ -544,8 +546,9 @@ namespace Chess {
 
 	// EP check right
 	if(epRightChecksCount != 0) {
+	  const BitBoardT epRightChecksBb = epRightDirectChecksBb | MoveGen::pawnsRightAttacks<Color>(epRightDiscoveriesFromBb);
+	  checkmates += countPawnEpCaptureCheckmates< BoardT, Color, PawnAttackRightTo2FromFn<Color>>(board, epRightChecksBb);
 	}
-	
       }
       
       CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks, checkmates);
