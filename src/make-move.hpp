@@ -351,7 +351,7 @@ namespace Chess {
 	const SquareT from = To2FromFn::fn(to);
 
 	const BoardT newBoard = PawnMoveFn::fn(board, yourPieceMap, from, to);
-	
+
 	checkmates += !BoardUtils::hasLegalMoves<BoardT, OtherColorT<Color>::value>(newBoard);
       }
 
@@ -414,10 +414,12 @@ namespace Chess {
       const int pawnPushesDirectCheckCount = Bits::count(pawnPushesBb & directChecksBb);
 
       const BitBoardT pawnPushesOneFromBb = pawnsPushOneTo2FromBb<Color>(pawnPushesOneBb);
-      const int pawnPushesOneDiscoveriesCount = Bits::count(pawnPushesOneFromBb & pushDiscoveriesBb);
+      const BitBoardT pawnPushesOneDiscoveriesFromBb = pawnPushesOneFromBb & pushDiscoveriesBb;
+      const int pawnPushesOneDiscoveriesCount = Bits::count(pawnPushesOneDiscoveriesFromBb);
 
       const BitBoardT pawnPushesTwoFromBb = pawnsPushTwoTo2FromBb<Color>(pawnPushesTwoBb);
-      const int pawnPushesTwoDiscoveriesCount = Bits::count(pawnPushesTwoFromBb & pushDiscoveriesBb);
+      const BitBoardT pawnPushesTwoDiscoveriesFromBb = pawnPushesTwoFromBb & pushDiscoveriesBb;
+      const int pawnPushesTwoDiscoveriesCount = Bits::count(pawnPushesTwoDiscoveriesFromBb);
 
       const int pawnPushesDiscoveryChecksCount = pawnPushesOneDiscoveriesCount + pawnPushesTwoDiscoveriesCount;
       const int pawnPushesChecksCount = pawnPushesDirectCheckCount + pawnPushesDiscoveryChecksCount; // pawn push is never double check
@@ -443,7 +445,8 @@ namespace Chess {
       const int pawnCapturesRightDirectChecksCount = Bits::count(pawnCapturesRightDirectChecksBb);
 
       const BitBoardT pawnCapturesRightFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnCapturesRightBb);
-      const int pawnCapturesRightDiscoveriesCount = Bits::count(pawnCapturesRightFromBb & rightDiscoveriesBb);
+      const BitBoardT pawnCapturesRightDiscoveriesFromBb = pawnCapturesRightFromBb & rightDiscoveriesBb;
+      const int pawnCapturesRightDiscoveriesCount = Bits::count(pawnCapturesRightDiscoveriesFromBb);
       
       const BitBoardT pawnCapturesRightDoubleChecksFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnCapturesRightDirectChecksBb) & rightDiscoveriesBb;
       const int pawnCapturesRightDoubleChecksCount = Bits::count(pawnCapturesRightDoubleChecksFromBb);
@@ -490,12 +493,12 @@ namespace Chess {
 	// Push checks
 	if(pawnPushesChecksCount != 0) {
 	  // Push one checks
-	  const BitBoardT pawnPushesOneChecksBb = pawnPushesOneBb & directChecksBb;
+	  const BitBoardT pawnPushesOneChecksBb = (pawnPushesOneBb & directChecksBb) | MoveGen::pawnsPushOne<Color>(pawnPushesOneDiscoveriesFromBb, BbNone);
 	  if(pawnPushesOneChecksBb != BbNone) {
 	    checkmates += countPawnsNonPromoPushCheckmates<BoardT, Color, MoveGen::PawnPushOneTo2FromFn<Color>, /*IsPushTwo =*/false>(board, pawnPushesOneChecksBb);
 	  }
 
-	  const BitBoardT pawnPushesTwoChecksBb = pawnPushesTwoBb & directChecksBb;
+	  const BitBoardT pawnPushesTwoChecksBb = (pawnPushesTwoBb & directChecksBb) | MoveGen::pawnsPushOne<Color>(MoveGen::pawnsPushOne<Color>(pawnPushesTwoDiscoveriesFromBb, BbNone), BbNone);
 	  if(pawnPushesTwoChecksBb != BbNone) {
 	    checkmates += countPawnsNonPromoPushCheckmates<BoardT, Color, MoveGen::PawnPushTwoTo2FromFn<Color>, /*IsPushTwo =*/true>(board, pawnPushesTwoChecksBb);
 	  }
@@ -509,6 +512,8 @@ namespace Chess {
 
 	// Right-capture checks
 	if(pawnCapturesRightChecksCount != 0) {
+	  const BitBoardT pawnCapturesRightChecksBb = pawnCapturesRightDirectChecksBb | MoveGen::pawnsRightAttacks<Color>(pawnCapturesRightDiscoveriesFromBb);
+	  checkmates += countPawnsNonPromoCaptureCheckmates<BoardT, Color, PawnAttackRightTo2FromFn<Color>>(board, yourPieceMap, pawnCapturesRightChecksBb);
 	}
 
 	// EP check left
