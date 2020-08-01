@@ -278,7 +278,7 @@ namespace Chess {
     }
 
     template <typename BoardT, ColorT Color>
-    inline bool hasLegalKingMoves(const BoardT& board/*, const bool debug = false*/) {
+    inline bool hasLegalKingMoves(const BoardT& board, const bool debug = false) {
       typedef typename BoardT::ColorStateT ColorStateT;
       
       typedef typename MoveGen::PieceBbsImplType<BoardT>::PieceBbsT PieceBbsT;
@@ -309,16 +309,16 @@ namespace Chess {
 
       const BitBoardT myLegalKingMovesBb = MoveGen::KingAttacks[myKingSq] & ~allMyPiecesBb & ~yourAttackBbs.allAttacksBb;
 
-      // if(debug) {
-      // 	printf("My king attacks:\n");
-      // 	BoardUtils::printBb(MoveGen::KingAttacks[myKingSq]);
-      // 	printf("\nAll my pieces:\n");
-      // 	BoardUtils::printBb(allMyPiecesBb);
-      // 	printf("\nAll your attacks:\n");
-      // 	BoardUtils::printBb(yourAttackBbs.allAttacksBb);
-      // 	printf("\nLegal king moves\n:");
-      // 	BoardUtils::printBb(myLegalKingMovesBb);
-      // }
+      if(debug) {
+      	printf("My king attacks:\n");
+      	BoardUtils::printBb(MoveGen::KingAttacks[myKingSq]);
+      	printf("\nAll my pieces:\n");
+      	BoardUtils::printBb(allMyPiecesBb);
+      	printf("\nAll your attacks:\n");
+      	BoardUtils::printBb(yourAttackBbs.allAttacksBb);
+      	printf("\nLegal king moves\n:");
+      	BoardUtils::printBb(myLegalKingMovesBb);
+      }
 
       return myLegalKingMovesBb != BbNone;
     }
@@ -327,22 +327,22 @@ namespace Chess {
     template <typename BoardT, ColorT Color>
     inline bool hasLegalMoves(const BoardT& board) {
       const bool hasKingMoves = hasLegalKingMoves<BoardT, Color>(board);
-      if(hasKingMoves) {
-	return true;
-      }
+      // if(hasKingMoves) {
+      // 	return true;
+      // }
       
       const bool hasMoves = hasLegalMovesSlow<BoardT, Color>(board);
 
-      // if(hasKingMoves && !hasMoves) {
-      // 	static bool done = false;
-      // 	if(!done) {
-      // 	  printf("Booooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo\n");
-      // 	  BoardUtils::printBoard(board);
-      // 	  printf("\n");
-      // 	  hasLegalKingMoves<BoardT, Color>(board, true);
-      // 	  done = true;
-      // 	}
-      // }
+      if(hasKingMoves && !hasMoves) {
+      	static bool done = false;
+      	if(!done) {
+      	  printf("Booooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo\n");
+      	  BoardUtils::printBoard(board);
+      	  printf("\n");
+      	  hasLegalKingMoves<BoardT, Color>(board, true);
+      	  done = true;
+      	}
+      }
 
       return hasMoves;
     }
