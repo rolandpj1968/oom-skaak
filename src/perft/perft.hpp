@@ -33,6 +33,15 @@ namespace Chess {
       u64 discoverychecks;
       u64 doublechecks;
       u64 checkmates;
+
+      u64 directonlybackrankchecks;
+      u64 directonlybackrankchecksbishops;
+      u64 directonlybackrankchecksrooks;
+      u64 directonlybackrankchecksqueendiags;
+      u64 directonlybackrankchecksqueenorthogs;
+      u64 directonlybackrankchecksknights;
+      u64 directonlybackrankchecksleftdiags;
+      u64 directonlybackrankchecksrightdiags;
     };
 
     inline void addAll(PerftStatsT& to, const PerftStatsT& from) {
@@ -112,6 +121,34 @@ namespace Chess {
 
       if(moveInfo.isDirectCheck) {
 	stats.checks++;
+	if(!moveInfo.isDiscoveredCheck) {
+	  // static int nChecksDumped = 0;
+	  // if(nChecksDumped < 0) {
+	  //   printf("\nCheck - last move %s-%s %c:\n\n", SquareStr[moveInfo.from], SquareStr[moveInfo.to], BoardUtils::PieceChar[(size_t)OtherColorT<Color>::value][moveInfo.pieceType]);
+	  //   BoardUtils::printBoard(board);
+	  //   printf("\n");
+	  //   nChecksDumped++;
+	  // }
+	  typedef typename BoardT::ColorStateT ColorStateT;
+	  const ColorStateT& myState = board.state[(size_t)Color];
+	  const SquareT myKingSq = myState.basic.pieceSquares[TheKing];
+	  if(rankOf(myKingSq) == (Color == White ? 0 : 7)) {
+	    stats.directonlybackrankchecks++;
+	    if(moveInfo.pieceType == Bishop) {
+	      stats.directonlybackrankchecksbishops++;
+	    } else if(moveInfo.pieceType == Rook) {
+	      stats.directonlybackrankchecksrooks++;
+	    } else if(moveInfo.pieceType == Queen) {
+	      if(fileOf(moveInfo.to) == fileOf(myKingSq)) {
+		stats.directonlybackrankchecksqueenorthogs++;
+	      } else {
+		stats.directonlybackrankchecksqueendiags++;
+	      }
+	    } else if(moveInfo.pieceType == Knight) {
+	      stats.directonlybackrankchecksknights++;
+	    } 
+	  }
+	}
       }
       
       if(moveInfo.isDiscoveredCheck) {

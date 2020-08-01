@@ -10,6 +10,7 @@ using namespace Chess;
 
 void Perft::dumpStats(const Perft::PerftStatsT& stats) {
   printf("nodes = %lu, captures = %lu, eps = %lu, castles = %lu, promos = %lu, checks = %lu, discoveries = %lu, doublechecks = %lu, checkmates = %lu\n", stats.nodes, stats.captures, stats.eps, stats.castles, stats.promos, stats.checks, stats.discoverychecks, stats.doublechecks, stats.checkmates);
+  printf("directonlybackrankchecks = %lu, bishops = %lu, rooks = %lu, queen-diags = %lu, queen-orthogs = %lu, knights = %lu\n", stats.directonlybackrankchecks, stats.directonlybackrankchecksbishops, stats.directonlybackrankchecksrooks, stats.directonlybackrankchecksqueendiags, stats.directonlybackrankchecksqueenorthogs, stats.directonlybackrankchecksknights);
 }
 
 static void do_special_and_die(int depthToGo) {
