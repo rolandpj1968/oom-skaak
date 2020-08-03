@@ -4,7 +4,7 @@
 #include "types.hpp"
 #include "bits.hpp"
 #include "board.hpp"
-//#include "fen.hpp" // TODO get rid...
+#include "pawn-move.hpp"
 
 namespace Chess {
 
@@ -748,6 +748,11 @@ namespace Chess {
     };
 
     template <ColorT Color>
+    inline SquareT pawnPushOneFrom2To(const SquareT square);
+    template <> inline SquareT pawnPushOneFrom2To<White>(const SquareT square) { return square + 8; }
+    template <> inline SquareT pawnPushOneFrom2To<Black>(const SquareT square) { return square - 8; }
+    
+    template <ColorT Color>
     inline SquareT pawnPushTwoTo2From(const SquareT square);
     template <> inline SquareT pawnPushTwoTo2From<White>(const SquareT square) { return square - 16; }
     template <> inline SquareT pawnPushTwoTo2From<Black>(const SquareT square) { return square + 16; }
@@ -758,28 +763,38 @@ namespace Chess {
     };
 
     //
-    // Pawn move rules are specialised for White and Black respectively.
+    // Pawn move rules are color-specific.
     //
     
-    template <ColorT> BitBoardT pawnsLeftAttacks(const BitBoardT pawns);
-    template <ColorT> BitBoardT pawnsRightAttacks(const BitBoardT pawns);
-    template <ColorT> BitBoardT pawnsPushOne(const BitBoardT pawns, const BitBoardT allPiecesBb);
+    template <ColorT Color> BitBoardT pawnsLeftAttacks(const BitBoardT pawns) {
+      return PawnMove::from2ToBb<Color, PawnMove::AttackLeft>(pawns);
+    }
+    
+    template <ColorT Color> BitBoardT pawnsRightAttacks(const BitBoardT pawns) {
+      return PawnMove::from2ToBb<Color, PawnMove::AttackRight>(pawns);
+    }
+    
+    // template <ColorT> BitBoardT pawnsPushOne(const BitBoardT pawns, const BitBoardT allPiecesBb);
+    template <ColorT Color> BitBoardT pawnsPushOne(const BitBoardT pawns, const BitBoardT allPiecesBb) {
+      return PawnMove::from2ToBb<Color, PawnMove::PushOne>(pawns) & ~allPiecesBb;
+    }
+    
     template <ColorT> BitBoardT pawnsPushTwo(const BitBoardT pawnOneMoves, const BitBoardT allPiecesBb);
 
-    template <> inline BitBoardT pawnsLeftAttacks<White>(const BitBoardT pawns) {
-      // Pawns on file A can't take left.
-      return (pawns & ~FileA) << 7;
-    }
+    // template <> inline BitBoardT pawnsLeftAttacks<White>(const BitBoardT pawns) {
+    //   // Pawns on file A can't take left.
+    //   return (pawns & ~FileA) << 7;
+    // }
     
-    template <> inline BitBoardT pawnsRightAttacks<White>(const BitBoardT pawns) {
-      // Pawns on file H can't take right.
-      return (pawns & ~FileH) << 9;
-    }
+    // template <> inline BitBoardT pawnsRightAttacks<White>(const BitBoardT pawns) {
+    //   // Pawns on file H can't take right.
+    //   return (pawns & ~FileH) << 9;
+    // }
     
-    template <> inline BitBoardT pawnsPushOne<White>(const BitBoardT pawns, const BitBoardT allPiecesBb) {
-      // White pieces move up the board but are blocked by pieces of either color.
-      return (pawns << 8) & ~allPiecesBb;
-    }
+    // template <> inline BitBoardT pawnsPushOne<White>(const BitBoardT pawns, const BitBoardT allPiecesBb) {
+    //   // White pieces move up the board but are blocked by pieces of either color.
+    //   return (pawns << 8) & ~allPiecesBb;
+    // }
     
     template <> inline BitBoardT pawnsPushTwo<White>(const BitBoardT pawnOneMoves, const BitBoardT allPiecesBb) {
       // Pawns that can reach the 3rd rank after a single move can move to the 4th rank too,
@@ -787,20 +802,20 @@ namespace Chess {
       return ((pawnOneMoves & Rank3) << 8) & ~allPiecesBb;
     }
 
-    template <> inline BitBoardT pawnsLeftAttacks<Black>(const BitBoardT pawns) {
-      // Pawns on file A can't take left.
-      return (pawns & ~FileA) >> 9;
-    }
+    // template <> inline BitBoardT pawnsLeftAttacks<Black>(const BitBoardT pawns) {
+    //   // Pawns on file A can't take left.
+    //   return (pawns & ~FileA) >> 9;
+    // }
     
-    template <> inline BitBoardT pawnsRightAttacks<Black>(const BitBoardT pawns) {
-      // Pawns on file H can't take right.
-      return (pawns & ~FileH) >> 7;
-    }
+    // template <> inline BitBoardT pawnsRightAttacks<Black>(const BitBoardT pawns) {
+    //   // Pawns on file H can't take right.
+    //   return (pawns & ~FileH) >> 7;
+    // }
     
-    template <> inline BitBoardT pawnsPushOne<Black>(const BitBoardT pawns, const BitBoardT allPiecesBb) {
-      // Black pieces move downp the board but are blocked by pieces of any color.
-      return (pawns >> 8) & ~allPiecesBb;
-    }
+    // template <> inline BitBoardT pawnsPushOne<Black>(const BitBoardT pawns, const BitBoardT allPiecesBb) {
+    //   // Black pieces move downp the board but are blocked by pieces of any color.
+    //   return (pawns >> 8) & ~allPiecesBb;
+    // }
     
     template <> inline BitBoardT pawnsPushTwo<Black>(const BitBoardT pawnOneMoves, const BitBoardT allPiecesBb) {
       // Pawns that can reach the 6rd rank after a single move can move to the 5th rank too,
