@@ -5,6 +5,7 @@
 #include "board.hpp"
 #include "board-utils.hpp"
 #include "move-gen.hpp"
+#include "pawn-move.hpp"
 
 namespace Chess {
 
@@ -525,12 +526,12 @@ namespace Chess {
 	// Push checks
 	if(pawnPushesChecksCount != 0) {
 	  // Push one checks
-	  const BitBoardT pawnPushesOneChecksBb = (pawnPushesOneBb & directChecksBb) | MoveGen::pawnsPushOne<Color>(pawnPushesOneDiscoveriesFromBb, BbNone);
+	  const BitBoardT pawnPushesOneChecksBb = (pawnPushesOneBb & directChecksBb) | PawnMove::from2ToBb<Color, PawnMove::PushOne>(pawnPushesOneDiscoveriesFromBb);
 	  if(pawnPushesOneChecksBb != BbNone) {
 	    checkmates += countPawnsNonPromoPushCheckmates<BoardT, Color, MoveGen::PawnPushOneTo2FromFn<Color>, /*IsPushTwo =*/false>(board, pawnPushesOneChecksBb);
 	  }
 
-	  const BitBoardT pawnPushesTwoChecksBb = (pawnPushesTwoBb & directChecksBb) | MoveGen::pawnsPushOne<Color>(MoveGen::pawnsPushOne<Color>(pawnPushesTwoDiscoveriesFromBb, BbNone), BbNone);
+	  const BitBoardT pawnPushesTwoChecksBb = (pawnPushesTwoBb & directChecksBb) | PawnMove::from2ToBb<Color, PawnMove::PushOne>(PawnMove::from2ToBb<Color, PawnMove::PushOne>(pawnPushesTwoDiscoveriesFromBb));
 	  if(pawnPushesTwoChecksBb != BbNone) {
 	    checkmates += countPawnsNonPromoPushCheckmates<BoardT, Color, MoveGen::PawnPushTwoTo2FromFn<Color>, /*IsPushTwo =*/true>(board, pawnPushesTwoChecksBb);
 	  }
@@ -538,26 +539,26 @@ namespace Chess {
 
 	// Left-capture checks
 	if(pawnCapturesLeftChecksCount != 0) {
-	  const BitBoardT pawnCapturesLeftChecksBb = pawnCapturesLeftDirectChecksBb | MoveGen::pawnsLeftAttacks<Color>(pawnCapturesLeftDiscoveriesFromBb);
+	  const BitBoardT pawnCapturesLeftChecksBb = pawnCapturesLeftDirectChecksBb | PawnMove::from2ToBb<Color, PawnMove::AttackLeft>(pawnCapturesLeftDiscoveriesFromBb);
 	  checkmates += countPawnsNonPromoCaptureCheckmates<BoardT, Color, PawnAttackLeftTo2FromFn<Color>>(board, yourPieceMap, pawnCapturesLeftChecksBb);
 	}
 
 	// Right-capture checks
 	if(pawnCapturesRightChecksCount != 0) {
-	  const BitBoardT pawnCapturesRightChecksBb = pawnCapturesRightDirectChecksBb | MoveGen::pawnsRightAttacks<Color>(pawnCapturesRightDiscoveriesFromBb);
+	  const BitBoardT pawnCapturesRightChecksBb = pawnCapturesRightDirectChecksBb | PawnMove::from2ToBb<Color, PawnMove::AttackRight>(pawnCapturesRightDiscoveriesFromBb);
 	  checkmates += countPawnsNonPromoCaptureCheckmates<BoardT, Color, PawnAttackRightTo2FromFn<Color>>(board, yourPieceMap, pawnCapturesRightChecksBb);
 	}
 
 	// EP check left
 	if(epLeftChecksCount != 0) {
-	  const BitBoardT epLeftChecksBb = epLeftDirectChecksBb | MoveGen::pawnsLeftAttacks<Color>(epLeftDiscoveriesFromBb);
-	  checkmates += countPawnEpCaptureCheckmates< BoardT, Color, PawnAttackLeftTo2FromFn<Color>>(board, epLeftChecksBb);
+	  const BitBoardT epLeftChecksBb = epLeftDirectChecksBb | PawnMove::from2ToBb<Color, PawnMove::AttackLeft>(epLeftDiscoveriesFromBb);
+	  checkmates += countPawnEpCaptureCheckmates<BoardT, Color, PawnAttackLeftTo2FromFn<Color>>(board, epLeftChecksBb);
 	}
 
 	// EP check right
 	if(epRightChecksCount != 0) {
-	  const BitBoardT epRightChecksBb = epRightDirectChecksBb | MoveGen::pawnsRightAttacks<Color>(epRightDiscoveriesFromBb);
-	  checkmates += countPawnEpCaptureCheckmates< BoardT, Color, PawnAttackRightTo2FromFn<Color>>(board, epRightChecksBb);
+	  const BitBoardT epRightChecksBb = epRightDirectChecksBb | PawnMove::from2ToBb<Color, PawnMove::AttackRight>(epRightDiscoveriesFromBb);
+	  checkmates += countPawnEpCaptureCheckmates<BoardT, Color, PawnAttackRightTo2FromFn<Color>>(board, epRightChecksBb);
 	}
       }
       

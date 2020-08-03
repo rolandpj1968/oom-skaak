@@ -766,57 +766,15 @@ namespace Chess {
     // Pawn move rules are color-specific.
     //
     
-    template <ColorT Color> BitBoardT pawnsLeftAttacks(const BitBoardT pawns) {
-      return PawnMove::from2ToBb<Color, PawnMove::AttackLeft>(pawns);
-    }
-    
-    template <ColorT Color> BitBoardT pawnsRightAttacks(const BitBoardT pawns) {
-      return PawnMove::from2ToBb<Color, PawnMove::AttackRight>(pawns);
-    }
-    
-    // template <ColorT> BitBoardT pawnsPushOne(const BitBoardT pawns, const BitBoardT allPiecesBb);
-    template <ColorT Color> BitBoardT pawnsPushOne(const BitBoardT pawns, const BitBoardT allPiecesBb) {
-      return PawnMove::from2ToBb<Color, PawnMove::PushOne>(pawns) & ~allPiecesBb;
-    }
-    
+    // TODO... get rid
     template <ColorT> BitBoardT pawnsPushTwo(const BitBoardT pawnOneMoves, const BitBoardT allPiecesBb);
 
-    // template <> inline BitBoardT pawnsLeftAttacks<White>(const BitBoardT pawns) {
-    //   // Pawns on file A can't take left.
-    //   return (pawns & ~FileA) << 7;
-    // }
-    
-    // template <> inline BitBoardT pawnsRightAttacks<White>(const BitBoardT pawns) {
-    //   // Pawns on file H can't take right.
-    //   return (pawns & ~FileH) << 9;
-    // }
-    
-    // template <> inline BitBoardT pawnsPushOne<White>(const BitBoardT pawns, const BitBoardT allPiecesBb) {
-    //   // White pieces move up the board but are blocked by pieces of either color.
-    //   return (pawns << 8) & ~allPiecesBb;
-    // }
-    
     template <> inline BitBoardT pawnsPushTwo<White>(const BitBoardT pawnOneMoves, const BitBoardT allPiecesBb) {
       // Pawns that can reach the 3rd rank after a single move can move to the 4th rank too,
       //   unless blocked by pieces of either color.
       return ((pawnOneMoves & Rank3) << 8) & ~allPiecesBb;
     }
 
-    // template <> inline BitBoardT pawnsLeftAttacks<Black>(const BitBoardT pawns) {
-    //   // Pawns on file A can't take left.
-    //   return (pawns & ~FileA) >> 9;
-    // }
-    
-    // template <> inline BitBoardT pawnsRightAttacks<Black>(const BitBoardT pawns) {
-    //   // Pawns on file H can't take right.
-    //   return (pawns & ~FileH) >> 7;
-    // }
-    
-    // template <> inline BitBoardT pawnsPushOne<Black>(const BitBoardT pawns, const BitBoardT allPiecesBb) {
-    //   // Black pieces move downp the board but are blocked by pieces of any color.
-    //   return (pawns >> 8) & ~allPiecesBb;
-    // }
-    
     template <> inline BitBoardT pawnsPushTwo<Black>(const BitBoardT pawnOneMoves, const BitBoardT allPiecesBb) {
       // Pawns that can reach the 6rd rank after a single move can move to the 5th rank too,
       //   unless blocked by pieces of either color.
@@ -836,24 +794,24 @@ namespace Chess {
       const NonPromosColorStateImplT& basicState = colorState.basic;
       
       // Pawns
-      BitBoardT pawns = basicState.pawnsBb;
-      attacks.pawnsLeftAttacksBb = pawnsLeftAttacks<Color>(pawns);
-      attacks.pawnsRightAttacksBb = pawnsRightAttacks<Color>(pawns);
+      const BitBoardT pawnsBb = basicState.pawnsBb;
+      attacks.pawnsLeftAttacksBb = PawnMove::from2ToBb<Color, PawnMove::AttackLeft>(pawnsBb);
+      attacks.pawnsRightAttacksBb = PawnMove::from2ToBb<Color, PawnMove::AttackRight>(pawnsBb);
       
       attacks.allAttacksBb |= (attacks.pawnsLeftAttacksBb | attacks.pawnsRightAttacksBb);
       
-      attacks.pawnsPushOneBb = pawnsPushOne<Color>(pawns, allPiecesBb);
+      attacks.pawnsPushOneBb = PawnMove::from2ToBb<Color, PawnMove::PushOne>(pawnsBb) & ~allPiecesBb;
       attacks.pawnsPushTwoBb = pawnsPushTwo<Color>(attacks.pawnsPushOneBb, allPiecesBb);
 
       // Knights
       
-      SquareT knight1Square = basicState.pieceSquares[Knight1];
+      const SquareT knight1Square = basicState.pieceSquares[Knight1];
       
       attacks.pieceAttackBbs[Knight1] = KnightAttacks[knight1Square];
       
       attacks.allAttacksBb |= attacks.pieceAttackBbs[Knight1];
       
-      SquareT knight2Square = basicState.pieceSquares[Knight2];
+      const SquareT knight2Square = basicState.pieceSquares[Knight2];
       
       attacks.pieceAttackBbs[Knight2] = KnightAttacks[knight2Square];
       
@@ -861,13 +819,13 @@ namespace Chess {
 
       // Bishops
 
-      SquareT bishop1Square = basicState.pieceSquares[Bishop1];
+      const SquareT bishop1Square = basicState.pieceSquares[Bishop1];
       
       attacks.pieceAttackBbs[Bishop1] = bishopAttacks(bishop1Square, allPiecesBb);
       
       attacks.allAttacksBb |= attacks.pieceAttackBbs[Bishop1];
       
-      SquareT bishop2Square = basicState.pieceSquares[Bishop2];
+      const SquareT bishop2Square = basicState.pieceSquares[Bishop2];
       
       attacks.pieceAttackBbs[Bishop2] = bishopAttacks(bishop2Square, allPiecesBb);
       
@@ -875,13 +833,13 @@ namespace Chess {
       
       // Rooks
 
-      SquareT rook1Square = basicState.pieceSquares[Rook1];
+      const SquareT rook1Square = basicState.pieceSquares[Rook1];
       
       attacks.pieceAttackBbs[Rook1] = rookAttacks(rook1Square, allPiecesBb);
       
       attacks.allAttacksBb |= attacks.pieceAttackBbs[Rook1];
       
-      SquareT rook2Square = basicState.pieceSquares[Rook2];
+      const SquareT rook2Square = basicState.pieceSquares[Rook2];
       
       attacks.pieceAttackBbs[Rook2] = rookAttacks(rook2Square, allPiecesBb);
       
@@ -889,14 +847,15 @@ namespace Chess {
       
       // Queen
 
-      SquareT queenSquare = basicState.pieceSquares[TheQueen];
+      const SquareT queenSquare = basicState.pieceSquares[TheQueen];
       
       attacks.pieceAttackBbs[TheQueen] = rookAttacks(queenSquare, allPiecesBb) | bishopAttacks(queenSquare, allPiecesBb);
       
       attacks.allAttacksBb |= attacks.pieceAttackBbs[TheQueen];
 
       // King - always 1 king and always present
-      SquareT kingSquare = basicState.pieceSquares[TheKing];
+      
+      const SquareT kingSquare = basicState.pieceSquares[TheKing];
 
       attacks.pieceAttackBbs[TheKing] = KingAttacks[kingSquare];
 
@@ -1106,22 +1065,22 @@ namespace Chess {
       // Pawn pushes - remove pawns with diagonal pins, and pawns with orthogonal pins along the rank of the king
 	
       const BitBoardT myDiagAndKingRankPinsBb = myDiagPinnedPiecesBb | (myOrthogPinnedPiecesBb & RankBbs[rankOf(myKingSq)]);
-      const BitBoardT myDiagAndKingRankPinsPushOneBb = pawnsPushOne<Color>(myDiagAndKingRankPinsBb, BbNone);
+      const BitBoardT myDiagAndKingRankPinsPushOneBb = PawnMove::from2ToBb<Color, PawnMove::PushOne>(myDiagAndKingRankPinsBb);
       pinMaskBbs.pawnsPushOnePinMaskBb = ~myDiagAndKingRankPinsPushOneBb;
 
-      const BitBoardT myDiagAndKingRankPinsPushTwoBb = pawnsPushOne<Color>(myDiagAndKingRankPinsPushOneBb, BbNone);
+      const BitBoardT myDiagAndKingRankPinsPushTwoBb = PawnMove::from2ToBb<Color, PawnMove::PushOne>(myDiagAndKingRankPinsPushOneBb);
       pinMaskBbs.pawnsPushTwoPinMaskBb = ~myDiagAndKingRankPinsPushTwoBb;
 	
       // Pawn captures - remove pawns with orthogonal pins, and pawns with diagonal pins in the other direction from the capture.
       // Pawn captures on the king's bishop rays are always safe, so we want to remove diagonal pins that are NOT on the king's bishop rays
       
-      const BitBoardT myOrthogPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myOrthogPinnedPiecesBb);
-      const BitBoardT myDiagPinsLeftAttacksBb = pawnsLeftAttacks<Color>(myDiagPinnedPiecesBb);
+      const BitBoardT myOrthogPinsLeftAttacksBb = PawnMove::from2ToBb<Color, PawnMove::AttackLeft>(myOrthogPinnedPiecesBb);
+      const BitBoardT myDiagPinsLeftAttacksBb = PawnMove::from2ToBb<Color, PawnMove::AttackLeft>(myDiagPinnedPiecesBb);
       const BitBoardT myUnsafeDiagPinsLeftAttacksBb = myDiagPinsLeftAttacksBb & ~BishopRays[myKingSq];
       pinMaskBbs.pawnsLeftPinMaskBb = ~(myOrthogPinsLeftAttacksBb | myUnsafeDiagPinsLeftAttacksBb);
       
-      const BitBoardT myOrthogPinsRightAttacksBb = pawnsRightAttacks<Color>(myOrthogPinnedPiecesBb);
-      const BitBoardT myDiagPinsRightAttacksBb = pawnsRightAttacks<Color>(myDiagPinnedPiecesBb);
+      const BitBoardT myOrthogPinsRightAttacksBb = PawnMove::from2ToBb<Color, PawnMove::AttackRight>(myOrthogPinnedPiecesBb);
+      const BitBoardT myDiagPinsRightAttacksBb = PawnMove::from2ToBb<Color, PawnMove::AttackRight>(myDiagPinnedPiecesBb);
       const BitBoardT myUnsafeDiagPinsRightAttacksBb = myDiagPinsRightAttacksBb & ~BishopRays[myKingSq];
       pinMaskBbs.pawnsRightPinMaskBb = ~(myOrthogPinsRightAttacksBb | myUnsafeDiagPinsRightAttacksBb); 
       
@@ -1271,13 +1230,13 @@ namespace Chess {
 	  
 	} else {
 	  if(legalEpCaptureLeftBb != BbNone) {
-	    const BitBoardT fromBb = pawnsRightAttacks<OtherColorT<Color>::value>(legalEpCaptureLeftBb);
+	    const BitBoardT fromBb = PawnMove::from2ToBb<OtherColorT<Color>::value, PawnMove::AttackRight>(legalEpCaptureLeftBb);
 
 	    isLeftEpDiscovery = (rookAttacks(yourKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | toBb) & myPieceBbs.sliderBbs[Orthogonal]) != BbNone;
 	  }
 
 	  if(legalEpCaptureRightBb != BbNone) {
-	    const BitBoardT fromBb = pawnsLeftAttacks<OtherColorT<Color>::value>(legalEpCaptureRightBb);
+	    const BitBoardT fromBb = PawnMove::from2ToBb<OtherColorT<Color>::value, PawnMove::AttackLeft>(legalEpCaptureRightBb);
 
 	    isRightEpDiscovery = (rookAttacks(yourKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | toBb) & myPieceBbs.sliderBbs[Orthogonal]) != BbNone;
 	  }
@@ -1350,7 +1309,7 @@ namespace Chess {
 	  // We detect it by removing them both and looking for a king attack - could optimise this
 
 	  if(semiLegalEpCaptureLeftBb != BbNone) {
-	    const BitBoardT fromBb = pawnsRightAttacks<OtherColorT<Color>::value>(semiLegalEpCaptureLeftBb);
+	    const BitBoardT fromBb = PawnMove::from2ToBb<OtherColorT<Color>::value, PawnMove::AttackRight>(semiLegalEpCaptureLeftBb);
 
 	    const bool isPinned = (rookAttacks(myKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | epSquareBb) & yourPieceBbs.sliderBbs[Orthogonal]) != BbNone;
 
@@ -1360,7 +1319,7 @@ namespace Chess {
 	  }
 
 	  if(semiLegalEpCaptureRightBb != BbNone) {
-	    const BitBoardT fromBb = pawnsLeftAttacks<OtherColorT<Color>::value>(semiLegalEpCaptureRightBb);
+	    const BitBoardT fromBb = PawnMove::from2ToBb<OtherColorT<Color>::value, PawnMove::AttackLeft>(semiLegalEpCaptureRightBb);
 
 	    const bool isPinned = (rookAttacks(myKingSq, (allPiecesBb & ~fromBb & ~captureSquareBb) | epSquareBb) & yourPieceBbs.sliderBbs[Orthogonal]) != BbNone;
 
