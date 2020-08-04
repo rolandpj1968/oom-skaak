@@ -737,38 +737,6 @@ namespace Chess {
       return mySliderPinnedPiecesBb;
     }
 
-    // template <ColorT Color>
-    // inline SquareT pawnPushOneTo2From(const SquareT square)
-    // {
-    //   return PawnMove::to2FromSq<Color, PawnMove::PushOne>(square);
-    // }
-    // template <> inline SquareT pawnPushOneTo2From<White>(const SquareT square) { return square - 8; }
-    // template <> inline SquareT pawnPushOneTo2From<Black>(const SquareT square) { return square + 8; }
-
-    template <ColorT Color>
-    struct PawnPushOneTo2FromFn {
-      static SquareT fn(const SquareT from) { return PawnMove::to2FromSq<Color, PawnMove::PushOne>(from); }
-    };
-
-    // template <ColorT Color>
-    // inline SquareT pawnPushOneFrom2To(const SquareT square) {
-    //   return PawnMove::from2ToSq<Color, PawnMove::PushOne>(square);
-    // }
-    // template <> inline SquareT pawnPushOneFrom2To<White>(const SquareT square) { return square + 8; }
-    // template <> inline SquareT pawnPushOneFrom2To<Black>(const SquareT square) { return square - 8; }
-    
-    template <ColorT Color>
-    inline SquareT pawnPushTwoTo2From(const SquareT square) {
-       return PawnMove::to2FromSq<Color, PawnMove::PushTwo>(square);
-    }
-    // template <> inline SquareT pawnPushTwoTo2From<White>(const SquareT square) { return square - 16; }
-    // template <> inline SquareT pawnPushTwoTo2From<Black>(const SquareT square) { return square + 16; }
-
-    template <ColorT Color>
-    struct PawnPushTwoTo2FromFn {
-      static SquareT fn(const SquareT from) { return pawnPushTwoTo2From<Color>(from); }
-    };
-
     //
     // Pawn move rules are color-specific.
     //

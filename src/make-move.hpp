@@ -181,44 +181,6 @@ namespace Chess {
       handlePawnsPromoPush<StateT, typename PosHandlerT::WithPromosT, Color, Dir, IsPushTwo>(state, boardWithPromos, pawnsPushBb, directChecksBb, discoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
     }
 
-    template <ColorT Color>
-    inline SquareT pawnAttackLeftTo2From(const SquareT square) {
-      return PawnMove::to2FromSq<Color, PawnMove::AttackLeft>(square);
-    }
-    // template <> inline SquareT pawnAttackLeftTo2From<White>(const SquareT square) { return square - 7; }
-    // template <> inline SquareT pawnAttackLeftTo2From<Black>(const SquareT square) { return square + 9; }
-
-    template <ColorT Color>
-    struct PawnAttackLeftTo2FromFn {
-      static inline SquareT fn(const SquareT from) { return pawnAttackLeftTo2From<Color>(from); }
-    };
-
-    template <ColorT Color>
-    inline SquareT pawnAttackLeftFrom2To(const SquareT square) {
-      return PawnMove::from2ToSq<Color, PawnMove::AttackLeft>(square);
-    }
-    // template <> inline SquareT pawnAttackLeftFrom2To<White>(const SquareT square) { return square + 7; }
-    // template <> inline SquareT pawnAttackLeftFrom2To<Black>(const SquareT square) { return square - 9; }
-
-    template <ColorT Color>
-    inline SquareT pawnAttackRightTo2From(const SquareT square) {
-      return PawnMove::to2FromSq<Color, PawnMove::AttackRight>(square);
-    }
-    // template <> inline SquareT pawnAttackRightTo2From<White>(const SquareT square) { return square - 9; }
-    // template <> inline SquareT pawnAttackRightTo2From<Black>(const SquareT square) { return square + 7; }
-
-    template <ColorT Color>
-    struct PawnAttackRightTo2FromFn {
-      static inline SquareT fn(const SquareT from) { return pawnAttackRightTo2From<Color>(from); }
-    };
-
-    template <ColorT Color>
-    inline SquareT pawnAttackRightFrom2To(const SquareT square) {
-      return PawnMove::from2ToSq<Color, PawnMove::AttackRight>(square);
-    }
-    // template <> inline SquareT pawnAttackRightFrom2To<White>(const SquareT square) { return square + 9; }
-    // template <> inline SquareT pawnAttackRightFrom2To<Black>(const SquareT square) { return square - 7; }
-
     template <typename StateT, typename PosHandlerT, ColorT Color, PawnMove::DirT Dir>
     inline BitBoardT handlePawnsNonPromoCaptureOfPromos(StateT state, const BasicBoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
       // No promos
@@ -306,43 +268,6 @@ namespace Chess {
       handlePawnEpCapture<StateT, PosHandlerT, BoardT, Color, PawnMove::AttackLeft>(state, board, pawnMoves.epCaptures.epLeftCaptureBb, directChecksBb, leftDiscoveriesBb, isLeftEpDiscovery);
       // Pawn en-passant capture right
       handlePawnEpCapture<StateT, PosHandlerT, BoardT, Color, PawnMove::AttackRight>(state, board, pawnMoves.epCaptures.epRightCaptureBb, directChecksBb, rightDiscoveriesBb, isRightEpDiscovery);
-    }
-
-    template <ColorT> BitBoardT pawnsLeftAttacksTo2FromBb(const BitBoardT leftAttacksBb);
-    template <ColorT> BitBoardT pawnsRightAttacksTo2FromBb(const BitBoardT rightAttacksBb);
-    template <ColorT> BitBoardT pawnsPushOneTo2FromBb(const BitBoardT pushesOneBb);
-    template <ColorT> BitBoardT pawnsPushTwoTo2FromBb(const BitBoardT pushesTwoBb);
-
-    template <> inline BitBoardT pawnsLeftAttacksTo2FromBb<White>(const BitBoardT leftAttacksBb) {
-      return leftAttacksBb >> 7;
-    }
-    
-    template <> inline BitBoardT pawnsRightAttacksTo2FromBb<White>(const BitBoardT rightAttacksBb) {
-      return rightAttacksBb >> 9;
-    }
-    
-    template <> inline BitBoardT pawnsPushOneTo2FromBb<White>(const BitBoardT pushesOneBb) {
-      return pushesOneBb >> 8;
-    }
-    
-    template <> inline BitBoardT pawnsPushTwoTo2FromBb<White>(const BitBoardT pushesTwoBb) {
-      return pushesTwoBb >> 16;
-    }
-
-    template <> inline BitBoardT pawnsLeftAttacksTo2FromBb<Black>(const BitBoardT leftAttacksBb) {
-      return leftAttacksBb << 9;
-    }
-    
-    template <> inline BitBoardT pawnsRightAttacksTo2FromBb<Black>(const BitBoardT rightAttacksBb) {
-      return rightAttacksBb << 7;
-    }
-    
-    template <> inline BitBoardT pawnsPushOneTo2FromBb<Black>(const BitBoardT pushesOneBb) {
-      return pushesOneBb << 8;
-    }
-    
-    template <> inline BitBoardT pawnsPushTwoTo2FromBb<Black>(const BitBoardT pushesTwoBb) {
-      return pushesTwoBb << 16;
     }
 
     template <typename BoardT, ColorT Color, PawnMove::DirT Dir, bool IsPushTwo>
@@ -450,11 +375,11 @@ namespace Chess {
       
       const int pawnPushesDirectCheckCount = Bits::count(pawnPushesBb & directChecksBb);
 
-      const BitBoardT pawnPushesOneFromBb = pawnsPushOneTo2FromBb<Color>(pawnPushesOneBb);
+      const BitBoardT pawnPushesOneFromBb = PawnMove::to2FromBb<Color, PawnMove::PushOne>(pawnPushesOneBb);
       const BitBoardT pawnPushesOneDiscoveriesFromBb = pawnPushesOneFromBb & pushDiscoveriesBb;
       const int pawnPushesOneDiscoveriesCount = Bits::count(pawnPushesOneDiscoveriesFromBb);
 
-      const BitBoardT pawnPushesTwoFromBb = pawnsPushTwoTo2FromBb<Color>(pawnPushesTwoBb);
+      const BitBoardT pawnPushesTwoFromBb = PawnMove::to2FromBb<Color, PawnMove::PushTwo>(pawnPushesTwoBb);
       const BitBoardT pawnPushesTwoDiscoveriesFromBb = pawnPushesTwoFromBb & pushDiscoveriesBb;
       const int pawnPushesTwoDiscoveriesCount = Bits::count(pawnPushesTwoDiscoveriesFromBb);
 
@@ -466,11 +391,11 @@ namespace Chess {
       const BitBoardT pawnCapturesLeftDirectChecksBb = pawnCapturesLeftBb & directChecksBb;
       const int pawnCapturesLeftDirectChecksCount = Bits::count(pawnCapturesLeftDirectChecksBb);
 
-      const BitBoardT pawnCapturesLeftFromBb = pawnsLeftAttacksTo2FromBb<Color>(pawnCapturesLeftBb);
+      const BitBoardT pawnCapturesLeftFromBb = PawnMove::to2FromBb<Color, PawnMove::AttackLeft>(pawnCapturesLeftBb);
       const BitBoardT pawnCapturesLeftDiscoveriesFromBb = pawnCapturesLeftFromBb & leftDiscoveriesBb;
       const int pawnCapturesLeftDiscoveriesCount = Bits::count(pawnCapturesLeftDiscoveriesFromBb);
       
-      const BitBoardT pawnCapturesLeftDoubleChecksFromBb = pawnsLeftAttacksTo2FromBb<Color>(pawnCapturesLeftDirectChecksBb) & leftDiscoveriesBb;
+      const BitBoardT pawnCapturesLeftDoubleChecksFromBb = PawnMove::to2FromBb<Color, PawnMove::AttackLeft>(pawnCapturesLeftDirectChecksBb) & leftDiscoveriesBb;
       const int pawnCapturesLeftDoubleChecksCount = Bits::count(pawnCapturesLeftDoubleChecksFromBb);
 
       const int pawnCapturesLeftDiscoveredChecksCount = pawnCapturesLeftDiscoveriesCount - pawnCapturesLeftDoubleChecksCount;
@@ -481,11 +406,11 @@ namespace Chess {
       const BitBoardT pawnCapturesRightDirectChecksBb = pawnCapturesRightBb & directChecksBb;
       const int pawnCapturesRightDirectChecksCount = Bits::count(pawnCapturesRightDirectChecksBb);
 
-      const BitBoardT pawnCapturesRightFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnCapturesRightBb);
+      const BitBoardT pawnCapturesRightFromBb = PawnMove::to2FromBb<Color, PawnMove::AttackRight>(pawnCapturesRightBb);
       const BitBoardT pawnCapturesRightDiscoveriesFromBb = pawnCapturesRightFromBb & rightDiscoveriesBb;
       const int pawnCapturesRightDiscoveriesCount = Bits::count(pawnCapturesRightDiscoveriesFromBb);
       
-      const BitBoardT pawnCapturesRightDoubleChecksFromBb = pawnsRightAttacksTo2FromBb<Color>(pawnCapturesRightDirectChecksBb) & rightDiscoveriesBb;
+      const BitBoardT pawnCapturesRightDoubleChecksFromBb = PawnMove::to2FromBb<Color, PawnMove::AttackRight>(pawnCapturesRightDirectChecksBb) & rightDiscoveriesBb;
       const int pawnCapturesRightDoubleChecksCount = Bits::count(pawnCapturesRightDoubleChecksFromBb);
 
       const int pawnCapturesRightDiscoveredChecksCount = pawnCapturesRightDiscoveriesCount - pawnCapturesRightDoubleChecksCount;
@@ -497,7 +422,7 @@ namespace Chess {
       const BitBoardT epLeftDirectChecksBb = epLeftCaptureBb & directChecksBb;
       const int epLeftDirectChecksCount = (int)(epLeftDirectChecksBb != BbNone);
 
-      const BitBoardT epLeftCaptureFromBb = pawnsLeftAttacksTo2FromBb<Color>(epLeftCaptureBb);
+      const BitBoardT epLeftCaptureFromBb = PawnMove::to2FromBb<Color, PawnMove::AttackLeft>(epLeftCaptureBb);
       const BitBoardT epLeftDiscoveriesFromBb = isLeftEpDiscovery ? epLeftCaptureFromBb : (epLeftCaptureFromBb & leftDiscoveriesBb);
       const int epLeftDiscoveriesCount = (int)(epLeftDiscoveriesFromBb != BbNone);
 
@@ -512,7 +437,7 @@ namespace Chess {
       const BitBoardT epRightDirectChecksBb = epRightCaptureBb & directChecksBb;
       const int epRightDirectChecksCount = (int)(epRightDirectChecksBb != BbNone);
 
-      const BitBoardT epRightCaptureFromBb = pawnsRightAttacksTo2FromBb<Color>(epRightCaptureBb);
+      const BitBoardT epRightCaptureFromBb = PawnMove::to2FromBb<Color, PawnMove::AttackRight>(epRightCaptureBb);
       const BitBoardT epRightDiscoveriesFromBb = isRightEpDiscovery ? epRightCaptureFromBb : (epRightCaptureFromBb & rightDiscoveriesBb);
       const int epRightDiscoveriesCount = (int)(epRightDiscoveriesFromBb != BbNone);
 
@@ -539,7 +464,7 @@ namespace Chess {
 	    checkmates += countPawnsNonPromoPushCheckmates<BoardT, Color, PawnMove::PushOne, /*IsPushTwo =*/false>(board, pawnPushesOneChecksBb);
 	  }
 
-	  const BitBoardT pawnPushesTwoChecksBb = (pawnPushesTwoBb & directChecksBb) | PawnMove::from2ToBb<Color, PawnMove::PushOne>(PawnMove::from2ToBb<Color, PawnMove::PushOne>(pawnPushesTwoDiscoveriesFromBb));
+	  const BitBoardT pawnPushesTwoChecksBb = (pawnPushesTwoBb & directChecksBb) | PawnMove::from2ToBb<Color, PawnMove::PushTwo>(pawnPushesTwoDiscoveriesFromBb);
 	  if(pawnPushesTwoChecksBb != BbNone) {
 	    checkmates += countPawnsNonPromoPushCheckmates<BoardT, Color, PawnMove::PushTwo, /*IsPushTwo =*/true>(board, pawnPushesTwoChecksBb);
 	  }
@@ -593,20 +518,15 @@ namespace Chess {
 
     template <ColorT Color, PawnPromoMoveDirT> struct PawnPromoMoveDirFns {
       static inline BitBoardT to2FromBb(BitBoardT);
-      static inline SquareT from2To(SquareT);
       static inline BitBoardT orthogDirectChecksFromBbFn(const BitBoardT pawnMovesBb, const SquareT yourKingSq, const BitBoardT yourKingRookAttacksBb);
       static inline BitBoardT diagDirectChecksFromBbFn(const BitBoardT pawnMovesBb, const SquareT yourKingSq, const BitBoardT yourKingBishopAttacksBb);
     };
 
     template <ColorT Color> struct PawnPromoMoveDirFns<Color, PawnPromoPushOneDir> {
       static inline BitBoardT to2FromBb(BitBoardT pawnPushesBb) {
-	return pawnsPushOneTo2FromBb<Color>(pawnPushesBb);
+	return PawnMove::to2FromBb<Color, PawnMove::PushOne>(pawnPushesBb);
       }
 
-      static inline SquareT from2ToBb(SquareT sq) {
-	return PawnMove::from2ToSq<Color, PawnMove::PushOne>(sq);
-      }
-      
       static inline BitBoardT orthogDirectChecksFromBbFn(const BitBoardT pawnPushesBb, const BitBoardT pushesFromBb, const SquareT yourKingSq, const BitBoardT yourKingRookAttacksBb) {
 	const BitBoardT horizDirectChecksToBb = pawnPushesBb & yourKingRookAttacksBb;
 	const BitBoardT verticDirectChecksFromBb = pushesFromBb & yourKingRookAttacksBb & FileBbs[fileOf(yourKingSq)];
@@ -622,13 +542,9 @@ namespace Chess {
 
     template <ColorT Color> struct PawnPromoMoveDirFns<Color, PawnPromoCaptureLeftDir> {
       static inline BitBoardT to2FromBb(BitBoardT pawnCapturesLeftBb) {
-	return pawnsLeftAttacksTo2FromBb<Color>(pawnCapturesLeftBb);
+	return PawnMove::to2FromBb<Color, PawnMove::AttackLeft>(pawnCapturesLeftBb);
       }
 
-      static inline SquareT from2ToBb(SquareT sq) {
-	return pawnAttackLeftFrom2To<Color>(sq);
-      }
-      
       static inline BitBoardT orthogDirectChecksFromBbFn(const BitBoardT pawnCapturesLeftBb, const BitBoardT capturesLeftFromBb, const SquareT yourKingSq, const BitBoardT yourKingRookAttacksBb) {
 	return to2FromBb(pawnCapturesLeftBb & yourKingRookAttacksBb);
       }
@@ -643,13 +559,9 @@ namespace Chess {
 
     template <ColorT Color> struct PawnPromoMoveDirFns<Color, PawnPromoCaptureRightDir> {
       static inline BitBoardT to2FromBb(BitBoardT pawnCapturesRightBb) {
-	return pawnsRightAttacksTo2FromBb<Color>(pawnCapturesRightBb);
+	return PawnMove::to2FromBb<Color, PawnMove::AttackRight>(pawnCapturesRightBb);
       }
 
-      static inline SquareT from2ToBb(SquareT sq) {
-	return pawnAttackRightFrom2To<Color>(sq);
-      }
-      
       static inline BitBoardT orthogDirectChecksFromBbFn(const BitBoardT pawnCapturesRightBb, const BitBoardT capturesRightFromBb, const SquareT yourKingSq, const BitBoardT yourKingRookAttacksBb) {
 	return to2FromBb(pawnCapturesRightBb & yourKingRookAttacksBb);
       }
