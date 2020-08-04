@@ -182,9 +182,11 @@ namespace Chess {
     }
 
     template <ColorT Color>
-    inline SquareT pawnAttackLeftTo2From(const SquareT square);
-    template <> inline SquareT pawnAttackLeftTo2From<White>(const SquareT square) { return square - 7; }
-    template <> inline SquareT pawnAttackLeftTo2From<Black>(const SquareT square) { return square + 9; }
+    inline SquareT pawnAttackLeftTo2From(const SquareT square) {
+      return PawnMove::to2FromSq<Color, PawnMove::AttackLeft>(square);
+    }
+    // template <> inline SquareT pawnAttackLeftTo2From<White>(const SquareT square) { return square - 7; }
+    // template <> inline SquareT pawnAttackLeftTo2From<Black>(const SquareT square) { return square + 9; }
 
     template <ColorT Color>
     struct PawnAttackLeftTo2FromFn {
@@ -192,14 +194,18 @@ namespace Chess {
     };
 
     template <ColorT Color>
-    inline SquareT pawnAttackLeftFrom2To(const SquareT square);
-    template <> inline SquareT pawnAttackLeftFrom2To<White>(const SquareT square) { return square + 7; }
-    template <> inline SquareT pawnAttackLeftFrom2To<Black>(const SquareT square) { return square - 9; }
+    inline SquareT pawnAttackLeftFrom2To(const SquareT square) {
+      return PawnMove::from2ToSq<Color, PawnMove::AttackLeft>(square);
+    }
+    // template <> inline SquareT pawnAttackLeftFrom2To<White>(const SquareT square) { return square + 7; }
+    // template <> inline SquareT pawnAttackLeftFrom2To<Black>(const SquareT square) { return square - 9; }
 
     template <ColorT Color>
-    inline SquareT pawnAttackRightTo2From(const SquareT square);
-    template <> inline SquareT pawnAttackRightTo2From<White>(const SquareT square) { return square - 9; }
-    template <> inline SquareT pawnAttackRightTo2From<Black>(const SquareT square) { return square + 7; }
+    inline SquareT pawnAttackRightTo2From(const SquareT square) {
+      return PawnMove::to2FromSq<Color, PawnMove::AttackRight>(square);
+    }
+    // template <> inline SquareT pawnAttackRightTo2From<White>(const SquareT square) { return square - 9; }
+    // template <> inline SquareT pawnAttackRightTo2From<Black>(const SquareT square) { return square + 7; }
 
     template <ColorT Color>
     struct PawnAttackRightTo2FromFn {
@@ -207,9 +213,11 @@ namespace Chess {
     };
 
     template <ColorT Color>
-    inline SquareT pawnAttackRightFrom2To(const SquareT square);
-    template <> inline SquareT pawnAttackRightFrom2To<White>(const SquareT square) { return square + 9; }
-    template <> inline SquareT pawnAttackRightFrom2To<Black>(const SquareT square) { return square - 7; }
+    inline SquareT pawnAttackRightFrom2To(const SquareT square) {
+      return PawnMove::from2ToSq<Color, PawnMove::AttackRight>(square);
+    }
+    // template <> inline SquareT pawnAttackRightFrom2To<White>(const SquareT square) { return square + 9; }
+    // template <> inline SquareT pawnAttackRightFrom2To<Black>(const SquareT square) { return square - 7; }
 
     template <typename StateT, typename PosHandlerT, ColorT Color, typename To2FromFn>
     inline BitBoardT handlePawnsNonPromoCaptureOfPromos(StateT state, const BasicBoardT& board, const ColorPieceMapT& yourPieceMap, BitBoardT pawnsCaptureBb, const BitBoardT directChecksBb, const BitBoardT discoveriesBb) {
