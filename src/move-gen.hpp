@@ -737,25 +737,32 @@ namespace Chess {
       return mySliderPinnedPiecesBb;
     }
 
-    template <ColorT Color>
-    inline SquareT pawnPushOneTo2From(const SquareT square);
-    template <> inline SquareT pawnPushOneTo2From<White>(const SquareT square) { return square - 8; }
-    template <> inline SquareT pawnPushOneTo2From<Black>(const SquareT square) { return square + 8; }
+    // template <ColorT Color>
+    // inline SquareT pawnPushOneTo2From(const SquareT square)
+    // {
+    //   return PawnMove::to2FromSq<Color, PawnMove::PushOne>(square);
+    // }
+    // template <> inline SquareT pawnPushOneTo2From<White>(const SquareT square) { return square - 8; }
+    // template <> inline SquareT pawnPushOneTo2From<Black>(const SquareT square) { return square + 8; }
 
     template <ColorT Color>
     struct PawnPushOneTo2FromFn {
-      static SquareT fn(const SquareT from) { return pawnPushOneTo2From<Color>(from); }
+      static SquareT fn(const SquareT from) { return PawnMove::to2FromSq<Color, PawnMove::PushOne>(from); }
     };
 
-    template <ColorT Color>
-    inline SquareT pawnPushOneFrom2To(const SquareT square);
-    template <> inline SquareT pawnPushOneFrom2To<White>(const SquareT square) { return square + 8; }
-    template <> inline SquareT pawnPushOneFrom2To<Black>(const SquareT square) { return square - 8; }
+    // template <ColorT Color>
+    // inline SquareT pawnPushOneFrom2To(const SquareT square) {
+    //   return PawnMove::from2ToSq<Color, PawnMove::PushOne>(square);
+    // }
+    // template <> inline SquareT pawnPushOneFrom2To<White>(const SquareT square) { return square + 8; }
+    // template <> inline SquareT pawnPushOneFrom2To<Black>(const SquareT square) { return square - 8; }
     
     template <ColorT Color>
-    inline SquareT pawnPushTwoTo2From(const SquareT square);
-    template <> inline SquareT pawnPushTwoTo2From<White>(const SquareT square) { return square - 16; }
-    template <> inline SquareT pawnPushTwoTo2From<Black>(const SquareT square) { return square + 16; }
+    inline SquareT pawnPushTwoTo2From(const SquareT square) {
+       return PawnMove::to2FromSq<Color, PawnMove::PushTwo>(square);
+    }
+    // template <> inline SquareT pawnPushTwoTo2From<White>(const SquareT square) { return square - 16; }
+    // template <> inline SquareT pawnPushTwoTo2From<Black>(const SquareT square) { return square + 16; }
 
     template <ColorT Color>
     struct PawnPushTwoTo2FromFn {
@@ -1220,7 +1227,7 @@ namespace Chess {
 
 	const BitBoardT toBb = legalEpCaptureLeftBb | legalEpCaptureRightBb; // this is the ep square if ep is possible - there can be only one (bit set)
 	const SquareT to = Bits::lsb(toBb);
-	const SquareT captureSq = pawnPushOneTo2From<Color>(to);
+	const SquareT captureSq = PawnMove::to2FromSq<Color, PawnMove::PushOne>(to);
 	const BitBoardT captureSquareBb = bbForSquare(captureSq);
 
 	// If your king is exposed to a diagonal slider when we remove the captured pawn, then this is a discovery through the ep-captured pawn
@@ -1291,7 +1298,7 @@ namespace Chess {
       BitBoardT legalEpCaptureLeftBb = BbNone;
       BitBoardT legalEpCaptureRightBb = BbNone;
 
-      const SquareT captureSq = pawnPushOneTo2From<Color>(epSquare);
+      const SquareT captureSq = PawnMove::to2FromSq<Color, PawnMove::PushOne>(epSquare);
       const BitBoardT captureSquareBb = bbForSquare(captureSq);
       
       // Only do the heavy lifting of detecting discovered check through the captured pawn if there really is an en-passant opportunity

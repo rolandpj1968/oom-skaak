@@ -270,7 +270,7 @@ namespace Chess {
       if(pawnsEpCaptureBb) {
 	const SquareT to = Bits::lsb(pawnsEpCaptureBb);
 	const SquareT from = To2FromFn::fn(to);
-	const SquareT captureSq = MoveGen::pawnPushOneTo2From<Color>(to);
+	const SquareT captureSq = PawnMove::to2FromSq<Color, PawnMove::PushOne>(to);
 
 	const BoardT newBoard = captureEp<BoardT, Color>(board, from, to, captureSq);
 
@@ -406,7 +406,7 @@ namespace Chess {
       if(pawnsEpCaptureBb) {
 	const SquareT to = Bits::lsb(pawnsEpCaptureBb);
 	const SquareT from = To2FromFn::fn(to);
-	const SquareT captureSq = MoveGen::pawnPushOneTo2From<Color>(to);
+	const SquareT captureSq = PawnMove::to2FromSq<Color, PawnMove::PushOne>(to);
 
 	const BoardT newBoard = captureEp<BoardT, Color>(board, from, to, captureSq);
 	
@@ -596,7 +596,7 @@ namespace Chess {
       }
 
       static inline SquareT from2ToBb(SquareT sq) {
-	return MoveGen::pawnPushOneFrom2To<Color>(sq);
+	return PawnMove::from2ToSq<Color, PawnMove::PushOne>(sq);
       }
       
       static inline BitBoardT orthogDirectChecksFromBbFn(const BitBoardT pawnPushesBb, const BitBoardT pushesFromBb, const SquareT yourKingSq, const BitBoardT yourKingRookAttacksBb) {
