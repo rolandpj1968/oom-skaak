@@ -510,71 +510,56 @@ namespace Chess {
       handlePawnsPromoCapture<StateT, PosHandlerT, Color, PawnMove::AttackRight>(state, board, yourPieceMap, pawnMoves.capturesRightBb & LastRankBbT<Color>::LastRankBb, directChecksBb, rightDiscoveriesBb, yourKingRookAttacksBb, yourKingBishopAttacksBb);
     }
 
-    enum PawnPromoMoveDirT {
-      PawnPromoPushOneDir,
-      PawnPromoCaptureLeftDir,
-      PawnPromoCaptureRightDir
-    };
-
-    template <ColorT Color, PawnPromoMoveDirT> struct PawnPromoMoveDirFns {
-      static inline BitBoardT to2FromBb(BitBoardT);
+    template <ColorT Color, PawnMove::DirT Dir> struct PawnPromoMoveDirFns {
       static inline BitBoardT orthogDirectChecksFromBbFn(const BitBoardT pawnMovesBb, const SquareT yourKingSq, const BitBoardT yourKingRookAttacksBb);
       static inline BitBoardT diagDirectChecksFromBbFn(const BitBoardT pawnMovesBb, const SquareT yourKingSq, const BitBoardT yourKingBishopAttacksBb);
     };
 
-    template <ColorT Color> struct PawnPromoMoveDirFns<Color, PawnPromoPushOneDir> {
-      static inline BitBoardT to2FromBb(BitBoardT pawnPushesBb) {
-	return PawnMove::to2FromBb<Color, PawnMove::PushOne>(pawnPushesBb);
-      }
-
+    template <ColorT Color> struct PawnPromoMoveDirFns<Color, PawnMove::PushOne> {
+      
       static inline BitBoardT orthogDirectChecksFromBbFn(const BitBoardT pawnPushesBb, const BitBoardT pushesFromBb, const SquareT yourKingSq, const BitBoardT yourKingRookAttacksBb) {
 	const BitBoardT horizDirectChecksToBb = pawnPushesBb & yourKingRookAttacksBb;
 	const BitBoardT verticDirectChecksFromBb = pushesFromBb & yourKingRookAttacksBb & FileBbs[fileOf(yourKingSq)];
       
-	return to2FromBb(horizDirectChecksToBb) | verticDirectChecksFromBb;
+	return PawnMove::to2FromBb<Color, PawnMove::PushOne>(horizDirectChecksToBb) | verticDirectChecksFromBb;
       }
 
       static inline BitBoardT diagDirectChecksFromBbFn(const BitBoardT pawnPushesBb, const BitBoardT pushesFromBb, const SquareT yourKingSq, const BitBoardT yourKingBishopAttacksBb) {
-	return to2FromBb(pawnPushesBb & yourKingBishopAttacksBb);
+	return PawnMove::to2FromBb<Color, PawnMove::PushOne>(pawnPushesBb & yourKingBishopAttacksBb);
       }
       
     };
 
-    template <ColorT Color> struct PawnPromoMoveDirFns<Color, PawnPromoCaptureLeftDir> {
-      static inline BitBoardT to2FromBb(BitBoardT pawnCapturesLeftBb) {
-	return PawnMove::to2FromBb<Color, PawnMove::AttackLeft>(pawnCapturesLeftBb);
-      }
-
+    // TODO - could refactor this better - it's the same as PawnMove::AttackRight
+    template <ColorT Color> struct PawnPromoMoveDirFns<Color, PawnMove::AttackLeft> {
+      
       static inline BitBoardT orthogDirectChecksFromBbFn(const BitBoardT pawnCapturesLeftBb, const BitBoardT capturesLeftFromBb, const SquareT yourKingSq, const BitBoardT yourKingRookAttacksBb) {
-	return to2FromBb(pawnCapturesLeftBb & yourKingRookAttacksBb);
+	return PawnMove::to2FromBb<Color, PawnMove::AttackLeft>(pawnCapturesLeftBb & yourKingRookAttacksBb);
       }
       
       static inline BitBoardT diagDirectChecksFromBbFn(const BitBoardT pawnCapturesLeftBb, const BitBoardT capturesLeftFromBb, const SquareT yourKingSq, const BitBoardT yourKingBishopAttacksBb) {
 	const BitBoardT rightDirectChecksToBb = pawnCapturesLeftBb & yourKingBishopAttacksBb;
 	const BitBoardT leftDirectChecksFromBb = capturesLeftFromBb & yourKingBishopAttacksBb & MoveGen::BishopUniRays[Color == White ? MoveGen::Left : MoveGen::Right][yourKingSq];
 
-	return to2FromBb(rightDirectChecksToBb) | leftDirectChecksFromBb;
+	return PawnMove::to2FromBb<Color, PawnMove::AttackLeft>(rightDirectChecksToBb) | leftDirectChecksFromBb;
       }
     };
 
-    template <ColorT Color> struct PawnPromoMoveDirFns<Color, PawnPromoCaptureRightDir> {
-      static inline BitBoardT to2FromBb(BitBoardT pawnCapturesRightBb) {
-	return PawnMove::to2FromBb<Color, PawnMove::AttackRight>(pawnCapturesRightBb);
-      }
+    template <ColorT Color> struct PawnPromoMoveDirFns<Color, PawnMove::AttackRight> {
 
       static inline BitBoardT orthogDirectChecksFromBbFn(const BitBoardT pawnCapturesRightBb, const BitBoardT capturesRightFromBb, const SquareT yourKingSq, const BitBoardT yourKingRookAttacksBb) {
-	return to2FromBb(pawnCapturesRightBb & yourKingRookAttacksBb);
+	return PawnMove::to2FromBb<Color, PawnMove::AttackRight>(pawnCapturesRightBb & yourKingRookAttacksBb);
       }
 
       static inline BitBoardT diagDirectChecksFromBbFn(const BitBoardT pawnCapturesRightBb, const BitBoardT capturesRightFromBb, const SquareT yourKingSq, const BitBoardT yourKingBishopAttacksBb) {
 	const BitBoardT rightDirectChecksToBb = pawnCapturesRightBb & yourKingBishopAttacksBb;
 	const BitBoardT rightDirectChecksFromBb = capturesRightFromBb & yourKingBishopAttacksBb & MoveGen::BishopUniRays[Color == White ? MoveGen::Right : MoveGen::Left][yourKingSq];
 
-	return to2FromBb(rightDirectChecksToBb) | rightDirectChecksFromBb;
+	return PawnMove::to2FromBb<Color, PawnMove::AttackRight>(rightDirectChecksToBb) | rightDirectChecksFromBb;
       }      
     };
 
-    template <typename BoardT, ColorT Color, PawnPromoMoveDirT PawnPromoMoveDir>
+    template <typename BoardT, ColorT Color, PawnMove::DirT Dir>
     inline int countPromoCheckmates(const BoardT& board, const BitBoardT checksFromBb, const PromoPieceT promoPiece) {
       int checkmates = 0;
 
@@ -591,15 +576,15 @@ namespace Chess {
       return checkmates;
     }
     
-    template <typename BoardT, ColorT Color, PawnPromoMoveDirT PawnPromoMoveDir>
+    template <typename BoardT, ColorT Color, PawnMove::DirT Dir>
     void calculatePromoChecks(const BoardT& board, const BitBoardT pawnMovesBb, const BitBoardT discoveriesBb, const SquareT yourKingSq, const BitBoardT yourKingRookAttacksBb, const BitBoardT yourKingBishopAttacksBb, int& checks, int& discoverychecks, int& doublechecks, int& checkmates) {
-      const BitBoardT movesFromBb = PawnPromoMoveDirFns<Color, PawnPromoMoveDir>::to2FromBb(pawnMovesBb);
+      const BitBoardT movesFromBb = PawnMove::to2FromBb<Color, Dir>(pawnMovesBb);
       const BitBoardT movesDiscoveriesFromBb = movesFromBb & discoveriesBb;
       const int movesDiscoveriesCount = Bits::count(movesDiscoveriesFromBb);
       
-      const BitBoardT orthogDirectChecksFromBb = PawnPromoMoveDirFns<Color, PawnPromoMoveDir>::orthogDirectChecksFromBbFn(pawnMovesBb, movesFromBb, yourKingSq, yourKingRookAttacksBb);
-      const BitBoardT diagDirectChecksFromBb = PawnPromoMoveDirFns<Color, PawnPromoMoveDir>::diagDirectChecksFromBbFn(pawnMovesBb, movesFromBb, yourKingSq, yourKingBishopAttacksBb);
-      const BitBoardT knightDirectChecksFromBb = PawnPromoMoveDirFns<Color, PawnPromoMoveDir>::to2FromBb(pawnMovesBb & MoveGen::KnightAttacks[yourKingSq]);
+      const BitBoardT orthogDirectChecksFromBb = PawnPromoMoveDirFns<Color, Dir>::orthogDirectChecksFromBbFn(pawnMovesBb, movesFromBb, yourKingSq, yourKingRookAttacksBb);
+      const BitBoardT diagDirectChecksFromBb = PawnPromoMoveDirFns<Color, Dir>::diagDirectChecksFromBbFn(pawnMovesBb, movesFromBb, yourKingSq, yourKingBishopAttacksBb);
+      const BitBoardT knightDirectChecksFromBb = PawnMove::to2FromBb<Color, Dir>(pawnMovesBb & MoveGen::KnightAttacks[yourKingSq]);
       
       const BitBoardT rookDoubleChecksFromBb = orthogDirectChecksFromBb & movesDiscoveriesFromBb;
       const BitBoardT bishopDoubleChecksFromBb = diagDirectChecksFromBb & movesDiscoveriesFromBb;
@@ -634,7 +619,7 @@ namespace Chess {
       if(checksCount != 0) {
 	const BitBoardT rookChecksFromBb = movesDiscoveriesFromBb | orthogDirectChecksFromBb;
 	if(rookChecksFromBb != BbNone) {
-	  checkmates += countPromoCheckmates<BoardT, Color, PawnPromoMoveDir>(board, rookChecksFromBb, PromoRook);
+	  checkmates += countPromoCheckmates<BoardT, Color, Dir>(board, rookChecksFromBb, PromoRook);
 	}
 
 	const BitBoardT bishopChecksFromBb = movesDiscoveriesFromBb | diagDirectChecksFromBb;
@@ -680,17 +665,17 @@ namespace Chess {
       
       // Push promos
       if(pawnPushesBb != BbNone) {
-	calculatePromoChecks<BoardT, Color, PawnPromoPushOneDir>(board, pawnPushesBb, pushDiscoveriesBb, yourKingSq, yourKingRookAttacksBb, yourKingBishopAttacksBb, checks, discoverychecks, doublechecks, checkmates);
+	calculatePromoChecks<BoardT, Color, PawnMove::PushOne>(board, pawnPushesBb, pushDiscoveriesBb, yourKingSq, yourKingRookAttacksBb, yourKingBishopAttacksBb, checks, discoverychecks, doublechecks, checkmates);
       }
 
       // Left captures
       if(pawnCapturesLeftBb != BbNone) {
-	calculatePromoChecks<BoardT, Color, PawnPromoCaptureLeftDir>(board, pawnCapturesLeftBb, leftDiscoveriesBb, yourKingSq, yourKingRookAttacksBb, yourKingBishopAttacksBb, checks, discoverychecks, doublechecks, checkmates);
+	calculatePromoChecks<BoardT, Color, PawnMove::AttackLeft>(board, pawnCapturesLeftBb, leftDiscoveriesBb, yourKingSq, yourKingRookAttacksBb, yourKingBishopAttacksBb, checks, discoverychecks, doublechecks, checkmates);
       }
 
       // Right captures
       if(pawnCapturesRightBb != BbNone) {
-	calculatePromoChecks<BoardT, Color, PawnPromoCaptureRightDir>(board, pawnCapturesRightBb, rightDiscoveriesBb, yourKingSq, yourKingRookAttacksBb, yourKingBishopAttacksBb, checks, discoverychecks, doublechecks, checkmates);
+	calculatePromoChecks<BoardT, Color, PawnMove::AttackRight>(board, pawnCapturesRightBb, rightDiscoveriesBb, yourKingSq, yourKingRookAttacksBb, yourKingBishopAttacksBb, checks, discoverychecks, doublechecks, checkmates);
       }
 
       CountHandlerT::handleCount(state, nodes, captures, eps, castles, promos, checks, discoverychecks, doublechecks, checkmates);
