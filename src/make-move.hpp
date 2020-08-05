@@ -559,21 +559,28 @@ namespace Chess {
       }      
     };
 
-    template <typename BoardT, ColorT Color, PawnMove::DirT Dir>
-    inline int countPromoCheckmates(const BoardT& board, const BitBoardT checksFromBb, const PromoPieceT promoPiece) {
+    template <ColorT Color, PawnMove::DirT Dir>
+    inline int countPromoCheckmates(const FullBoardT& board, BitBoardT checksFromBb, const PromoPieceT promoPiece) {
       int checkmates = 0;
 
-      // TODO TODO TODO
-      // while(checksFromBb) {
-      // 	const SquareT from = Bits::popLsb(checksFromBb);
-      // 	const SquareT to = $%^#$%^PawnMove::to2FromSq(to);
+      while(checksFromBb) {
+      	const SquareT from = Bits::popLsb(checksFromBb);
+      	const SquareT to = PawnMove::from2ToSq<Color, Dir>(to);
 
-      // 	const BoardT newBoard = pushPawn<BoardT, Color, IsPushTwo>(board, from, to);
+      	const FullBoardT newBoard = pushPawnToPromo<FullBoardT, Color>(board, from, to, promoPiece);
 
-      // 	checkmates += !BoardUtils::hasLegalMoves<BoardT, OtherColorT<Color>::value>(newBoard);
-      // }
+      	checkmates += !BoardUtils::hasLegalMoves<FullBoardT, OtherColorT<Color>::value>(newBoard);
+      }
 
       return checkmates;
+    }
+    
+    template <ColorT Color, PawnMove::DirT Dir>
+    inline int countPromoCheckmates(const BasicBoardT& board, BitBoardT checksFromBb, const PromoPieceT promoPiece) {
+      // Upgrade to FullBoardT
+      const FullBoardT boardWithPromos = copyBoard<FullBoardT, BasicBoardT>(board);
+
+      return countPromoCheckmates<Color, Dir>(boardWithPromos, checksFromBb, promoPiece);
     }
     
     template <typename BoardT, ColorT Color, PawnMove::DirT Dir>
@@ -619,22 +626,22 @@ namespace Chess {
       if(checksCount != 0) {
 	const BitBoardT rookChecksFromBb = movesDiscoveriesFromBb | orthogDirectChecksFromBb;
 	if(rookChecksFromBb != BbNone) {
-	  checkmates += countPromoCheckmates<BoardT, Color, Dir>(board, rookChecksFromBb, PromoRook);
+	  checkmates += countPromoCheckmates<Color, Dir>(board, rookChecksFromBb, PromoRook);
 	}
 
 	const BitBoardT bishopChecksFromBb = movesDiscoveriesFromBb | diagDirectChecksFromBb;
 	if(bishopChecksFromBb != BbNone) {
-	  // TODO
+	  checkmates += countPromoCheckmates<Color, Dir>(board, bishopChecksFromBb, PromoBishop);
 	}
 
 	const BitBoardT queenChecksFromBb = rookChecksFromBb | bishopChecksFromBb;
 	if(queenChecksFromBb != BbNone) {
-	  // TODO
+	  checkmates += countPromoCheckmates<Color, Dir>(board, queenChecksFromBb, PromoQueen);
 	}
 
 	const BitBoardT knightChecksFromBb = movesDiscoveriesFromBb | knightDirectChecksFromBb;
 	if(knightChecksFromBb != BbNone) {
-	  // TODO
+	  checkmates += countPromoCheckmates<Color, Dir>(board, knightChecksFromBb, PromoKnight);
 	}
       }
     }
