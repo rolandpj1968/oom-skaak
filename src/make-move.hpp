@@ -565,7 +565,7 @@ namespace Chess {
 
       while(checksFromBb) {
       	const SquareT from = Bits::popLsb(checksFromBb);
-      	const SquareT to = PawnMove::from2ToSq<Color, Dir>(to);
+      	const SquareT to = PawnMove::from2ToSq<Color, Dir>(from);
 
       	const FullBoardT newBoard = pushPawnToPromo<FullBoardT, Color>(board, from, to, promoPiece);
 
