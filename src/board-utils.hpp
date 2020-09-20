@@ -15,6 +15,11 @@ namespace Chess {
   
   namespace BoardUtils {
 
+    extern void printBb(BitBoardT bb);
+    
+    extern BasicBoardT emptyBoard();
+    extern BasicBoardT startingPosition();
+    
     template <typename BoardT>
     inline void addPiece(BoardT& board, const ColorT color, const SquareT square, const PieceT piece) {
       typename BoardT::ColorStateT& colorState = board.state[(size_t)color];
@@ -198,7 +203,6 @@ namespace Chess {
       return isValid(board, allYourKingAttackersBb);
     }
 
-    // TODO - this shouldn't be in this header file but it has awkward dependencies
     template <typename BoardT, ColorT Color>
     int getNChecks(const BoardT& board) {
       typedef typename BoardT::ColorStateT ColorStateT;
@@ -224,6 +228,132 @@ namespace Chess {
       const BitBoardT allMyKingAttackersBb = myKingAttackerBbs.pieceAttackerBbs[AllPieceTypes];
 
       return Bits::count(allMyKingAttackersBb);
+    }
+    
+    inline bool hasLegalPromoPieceMoves(const BasicColorStateImplT& colorState, const typename MoveGen::LegalMovesImplType<BasicBoardT>::LegalMovesT& legalMoves) {
+      return false; // no promo pieces
+    }
+    
+    inline bool hasLegalPromoPieceMoves(const FullColorStateImplT& colorState, const typename MoveGen::LegalMovesImplType<FullBoardT>::LegalMovesT& legalMoves) {
+      BitBoardT activePromos = (BitBoardT)colorState.promos.activePromos;
+      while(activePromos) {
+	const int promoIndex = Bits::popLsb(activePromos);
+	if(legalMoves.promoPieceMoves[promoIndex] != BbNone) {
+	  return true;
+	}
+      }
+      return false;
+    }
+    
+    template <typename BoardT, ColorT Color>
+    inline bool hasLegalMovesSlow(const BoardT& board) {
+      typedef typename MoveGen::LegalMovesImplType<BoardT>::LegalMovesT LegalMovesT;
+      
+      // Generate (legal) moves
+      const LegalMovesT legalMoves = MoveGen::genLegalMoves<BoardT, Color>(board);
+
+      // Are there any?
+      const BitBoardT legalNonPromoMovesBb =
+	  
+	legalMoves.pawnMoves.pushesOneBb | legalMoves.pawnMoves.pushesTwoBb |
+	legalMoves.pawnMoves.capturesLeftBb | legalMoves.pawnMoves.capturesRightBb |
+	legalMoves.pawnMoves.epCaptures.epLeftCaptureBb | legalMoves.pawnMoves.epCaptures.epRightCaptureBb |
+
+	legalMoves.pieceMoves[Knight1] |
+	legalMoves.pieceMoves[Knight2] |
+	  
+	legalMoves.pieceMoves[Bishop1] |
+	legalMoves.pieceMoves[Bishop2] |
+	  
+	legalMoves.pieceMoves[Rook1] |
+	legalMoves.pieceMoves[Rook2] |
+	  
+	legalMoves.pieceMoves[TheQueen] |
+
+	legalMoves.pieceMoves[TheKing] |
+
+	(BitBoardT)legalMoves.canCastleFlags;
+
+      return legalNonPromoMovesBb != BbNone || hasLegalPromoPieceMoves(board.state[(size_t)Color], legalMoves);
+    }
+
+    template <typename BoardT, ColorT Color>
+    inline bool hasLegalKingMoves(const BoardT& board, const bool debug = false) {
+      typedef typename BoardT::ColorStateT ColorStateT;
+      
+      typedef typename MoveGen::PieceBbsImplType<BoardT>::PieceBbsT PieceBbsT;
+      typedef typename MoveGen::ColorPieceBbsImplType<BoardT>::ColorPieceBbsT ColorPieceBbsT;
+      typedef typename MoveGen::PieceAttackBbsImplType<BoardT>::PieceAttackBbsT PieceAttackBbsT;
+      
+      const ColorT OtherColor = OtherColorT<Color>::value;
+      
+      const ColorStateT& myState = board.state[(size_t)Color];
+      const ColorStateT& yourState = board.state[(size_t)OtherColor];
+
+      const PieceBbsT& pieceBbs = MoveGen::genPieceBbs<BoardT, Color>(board);
+
+      const ColorPieceBbsT& myPieceBbs = pieceBbs.colorPieceBbs[(size_t)Color];
+      const ColorPieceBbsT& yourPieceBbs = pieceBbs.colorPieceBbs[(size_t)OtherColor];
+      
+      const BitBoardT allMyPiecesBb = myPieceBbs.bbs[AllPieceTypes];
+      const BitBoardT allYourPiecesBb = yourPieceBbs.bbs[AllPieceTypes];
+      const BitBoardT allPiecesBb = allMyPiecesBb | allYourPiecesBb;
+      
+      const SquareT myKingSq = myState.basic.pieceSquares[TheKing];
+      const BitBoardT myKingBb = bbForSquare(myKingSq);
+      
+      // Exclude my king from the all-pieces mask so we get x-raw attacks through the king (which are still check)
+      const PieceAttackBbsT yourAttackBbs = MoveGen::genPieceAttackBbs<BoardT, OtherColor>(yourState, allPiecesBb & ~myKingBb);
+
+      const BitBoardT myLegalKingMovesBb = MoveGen::KingAttacks[myKingSq] & ~allMyPiecesBb & ~yourAttackBbs.allAttacksBb;
+
+      if(debug) {
+      	printf("My king attacks:\n");
+      	BoardUtils::printBb(MoveGen::KingAttacks[myKingSq]);
+      	printf("\nAll my pieces:\n");
+      	BoardUtils::printBb(allMyPiecesBb);
+      	printf("\nAll your attacks:\n");
+      	BoardUtils::printBb(yourAttackBbs.allAttacksBb);
+      	printf("\nLegal king moves\n:");
+      	BoardUtils::printBb(myLegalKingMovesBb);
+      }
+
+      return myLegalKingMovesBb != BbNone;
+    }
+    
+
+    template <typename BoardT, ColorT Color>
+    inline bool hasLegalMoves(const BoardT& board) {
+      const bool hasKingMoves = hasLegalKingMoves<BoardT, Color>(board);
+      if(hasKingMoves) {
+      	return true;
+      }
+      
+      const bool hasMoves = hasLegalMovesSlow<BoardT, Color>(board);
+
+      if(hasKingMoves && !hasMoves) {
+      	static bool done = false;
+      	if(!done) {
+      	  printf("Booooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo\n");
+      	  BoardUtils::printBoard(board);
+      	  printf("\n");
+      	  hasLegalKingMoves<BoardT, Color>(board, true);
+      	  done = true;
+      	}
+      }
+
+      return hasMoves;
+    }
+
+    // TODO - this can be optimised to use common heritage with hasLegalKingMoves.
+    template <typename BoardT, ColorT Color>
+    inline int nLegalKingMoves(const BoardT& board) {
+      typedef typename MoveGen::LegalMovesImplType<BoardT>::LegalMovesT LegalMovesT;
+      
+      // Generate (legal) moves
+      const LegalMovesT legalMoves = MoveGen::genLegalMoves<BoardT, Color>(board);
+
+      return Bits::count(legalMoves.pieceMoves[TheKing]);
     }
     
     template <typename BoardT>
@@ -254,11 +384,6 @@ namespace Chess {
       return nAttacks;
     }
 
-    extern void printBb(BitBoardT bb);
-    
-    extern BasicBoardT emptyBoard();
-    extern BasicBoardT startingPosition();
-    
   } // namespace BoardUtils
   
 } // namespace Chess
