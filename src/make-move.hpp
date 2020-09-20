@@ -588,13 +588,6 @@ namespace Chess {
 	
 	const FullBoardT newBoard = pushPawnToPromo<FullBoardT, Color>(board, from, to, promoPiece); // Need to use Dir <<--- @#$%@#$%@#$%
 	
-	if(!BoardUtils::hasLegalMoves<FullBoardT, OtherColorT<Color>::value>(newBoard)) {
-	  printf("\n============================================== Promo CheckMate :( Color %s ===================================\n\n", (Color == White ? "W" : "B"));
-	  BoardUtils::printBoard(newBoard);
-	  printf("\n%s\n\n", Fen::toFen(newBoard, Color).c_str());
-	  printf("\n");
-	}
-	
 	checkmates += !BoardUtils::hasLegalMoves<FullBoardT, OtherColorT<Color>::value>(newBoard);
       }
 
@@ -616,13 +609,6 @@ namespace Chess {
 	const FullBoardT newBoard = (yourPromoPiecesBb & toBb) == BbNone
 	  ? captureWithPawnToPromo<FullBoardT, Color>(board, yourPieceMap, from, to, promoPiece)
 	  : capturePromoPieceWithPawnToPromo<FullBoardT, Color>(board, yourPieceMap, from, to, promoPiece);
-	
-	if(!BoardUtils::hasLegalMoves<FullBoardT, OtherColorT<Color>::value>(newBoard)) {
-	  printf("\n============================================== Promo CheckMate :( Color %s ===================================\n\n", (Color == White ? "W" : "B"));
-	  BoardUtils::printBoard(newBoard);
-	  printf("\n%s\n\n", Fen::toFen(newBoard, Color).c_str());
-	  printf("\n");
-	}
 	
 	checkmates += !BoardUtils::hasLegalMoves<FullBoardT, OtherColorT<Color>::value>(newBoard);
       }

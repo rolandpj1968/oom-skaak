@@ -165,13 +165,7 @@ namespace Chess {
       if(DoCheckMateStats) {
 	if(moveInfo.isDirectCheck || moveInfo.isDiscoveredCheck) {
 	  // It's checkmate if there are no legal moves
-	  
 	  if(!BoardUtils::hasLegalMoves<BoardT, Color>(board)) {
-	    printf("\n============================================== CheckMate :( Color %s ===================================\n\n", (Color == White ? "W" : "B"));
-	    BoardUtils::printBoard(board);
-	    printf("\n%s\n\n", Fen::toFen(board, Color).c_str());
-	    printf("\n");
-	    
 	    stats.checkmates++;
 	  }
 	}
