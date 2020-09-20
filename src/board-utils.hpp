@@ -284,8 +284,6 @@ namespace Chess {
       typedef typename MoveGen::PieceBbsImplType<BoardT>::PieceBbsT PieceBbsT;
       typedef typename MoveGen::ColorPieceBbsImplType<BoardT>::ColorPieceBbsT ColorPieceBbsT;
       typedef typename MoveGen::PieceAttackBbsImplType<BoardT>::PieceAttackBbsT PieceAttackBbsT;
-      // typedef typename PiecePinMaskBbsImplType<BoardT>::PiecePinMaskBbsT PiecePinMaskBbsT;
-      // typedef typename LegalMovesImplType<BoardT>::LegalMovesT LegalMovesT;
       
       const ColorT OtherColor = OtherColorT<Color>::value;
       
@@ -327,9 +325,9 @@ namespace Chess {
     template <typename BoardT, ColorT Color>
     inline bool hasLegalMoves(const BoardT& board) {
       const bool hasKingMoves = hasLegalKingMoves<BoardT, Color>(board);
-      // if(hasKingMoves) {
-      // 	return true;
-      // }
+      if(hasKingMoves) {
+      	return true;
+      }
       
       const bool hasMoves = hasLegalMovesSlow<BoardT, Color>(board);
 
