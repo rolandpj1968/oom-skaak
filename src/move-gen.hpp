@@ -1244,9 +1244,9 @@ namespace Chess {
       return DiscoveredCheckMasksT(myDiagDiscoveryPiecesBb, myOrthogDiscoveryPiecesBb, pawnPushDiscoveryMasksBb, pawnLeftDiscoveryMasksBb, pawnRightDiscoveryMasksBb, isLeftEpDiscovery, isRightEpDiscovery, isKingsideCastlingDiscovery, isQueensideCastlingDiscovery);
     }
 
-    template <typename BoardT, PieceT Piece>
-    inline BitBoardT genLegalPieceMoves(const typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT myAttackBbs, const BitBoardT legalMoveMaskBb, const typename PiecePinMaskBbsImplType<BoardT>::PiecePinMaskBbsT& pinMaskBbs, const BitBoardT allMyPiecesBb) {
-      return myAttackBbs.pieceAttackBbs[Piece] & legalMoveMaskBb & pinMaskBbs.piecePinMaskBbs[Piece] & ~allMyPiecesBb;
+    template <typename BoardT>
+    inline BitBoardT genLegalPieceMoves(const PieceT piece, const typename PieceAttackBbsImplType<BoardT>::PieceAttackBbsT myAttackBbs, const BitBoardT legalMoveMaskBb, const typename PiecePinMaskBbsImplType<BoardT>::PiecePinMaskBbsT& pinMaskBbs, const BitBoardT allMyPiecesBb) {
+      return myAttackBbs.pieceAttackBbs[piece] & legalMoveMaskBb & pinMaskBbs.piecePinMaskBbs[piece] & ~allMyPiecesBb;
     }
 
     template <typename BoardT>
@@ -1362,16 +1362,16 @@ namespace Chess {
 
       legalMoves.pawnMoves = genLegalPawnMoves<BoardT, Color>(board, yourPieceBbs, myAttackBbs, yourState.basic.epSquare, allYourPiecesBb, allPiecesBb, legalMoveMaskBb, pinMaskBbs);
       
-      legalMoves.pieceMoves[Knight1] = genLegalPieceMoves<BoardT, Knight1>(myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
-      legalMoves.pieceMoves[Knight2] = genLegalPieceMoves<BoardT, Knight2>(myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
+      legalMoves.pieceMoves[Knight1] = genLegalPieceMoves<BoardT>(Knight1, myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
+      legalMoves.pieceMoves[Knight2] = genLegalPieceMoves<BoardT>(Knight2, myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
 
-      legalMoves.pieceMoves[Bishop1] = genLegalPieceMoves<BoardT, Bishop1>(myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
-      legalMoves.pieceMoves[Bishop2] = genLegalPieceMoves<BoardT, Bishop2>(myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
+      legalMoves.pieceMoves[Bishop1] = genLegalPieceMoves<BoardT>(Bishop1, myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
+      legalMoves.pieceMoves[Bishop2] = genLegalPieceMoves<BoardT>(Bishop2, myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
       
-      legalMoves.pieceMoves[Rook1] = genLegalPieceMoves<BoardT, Rook1>(myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
-      legalMoves.pieceMoves[Rook2] = genLegalPieceMoves<BoardT, Rook2>(myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
+      legalMoves.pieceMoves[Rook1] = genLegalPieceMoves<BoardT>(Rook1, myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
+      legalMoves.pieceMoves[Rook2] = genLegalPieceMoves<BoardT>(Rook2, myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
 
-      legalMoves.pieceMoves[TheQueen] = genLegalPieceMoves<BoardT, TheQueen>(myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
+      legalMoves.pieceMoves[TheQueen] = genLegalPieceMoves<BoardT>(TheQueen, myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
       
       // Promo pieces
       genPromoPieceMoves(legalMoves, myState, myAttackBbs, legalMoveMaskBb, pinMaskBbs, allMyPiecesBb);
