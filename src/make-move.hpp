@@ -727,14 +727,14 @@ namespace Chess {
     template <typename BoardT, ColorT Color, PieceT Piece> struct PieceMoveFn<BoardT, Color, Piece, PieceCapture, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
-	return captureWithPiece<BoardT, Color, Piece>(board, yourPieceMap, from, to);
+	return captureWithPiece<BoardT, Color>(board, Piece, yourPieceMap, from, to);
       }
     };
 
     template <typename BoardT, ColorT Color, PieceT Piece> struct PieceMoveFn<BoardT, Color, Piece, PiecePromoCapture, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
-	return capturePromoPieceWithPiece<BoardT, Color, Piece>(board, yourPieceMap, from, to);
+	return capturePromoPieceWithPiece<BoardT, Color>(board, Piece, yourPieceMap, from, to);
       }
     };
 
@@ -900,14 +900,14 @@ namespace Chess {
     template <typename BoardT, ColorT Color> struct KingMoveFn<BoardT, Color, KingCapture, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
-	return captureWithPiece<BoardT, Color, TheKing>(board, yourPieceMap, from, to);
+	return captureWithPiece<BoardT, Color>(board, TheKing, yourPieceMap, from, to);
       }
     };
 
     template <typename BoardT, ColorT Color> struct KingMoveFn<BoardT, Color, KingPromoCapture, ColorPieceMapT> {
       typedef ColorPieceMapT PieceMapImplT;
       static BoardT fn(const BoardT& board, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
-	return capturePromoPieceWithPiece<BoardT, Color, TheKing>(board, yourPieceMap, from, to);
+	return capturePromoPieceWithPiece<BoardT, Color>(board, TheKing, yourPieceMap, from, to);
       }
     };
 

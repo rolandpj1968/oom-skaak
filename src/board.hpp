@@ -192,11 +192,6 @@ namespace Chess {
       pieces.basic.castlingRights = (CastlingRightsT) (pieces.basic.castlingRights & ~CastlingRightsForPiece[piece]);
     }
 
-    // template <typename BoardT, ColorT Color, PieceT Piece>
-    // inline void removePiece(BoardT& board, const SquareT square) {
-    //   removePiece<BoardT, Color>(board, square, Piece);
-    // }
-
     template <typename BoardT>
     inline void placePiece(BoardT& board, const ColorT color, const SquareT square, const PieceT piece) {
       typename BoardT::ColorStateT &colorState = board.state[(size_t)color];
@@ -238,11 +233,6 @@ namespace Chess {
       placePawn<BoardT>(board, Color, square);
     }
 
-    // template <typename BoardT, ColorT Color, PieceT Piece>
-    // inline void placePiece(BoardT& board, const SquareT square) {
-    //   placePiece<BoardT, Color>(board, square, Piece);
-    // }
-    
     template <typename BoardT, ColorT Color>
     inline BoardT pushPiece(const BoardT& oldBoard, PieceT piece, const SquareT from, const SquareT to) {
       BoardT board = oldBoard;
@@ -257,20 +247,6 @@ namespace Chess {
       return board;
     }
 
-    // template <typename BoardT, ColorT Color, PieceT Piece>
-    // inline BoardT pushPiece(const BoardT& oldBoard, const SquareT from, const SquareT to) {
-    //   BoardT board = oldBoard;
-
-    //   removePiece<BoardT, Color>(board, from, Piece);
-
-    //   placePiece<BoardT, Color>(board, to, Piece);
-
-    //   // Clear en-passant square
-    //   board.state[(size_t)Color].basic.epSquare = InvalidSquare;
-      
-    //   return board;
-    // }
-
     template <typename BoardT, ColorT Color>
     inline BoardT pushPromoPiece(const BoardT& oldBoard, const int promoIndex, const PromoPieceT promoPiece, const SquareT to) {
       BoardT board = oldBoard;
@@ -283,31 +259,31 @@ namespace Chess {
       return board;
     }
     
-    template <typename BoardT, ColorT Color, PieceT Piece>
-    inline BoardT captureWithPiece(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
+    template <typename BoardT, ColorT Color>
+    inline BoardT captureWithPiece(const BoardT& oldBoard, PieceT piece, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
       BoardT board = oldBoard;
 
       removePieceOrPawn<BoardT, OtherColorT<Color>::value>(board, yourPieceMap, to);
 
-      removePiece<BoardT, Color>(board, from, Piece);
+      removePiece<BoardT, Color>(board, from, piece);
 
-      placePiece<BoardT, Color>(board, to, Piece);
+      placePiece<BoardT, Color>(board, to, piece);
 
       // Clear en-passant square
       board.state[(size_t)Color].basic.epSquare = InvalidSquare;
       
       return board;
     }
-
-    template <typename BoardT, ColorT Color, PieceT Piece>
-    inline BoardT capturePromoPieceWithPiece(const BoardT& oldBoard, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
+    
+    template <typename BoardT, ColorT Color>
+    inline BoardT capturePromoPieceWithPiece(const BoardT& oldBoard, PieceT piece, const ColorPieceMapT& yourPieceMap, const SquareT from, const SquareT to) {
       BoardT board = oldBoard;
 
       removePromoPiece<BoardT, OtherColorT<Color>::value>(board, yourPieceMap, to);
       
-      removePiece<BoardT, Color>(board, from, Piece);
+      removePiece<BoardT, Color>(board, from, piece);
 
-      placePiece<BoardT, Color>(board, to, Piece);
+      placePiece<BoardT, Color>(board, to, piece);
 
       // Clear en-passant square
       board.state[(size_t)Color].basic.epSquare = InvalidSquare;
